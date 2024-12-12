@@ -1,11 +1,11 @@
 {
-  "name": "exa-server",
+  "name": "@exa-labs/exa-mcp-server",
   "version": "0.1.0",
   "description": "A Model Context Protocol server with Exa which does web search",
   "private": true,
   "type": "module",
   "bin": {
-    "exa-server": "./build/index.js"
+    "exa-mcp-server": "./build/index.js"
   },
   "files": [
     "build"
