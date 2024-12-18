@@ -6,6 +6,8 @@ A Model Context Protocol (MCP) server lets AI assistants like Claude use the Exa
 
 Demo video https://www.loom.com/share/ac676f29664e4c6cb33a2f0a63772038?sid=0e72619f-5bfc-415d-a705-63d326373f60
 
+<a href="https://glama.ai/mcp/servers/8gfe5kbp5y"><img width="380" height="200" src="https://glama.ai/mcp/servers/8gfe5kbp5y/badge" alt="Exa Server MCP server" /></a>
+
 ## What is MCP? 🤔
 
 The Model Context Protocol (MCP) is a system that lets AI apps, like Claude Desktop, connect to external tools and data sources. It gives a clear and safe way for AI assistants to work with local services and APIs while keeping the user in control.
