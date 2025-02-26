@@ -16,16 +16,25 @@
           pname = "exa-mcp-server";
           version = "0.1.0";
           src = ./.;
-          npmDepsHash = pkgs.lib.fakeHash;
+          npmDepsHash = "sha256-w8OYNs/ETFcyni5C+uR8F7H4KHQ7uUHobicaIlJVawo=";
           makeCacheWritable = true;
-          npmFlags = [ "--ignore-scripts" ];
           
+          buildPhase = ''
+            # First run the build
+            npm run build
+            
+            # Make the output directory
+            mkdir -p $out/lib/node_modules/exa-mcp-server
+          '';
+
           installPhase = ''
+            # Copy the entire package with node_modules
+            cp -r . $out/lib/node_modules/exa-mcp-server/
+            
+            # Create bin directory and symlink
             mkdir -p $out/bin
-            cp -r build $out/
-            cp package.json $out/
-            chmod +x $out/build/index.js
-            ln -s $out/build/index.js $out/bin/exa-mcp-server
+            chmod +x $out/lib/node_modules/exa-mcp-server/build/index.js
+            ln -s $out/lib/node_modules/exa-mcp-server/build/index.js $out/bin/exa-mcp-server
           '';
 
           meta = with pkgs.lib; {
