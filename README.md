@@ -135,6 +135,8 @@ The Exa MCP server includes the following tools:
 - **crawling**: Extracts content from specific URLs, useful for reading articles, PDFs, or any web page when you have the exact URL.
 - **competitor_finder**: Identifies competitors of a company by searching for businesses offering similar products or services.
 - **linkedin_search**: Search LinkedIn for companies and people using Exa AI. Simply include company names, person names, or specific LinkedIn URLs in your query.
+- **multi_web_search_exa**: Search the web using Exa AI for multiple queries simultaneously. Performs real-time web searches for each query and returns aggregated content.
+- **multi_crawling**: Extract content from multiple specific URLs using Exa AI. Performs targeted crawling of web pages to retrieve their full content for each specified URL.
 
 You can choose which tools to enable by adding the `--tools` parameter to your Claude Desktop configuration:
 
@@ -147,7 +149,7 @@ You can choose which tools to enable by adding the `--tools` parameter to your C
       "command": "npx",
       "args": [
         "/path/to/exa-mcp-server/build/index.js",
-        "--tools=web_search_exa,research_paper_search,twitter_search,company_research,crawling,competitor_finder,linkedin_search"
+        "--tools=web_search_exa,research_paper_search,twitter_search,company_research,crawling,competitor_finder,linkedin_search,multi_web_search_exa,multi_crawling"
       ],
       "env": {
         "EXA_API_KEY": "your-api-key-here"
@@ -166,7 +168,7 @@ For enabling multiple tools, use a comma-separated list:
       "command": "npx",
       "args": [
         "/path/to/exa-mcp-server/build/index.js",
-        "--tools=web_search_exa,research_paper_search,twitter_search,company_research,crawling,competitor_finder,linkedin_search"
+        "--tools=web_search_exa,research_paper_search,twitter_search,company_research,crawling,competitor_finder,linkedin_search,multi_web_search_exa,multi_crawling"
       ],
       "env": {
         "EXA_API_KEY": "your-api-key-here"
