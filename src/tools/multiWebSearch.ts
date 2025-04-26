@@ -38,8 +38,7 @@ toolRegistry["multi_web_search_exa"] = {
           contents: {
             text: {
               maxCharacters: API_CONFIG.DEFAULT_MAX_CHARACTERS
-            },
-            livecrawl: 'always'
+            }
           }
         };
         
@@ -49,12 +48,16 @@ toolRegistry["multi_web_search_exa"] = {
           const response = await axiosInstance.post<ExaSearchResponse>(
             API_CONFIG.ENDPOINTS.SEARCH,
             searchRequest,
-            { timeout: 25000 } // Individual timeout
+            { timeout: 5000 } // Individual timeout
           );
           logger.log(`Received response for query: "${query}" from Exa API`);
           return { query, data: response.data };
         } catch (error) {
           logger.error(`Error searching for query "${query}": ${error}`);
+          if (axios.isAxiosError(error) && error.response?.status === 429) {
+            const infoMessage = "Our rate limit for an individual account is currently 5 requests per second. If you need a higher rate limit, you can email hello@exa.ai to discuss an Enterprise plan.";
+            return { query, info: infoMessage };
+          }
           let errorMessage = `Search error for query "${query}": ${error instanceof Error ? error.message : String(error)}`;
           let statusCode: string | number = 'unknown';
           if (axios.isAxiosError(error)) {
@@ -70,15 +73,18 @@ toolRegistry["multi_web_search_exa"] = {
       logger.log("All searches completed.");
 
       const aggregatedResults = results.map(result => {
-          if (result.isError) {
-              return { query: result.query, error: result.error };
-          }
-          if (!result.data || !result.data.results) {
-              logger.log(`Warning: Empty or invalid response from Exa API for query "${result.query}"`);
-              return { query: result.query, message: "No search results found." };
-          }
-          logger.log(`Found ${result.data.results.length} results for query "${result.query}"`);
-          return { query: result.query, results: result.data.results };
+        if ((result as any).info) {
+          return { query: result.query, info: (result as any).info };
+        }
+        if (result.isError) {
+          return { query: result.query, error: result.error };
+        }
+        if (!result.data || !result.data.results) {
+          logger.log(`Warning: Empty or invalid response from Exa API for query "${result.query}"`);
+          return { query: result.query, message: "No search results found." };
+        }
+        logger.log(`Found ${result.data.results.length} results for query "${result.query}"`);
+        return { query: result.query, results: result.data.results };
       });
 
       const finalResult = {
