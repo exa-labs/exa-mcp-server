@@ -1,10 +1,9 @@
 import { z } from "zod";
 import axios from "axios";
 import { toolRegistry, API_CONFIG } from "./config.js";
-import { ExaCrawlRequest } from "../types.js"; // Assuming ExaCrawlResponse might be implicitly handled or part of a generic response type
+import { ExaCrawlRequest } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 
-// Register the multi-crawling tool
 toolRegistry["multi_crawling"] = {
   name: "multi_crawling",
   description: "Extract content from multiple specific URLs using Exa AI. Performs targeted crawling of web pages to retrieve their full content. Returns the complete text content for each specified URL.",
@@ -18,7 +17,6 @@ toolRegistry["multi_crawling"] = {
     logger.start(JSON.stringify(urls));
     
     try {
-      // Create a fresh axios instance for each request
       const axiosInstance = axios.create({
         baseURL: API_CONFIG.BASE_URL,
         headers: {
@@ -26,11 +24,11 @@ toolRegistry["multi_crawling"] = {
           'content-type': 'application/json',
           'x-api-key': process.env.EXA_API_KEY || ''
         },
-        timeout: 45000 // Potentially longer timeout for multiple crawls
+        timeout: 25000
       });
 
       const crawlRequest: ExaCrawlRequest = {
-        ids: urls, // Use the array of URLs directly
+        ids: urls,
         text: true,
         livecrawl: 'always'
       };
@@ -38,16 +36,14 @@ toolRegistry["multi_crawling"] = {
       logger.log(`Crawling URLs: ${urls.join(', ')}`);
       logger.log("Sending crawling request to Exa API for multiple URLs");
       
-      // Assuming the response structure handles multiple results if multiple IDs are sent
       const response = await axiosInstance.post(
-        '/contents', // Use the correct endpoint from config if available, assuming '/contents'
+        '/contents', 
         crawlRequest,
-        { timeout: 45000 } // Use configured timeout
+        { timeout: 45000 }
       );
       
       logger.log("Received crawling response from Exa API");
 
-      // Adjust response handling based on actual Exa API multi-crawl response structure
       if (!response.data || !response.data.results || response.data.results.length === 0) {
         logger.log("Warning: Empty or invalid response from Exa API for multi-crawling");
         return {
@@ -63,7 +59,6 @@ toolRegistry["multi_crawling"] = {
       const result = {
         content: [{
           type: "text" as const,
-          // Assuming response.data already contains the aggregated results for all URLs
           text: JSON.stringify(response.data, null, 2) 
         }]
       };
@@ -74,7 +69,6 @@ toolRegistry["multi_crawling"] = {
       logger.error(error);
       
       if (axios.isAxiosError(error)) {
-        // Handle Axios errors specifically
         const statusCode = error.response?.status || 'unknown';
         const errorMessage = error.response?.data?.message || error.message;
         
@@ -88,7 +82,6 @@ toolRegistry["multi_crawling"] = {
         };
       }
       
-      // Handle generic errors
       return {
         content: [{
           type: "text" as const,
@@ -98,6 +91,5 @@ toolRegistry["multi_crawling"] = {
       };
     }
   },
-  // Decide if this should be enabled by default - setting to false initially like the single crawler
   enabled: false 
-}; 
+};

@@ -12,7 +12,7 @@ export interface ExaSearchRequest {
     text: {
       maxCharacters?: number;
     } | boolean;
-    livecrawl?: 'always' | 'fallback';
+    livecrawl?: 'always' | 'fallback' | 'never';
     subpages?: number;
     subpageTarget?: string[];
   };
@@ -47,5 +47,5 @@ export interface ExaSearchResponse {
 export interface SearchArgs {
   query: string;
   numResults?: number;
-  livecrawl?: 'always' | 'fallback';
+  livecrawl?: 'always' | 'fallback' | 'never';
 }

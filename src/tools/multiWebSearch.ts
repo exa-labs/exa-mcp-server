@@ -4,10 +4,9 @@ import { toolRegistry, API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 
-// Register the multi web search tool
 toolRegistry["multi_web_search_exa"] = {
   name: "multi_web_search_exa",
-  description: "Search the web using Exa AI for multiple queries simultaneously. Performs real-time web searches for each query and returns aggregated content from the most relevant websites.",
+  description: "Search the web using Exa AI for multiple queries simultaneously. Performs real-time web searches for each query and returns aggregated content. To avoid potential rate limits (5 requests/second), it's recommended to send fewer than 5 queries per call.",
   schema: {
     queries: z.array(z.string()).describe("An array of search queries"),
     numResults: z.number().optional().describe("Number of search results to return per query (default: 5)")
@@ -19,7 +18,6 @@ toolRegistry["multi_web_search_exa"] = {
     logger.start(JSON.stringify(queries));
     
     try {
-      // Create a fresh axios instance for shared configuration
       const axiosInstance = axios.create({
         baseURL: API_CONFIG.BASE_URL,
         headers: {
@@ -27,7 +25,7 @@ toolRegistry["multi_web_search_exa"] = {
           'content-type': 'application/json',
           'x-api-key': process.env.EXA_API_KEY || ''
         },
-        timeout: 25000 // Timeout for individual requests
+        timeout: 25000
       });
 
       const searchPromises = queries.map(async (query: string) => {
@@ -38,7 +36,8 @@ toolRegistry["multi_web_search_exa"] = {
           contents: {
             text: {
               maxCharacters: API_CONFIG.DEFAULT_MAX_CHARACTERS
-            }
+            },
+            livecrawl: 'never'
           }
         };
         
@@ -48,7 +47,7 @@ toolRegistry["multi_web_search_exa"] = {
           const response = await axiosInstance.post<ExaSearchResponse>(
             API_CONFIG.ENDPOINTS.SEARCH,
             searchRequest,
-            { timeout: 5000 } // Individual timeout
+            { timeout: 25000 }
           );
           logger.log(`Received response for query: "${query}" from Exa API`);
           return { query, data: response.data };
@@ -96,7 +95,7 @@ toolRegistry["multi_web_search_exa"] = {
       
       logger.complete();
       return finalResult;
-    } catch (error) { // Catch potential errors in Promise.all or setup
+    } catch (error) { 
       logger.error(error);
       return {
         content: [{
@@ -108,4 +107,4 @@ toolRegistry["multi_web_search_exa"] = {
     }
   },
   enabled: true // Enabled by default, adjust as needed
-}; 
+};
