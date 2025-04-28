@@ -16,7 +16,7 @@
           pname = "exa-mcp-server";
           version = "0.1.0";
           src = ./.;
-          npmDepsHash = "sha256-w8OYNs/ETFcyni5C+uR8F7H4KHQ7uUHobicaIlJVawo=";
+          npmDepsHash = "sha256-/MIyf3tDnLrw4kEI2sEd6b92PhrSmzEjcxllbljE69c=";
           makeCacheWritable = true;
           
           buildPhase = ''
