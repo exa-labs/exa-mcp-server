@@ -287,7 +287,21 @@ This opens an interactive interface where you can explore the server's capabilit
    # Windows
    type "%APPDATA%\Claude\logs\mcp*.log"
    ```
+Contributing 🙌
 
+We’re thrilled to welcome contributions of all kinds—code, docs, bug reports, or ideas! Here’s how to get involved:
+Fork the Repo: Create your own copy to work on.
+Check Issues: Browse the Issues tab for tasks labeled good first issue or help wanted.
+Make Changes: Write clear, tested code following our Contributing Guidelines.
+Submit a Pull Request: Include a detailed description of your changes and reference any related issues.
+Join the Community: Share feedback or ask questions on Discord.
+Ideas for Contributions
+Enhance Caching: Add support for persistent caching to a database like SQLite.
+Improve Error Handling: Implement retry logic for transient API failures.
+Add Filters: Allow users to filter search results by domain, date, or language.
+Optimize Performance: Reduce latency in search result processing.
+
+Write Docs: Improve README clarity or add tutorials for new users.
 ## Acknowledgments 🙏
 
 * [Exa AI](https://exa.ai) for their powerful search API
