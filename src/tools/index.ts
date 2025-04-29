@@ -9,6 +9,8 @@ import "./companyResearch.js";
 import "./crawling.js";
 import "./competitorFinder.js";
 import "./linkedInSearch.js";
+import "./multiWebSearch.js";
+import "./multiCrawling.js";
 
 // When adding a new tool, import it here
 // import "./newTool.js"; 
