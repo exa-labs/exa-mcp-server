@@ -38,6 +38,7 @@
     "@modelcontextprotocol/sdk": "^1.7.0",
     "axios": "^1.7.8",
     "dotenv": "^16.4.5",
+    "mcp-evals": "^1.0.18",
     "yargs": "^17.7.2",
     "zod": "^3.22.4"
   },
