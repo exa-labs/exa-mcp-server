@@ -17,5 +17,13 @@ startCommand:
       if (config.exaApiKey) {
         env.EXA_API_KEY = config.exaApiKey
       }
-      return { command: 'node', args: ['build/index.js'], env }
+      return {
+        command: 'node',
+        args: [
+          'build/index.js',
+          '--tools',
+          'web_search_exa,research_paper_search,company_research,crawling,competitor_finder,linkedin_search,wikipedia_search_exa,github_search'
+        ],
+        env
+      }
     }
