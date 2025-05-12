@@ -187,3 +187,5 @@ npx exa-mcp-server --list-tools
 ---
 
 Built with ❤️ by team Exa
+
+This is a simple test sentence added to the bottom of the README.
