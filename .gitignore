@@ -2,3 +2,7 @@ node_modules/
 build/
 *.log
 .env*
+.direnv/
+.envrc
+result
+result-*
