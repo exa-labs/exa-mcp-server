@@ -5,7 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 
-export function registerGithubSearchTool(server: McpServer): void {
+export function registerGithubSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "github_search_exa",
     "Search GitHub repositories and code using Exa AI - finds repositories, code snippets, documentation, and developer profiles on GitHub. Useful for finding open source projects, code examples, and technical resources.",
@@ -27,7 +27,7 @@ export function registerGithubSearchTool(server: McpServer): void {
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': process.env.EXA_API_KEY || ''
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
           },
           timeout: 25000
         });

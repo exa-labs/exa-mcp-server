@@ -4,7 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { createRequestLogger } from "../utils/logger.js";
 
-export function registerCrawlingTool(server: McpServer): void {
+export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "crawling_exa",
     "Extract and crawl content from specific URLs using Exa AI - retrieves full text content, metadata, and structured information from web pages. Ideal for extracting detailed content from known URLs.",
@@ -25,7 +25,7 @@ export function registerCrawlingTool(server: McpServer): void {
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': process.env.EXA_API_KEY || ''
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
           },
           timeout: 25000
         });

@@ -5,7 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 
-export function registerLinkedInSearchTool(server: McpServer): void {
+export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "linkedin_search_exa",
     "Search LinkedIn profiles and companies using Exa AI - finds professional profiles, company pages, and business-related content on LinkedIn. Useful for networking, recruitment, and business research.",
@@ -27,7 +27,7 @@ export function registerLinkedInSearchTool(server: McpServer): void {
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': process.env.EXA_API_KEY || ''
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
           },
           timeout: 25000
         });

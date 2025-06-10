@@ -5,7 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 
-export function registerWebSearchTool(server: McpServer): void {
+export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "web_search_exa",
     "Search the web using Exa AI - performs real-time web searches and can scrape content from specific URLs. Supports configurable result counts and returns the content from the most relevant websites.",
@@ -26,7 +26,7 @@ export function registerWebSearchTool(server: McpServer): void {
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': process.env.EXA_API_KEY || ''
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
           },
           timeout: 25000
         });

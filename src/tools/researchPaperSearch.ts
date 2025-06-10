@@ -5,7 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 
-export function registerResearchPaperSearchTool(server: McpServer): void {
+export function registerResearchPaperSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "research_paper_search_exa",
     "Search for academic papers and research using Exa AI - specializes in finding scholarly articles, research papers, and academic content. Returns detailed information about research findings and academic sources.",
@@ -26,7 +26,7 @@ export function registerResearchPaperSearchTool(server: McpServer): void {
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': process.env.EXA_API_KEY || ''
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
           },
           timeout: 25000
         });

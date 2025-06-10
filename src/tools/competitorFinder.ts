@@ -5,7 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 
-export function registerCompetitorFinderTool(server: McpServer): void {
+export function registerCompetitorFinderTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "competitor_finder_exa",
     "Find competitors for a business using Exa AI - identifies similar companies, competitive landscape analysis, and market positioning. Helps discover direct and indirect competitors in any industry.",
@@ -27,7 +27,7 @@ export function registerCompetitorFinderTool(server: McpServer): void {
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': process.env.EXA_API_KEY || ''
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
           },
           timeout: 25000
         });
