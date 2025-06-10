@@ -11,6 +11,7 @@ import { registerCompetitorFinderTool } from "./tools/competitorFinder.js";
 import { registerLinkedInSearchTool } from "./tools/linkedInSearch.js";
 import { registerWikipediaSearchTool } from "./tools/wikipediaSearch.js";
 import { registerGithubSearchTool } from "./tools/githubSearch.js";
+import { registerResearchTaskTools } from "./tools/researchTasks.js";
 import { log } from "./utils/logger.js";
 
 // Configuration schema for the EXA API key and tool selection
@@ -29,7 +30,10 @@ const availableTools = {
   'competitor_finder_exa': { name: 'Competitor Finder', description: 'Find business competitors', enabled: true },
   'linkedin_search_exa': { name: 'LinkedIn Search', description: 'Search LinkedIn profiles and companies', enabled: true },
   'wikipedia_search_exa': { name: 'Wikipedia Search', description: 'Search Wikipedia articles', enabled: true },
-  'github_search_exa': { name: 'GitHub Search', description: 'Search GitHub repositories and code', enabled: true }
+  'github_search_exa': { name: 'GitHub Search', description: 'Search GitHub repositories and code', enabled: true },
+  'exa_research_create_task': { name: 'Research Task Creator', description: 'Create async research tasks using Exa AI', enabled: true },
+  'exa_research_get_task': { name: 'Research Task Status', description: 'Get status and results of research tasks', enabled: true },
+  'exa_research_list_tasks': { name: 'Research Tasks List', description: 'List all research tasks with pagination', enabled: true }
 };
 
 /**
@@ -50,7 +54,10 @@ const availableTools = {
 export default function ({ config }: { config: z.infer<typeof configSchema> }) {
   try {
     // Set the API key in environment for tool functions to use
-    process.env.EXA_API_KEY = config.exaApiKey;
+    // Only override if config provides a key and environment doesn't have one
+    if (config.exaApiKey && !process.env.EXA_API_KEY) {
+      process.env.EXA_API_KEY = config.exaApiKey;
+    }
     
     if (config.debug) {
       log("Starting Exa MCP Server in debug mode");
@@ -113,6 +120,20 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
     if (shouldRegisterTool('github_search_exa')) {
       registerGithubSearchTool(server);
       registeredTools.push('github_search_exa');
+    }
+    
+    // Register research task tools
+    if (shouldRegisterTool('exa_research_create_task') || shouldRegisterTool('exa_research_get_task') || shouldRegisterTool('exa_research_list_tasks')) {
+      registerResearchTaskTools(server);
+      if (shouldRegisterTool('exa_research_create_task')) {
+        registeredTools.push('exa_research_create_task');
+      }
+      if (shouldRegisterTool('exa_research_get_task')) {
+        registeredTools.push('exa_research_get_task');
+      }
+      if (shouldRegisterTool('exa_research_list_tasks')) {
+        registeredTools.push('exa_research_list_tasks');
+      }
     }
     
     if (config.debug) {

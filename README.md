@@ -107,6 +107,9 @@ The Exa MCP server includes the following tools, which can be enabled by adding 
 - **linkedin_search**: Search LinkedIn for companies and people using Exa AI. Simply include company names, person names, or specific LinkedIn URLs in your query.
 - **wikipedia_search_exa**: Search and retrieve information from Wikipedia articles on specific topics, giving you accurate, structured knowledge from the world's largest encyclopedia.
 - **github_search**: Search GitHub repositories using Exa AI - performs real-time searches on GitHub.com to find relevant repositories, issues, and GitHub accounts.
+- **exa_research_create_task**: Create asynchronous research tasks using Exa AI's research endpoint. Returns a task ID for tracking progress.
+- **exa_research_get_task**: Get the status and results of research tasks by task ID. Use this to check if a task is complete and retrieve comprehensive research results.
+- **exa_research_list_tasks**: List all your research tasks with pagination support. View task history, status, and metadata.
 
 You can choose which tools to enable by adding the `--tools` parameter to your Claude Desktop configuration:
 
@@ -120,7 +123,7 @@ You can choose which tools to enable by adding the `--tools` parameter to your C
       "args": [
         "-y",
         "exa-mcp-server",
-        "--tools=web_search_exa,research_paper_search,company_research,crawling,competitor_finder,linkedin_search,wikipedia_search_exa,github_search"
+        "--tools=web_search_exa,research_paper_search,company_research,crawling,competitor_finder,linkedin_search,wikipedia_search_exa,github_search,exa_research_create_task,exa_research_get_task,exa_research_list_tasks"
       ],
       "env": {
         "EXA_API_KEY": "your-api-key-here"
@@ -140,7 +143,7 @@ For enabling multiple tools, use a comma-separated list:
       "args": [
         "-y",
         "exa-mcp-server",
-        "--tools=web_search_exa,research_paper_search,company_research,crawling,competitor_finder,linkedin_search,wikipedia_search_exa,github_search"
+        "--tools=web_search_exa,research_paper_search,company_research,crawling,competitor_finder,linkedin_search,wikipedia_search_exa,github_search,exa_research_create_task,exa_research_get_task,exa_research_list_tasks"
       ],
       "env": {
         "EXA_API_KEY": "your-api-key-here"
@@ -151,6 +154,67 @@ For enabling multiple tools, use a comma-separated list:
 ```
 
 If you don't specify any tools, all tools enabled by default will be used.
+
+## Research Tools Usage 🔬
+
+The Exa MCP server now includes powerful research tools that leverage Exa's asynchronous research endpoint:
+
+### Creating Research Tasks
+
+Use `exa_research_create_task` to create comprehensive research tasks:
+
+```
+Create a research task: "What are the latest developments in quantum computing hardware from 2024?"
+```
+
+This will return a task ID that you can use to check progress and retrieve results.
+
+### Parameters for Research Tasks:
+
+- **instructions** (required): Clear description of what you want to research
+- **model** (optional): Research model to use (default: "exa-research")  
+- **outputSchema** (optional): JSON schema for structured output format
+- **inferSchema** (optional): Let the AI generate an appropriate output schema
+
+### Getting Research Results
+
+Use `exa_research_get_task` with the task ID to check status and retrieve results:
+
+```
+Check research task status using task ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+### Listing Research Tasks
+
+Use `exa_research_list_tasks` to view all your research tasks with pagination:
+
+```
+List my research tasks (shows recent tasks with status and metadata)
+```
+
+**Pagination Parameters:**
+- **limit** (optional): Number of tasks per page (max 200, default: 50)
+- **cursor** (optional): Token for next page (returned from previous list call)
+
+The task will have one of these statuses:
+- `pending`: Task is queued
+- `running`: Research is in progress  
+- `completed`: Research finished successfully
+- `failed`: Task encountered an error
+
+### Research Workflow Example:
+
+1. **Create Task**: Ask Claude to create a research task on a topic
+2. **Get Task ID**: The system returns a unique task identifier  
+3. **List Tasks**: View all your research tasks and their current status
+4. **Check Status**: Periodically check the task status using the ID
+5. **Retrieve Results**: Once completed, get comprehensive research findings with citations
+
+The research endpoint is particularly powerful for:
+- Academic research with citations
+- Market analysis and competitive intelligence
+- Technical deep-dives on emerging technologies
+- Comprehensive topic overviews with structured data
 
 ### 4. Restart Claude Desktop
 
