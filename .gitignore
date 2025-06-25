@@ -3,5 +3,3 @@ build/
 *.log
 .env*
 .smithery/
-
-exa-mcp-server-debug/specs/exa-tool-failure-hypotheses.md
