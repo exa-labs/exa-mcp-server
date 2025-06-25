@@ -5,17 +5,17 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 
-export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerWikipediaSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
-    "web_search_exa",
-    "Search the web using Exa AI - performs real-time web searches and can scrape content from specific URLs. Supports configurable result counts and returns the content from the most relevant websites.",
+    "wikipedia_search_exa",
+    "Search Wikipedia articles using Exa AI - finds comprehensive, factual information from Wikipedia entries. Ideal for research, fact-checking, and getting authoritative information on various topics.",
     {
-      query: z.string().describe("Search query"),
-      numResults: z.number().optional().describe("Number of search results to return (default: 5)")
+      query: z.string().describe("Wikipedia search query (topic, person, place, concept, etc.)"),
+      numResults: z.number().optional().describe("Number of Wikipedia articles to return (default: 5)")
     },
     async ({ query, numResults }) => {
-      const requestId = `web_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'web_search_exa');
+      const requestId = `wikipedia_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const logger = createRequestLogger(requestId, 'wikipedia_search_exa');
       
       logger.start(query);
       
@@ -32,8 +32,8 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
         });
 
         const searchRequest: ExaSearchRequest = {
-          query,
-          type: "auto",
+          query: `${query} site:wikipedia.org`,
+          type: "neural",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           contents: {
             text: {
@@ -43,7 +43,7 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           }
         };
         
-        logger.log("Sending request to Exa API");
+        logger.log("Sending request to Exa API for Wikipedia search");
         
         const response = await axiosInstance.post<ExaSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
@@ -58,12 +58,12 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           return {
             content: [{
               type: "text" as const,
-              text: "No search results found. Please try a different query."
+              text: "No Wikipedia articles found. Please try a different query."
             }]
           };
         }
 
-        logger.log(`Found ${response.data.results.length} results`);
+        logger.log(`Found ${response.data.results.length} Wikipedia articles`);
         
         const result = {
           content: [{
@@ -86,7 +86,7 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           return {
             content: [{
               type: "text" as const,
-              text: `Search error (${statusCode}): ${errorMessage}`
+              text: `Wikipedia search error (${statusCode}): ${errorMessage}`
             }],
             isError: true,
           };
@@ -96,7 +96,7 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
         return {
           content: [{
             type: "text" as const,
-            text: `Search error: ${error instanceof Error ? error.message : String(error)}`
+            text: `Wikipedia search error: ${error instanceof Error ? error.message : String(error)}`
           }],
           isError: true,
         };

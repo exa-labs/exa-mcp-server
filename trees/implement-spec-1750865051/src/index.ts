@@ -49,6 +49,9 @@ const availableTools = {
 
 export default function ({ config }: { config: z.infer<typeof configSchema> }) {
   try {
+    // Set the API key in environment for tool functions to use
+    // process.env.EXA_API_KEY = config.exaApiKey;
+    
     if (config.debug) {
       log("Starting Exa MCP Server in debug mode");
     }
@@ -69,31 +72,55 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
       return availableTools[toolId as keyof typeof availableTools]?.enabled ?? false;
     };
 
-    // Helper function to register a tool if enabled
-    const registerToolIfEnabled = (toolId: string, registerFn: Function): void => {
-      if (shouldRegisterTool(toolId)) {
-        registerFn(server, config);
-        registeredTools.push(toolId);
-      }
-    };
-
     // Register tools based on configuration
     const registeredTools: string[] = [];
     
-    registerToolIfEnabled('web_search_exa', registerWebSearchTool);
-    registerToolIfEnabled('research_paper_search_exa', registerResearchPaperSearchTool);
-    registerToolIfEnabled('company_research_exa', registerCompanyResearchTool);
-    registerToolIfEnabled('crawling_exa', registerCrawlingTool);
-    registerToolIfEnabled('competitor_finder_exa', registerCompetitorFinderTool);
-    registerToolIfEnabled('linkedin_search_exa', registerLinkedInSearchTool);
-    registerToolIfEnabled('wikipedia_search_exa', registerWikipediaSearchTool);
-    registerToolIfEnabled('github_search_exa', registerGithubSearchTool);
+    if (shouldRegisterTool('web_search_exa')) {
+      registerWebSearchTool(server, config);
+      registeredTools.push('web_search_exa');
+    }
+    
+    if (shouldRegisterTool('research_paper_search_exa')) {
+      registerResearchPaperSearchTool(server, config);
+      registeredTools.push('research_paper_search_exa');
+    }
+    
+    if (shouldRegisterTool('company_research_exa')) {
+      registerCompanyResearchTool(server, config);
+      registeredTools.push('company_research_exa');
+    }
+    
+    if (shouldRegisterTool('crawling_exa')) {
+      registerCrawlingTool(server, config);
+      registeredTools.push('crawling_exa');
+    }
+    
+    if (shouldRegisterTool('competitor_finder_exa')) {
+      registerCompetitorFinderTool(server, config);
+      registeredTools.push('competitor_finder_exa');
+    }
+    
+    if (shouldRegisterTool('linkedin_search_exa')) {
+      registerLinkedInSearchTool(server, config);
+      registeredTools.push('linkedin_search_exa');
+    }
+    
+    if (shouldRegisterTool('wikipedia_search_exa')) {
+      registerWikipediaSearchTool(server, config);
+      registeredTools.push('wikipedia_search_exa');
+    }
+    
+    if (shouldRegisterTool('github_search_exa')) {
+      registerGithubSearchTool(server, config);
+      registeredTools.push('github_search_exa');
+    }
     
     if (config.debug) {
       log(`Registered ${registeredTools.length} tools: ${registeredTools.join(', ')}`);
     }
     
-    return server;
+    // Return the server object (Smithery CLI handles transport)
+    return server.server;
     
   } catch (error) {
     log(`Server initialization error: ${error instanceof Error ? error.message : String(error)}`);

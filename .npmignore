@@ -6,3 +6,5 @@ tests/
 tsconfig.json
 *.log
 .env* 
+
+exa-mcp-server-debug/specs/exa-tool-failure-hypotheses.md

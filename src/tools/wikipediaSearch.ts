@@ -28,7 +28,7 @@ export function registerWikipediaSearchTool(server: McpServer, config?: { exaApi
             'content-type': 'application/json',
             'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
           },
-          timeout: 25000
+          timeout: 10000
         });
 
         const searchRequest: ExaSearchRequest = {
@@ -39,7 +39,7 @@ export function registerWikipediaSearchTool(server: McpServer, config?: { exaApi
             text: {
               maxCharacters: API_CONFIG.DEFAULT_MAX_CHARACTERS
             },
-            livecrawl: 'preferred'
+            livecrawl: 'always'
           },
           includeDomains: ["wikipedia.org"]
         };
@@ -49,7 +49,7 @@ export function registerWikipediaSearchTool(server: McpServer, config?: { exaApi
         const response = await axiosInstance.post<ExaSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
           searchRequest,
-          { timeout: 25000 }
+          { timeout: 10000 }
         );
         
         logger.log("Received response from Exa API");
