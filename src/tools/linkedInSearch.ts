@@ -79,7 +79,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(response.data, null, 2)
+            text: JSON.stringify(response.data.results, null, 2)
           }]
         };
         
