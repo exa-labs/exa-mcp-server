@@ -81,7 +81,7 @@ export function registerGithubSearchTool(server: McpServer, config?: { exaApiKey
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(response.data, null, 2)
+            text: JSON.stringify(response.data.results, null, 2)
           }]
         };
         

@@ -73,7 +73,7 @@ export function registerCompetitorFinderTool(server: McpServer, config?: { exaAp
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(response.data, null, 2)
+            text: JSON.stringify(response.data.results, null, 2)
           }]
         };
         
