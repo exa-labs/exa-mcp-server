@@ -11,6 +11,8 @@ import { registerCompetitorFinderTool } from "./tools/competitorFinder.js";
 import { registerLinkedInSearchTool } from "./tools/linkedInSearch.js";
 import { registerWikipediaSearchTool } from "./tools/wikipediaSearch.js";
 import { registerGithubSearchTool } from "./tools/githubSearch.js";
+import { registerDeepResearchStartTool } from "./tools/deepResearchStart.js";
+import { registerDeepResearchCheckTool } from "./tools/deepResearchCheck.js";
 import { log } from "./utils/logger.js";
 
 // Configuration schema for the EXA API key and tool selection
@@ -29,7 +31,9 @@ const availableTools = {
   'competitor_finder_exa': { name: 'Competitor Finder', description: 'Find business competitors', enabled: true },
   'linkedin_search_exa': { name: 'LinkedIn Search', description: 'Search LinkedIn profiles and companies', enabled: true },
   'wikipedia_search_exa': { name: 'Wikipedia Search', description: 'Search Wikipedia articles', enabled: true },
-  'github_search_exa': { name: 'GitHub Search', description: 'Search GitHub repositories and code', enabled: true }
+  'github_search_exa': { name: 'GitHub Search', description: 'Search GitHub repositories and code', enabled: true },
+  'deep_researcher_start': { name: 'Deep Researcher Start', description: 'Start a comprehensive AI research task', enabled: true },
+  'deep_researcher_check': { name: 'Deep Researcher Check', description: 'Check status and retrieve results of research task', enabled: true }
 };
 
 /**
@@ -113,6 +117,16 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
     if (shouldRegisterTool('github_search_exa')) {
       registerGithubSearchTool(server, config);
       registeredTools.push('github_search_exa');
+    }
+    
+    if (shouldRegisterTool('deep_researcher_start')) {
+      registerDeepResearchStartTool(server, config);
+      registeredTools.push('deep_researcher_start');
+    }
+    
+    if (shouldRegisterTool('deep_researcher_check')) {
+      registerDeepResearchCheckTool(server, config);
+      registeredTools.push('deep_researcher_check');
     }
     
     if (config.debug) {

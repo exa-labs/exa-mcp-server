@@ -49,3 +49,80 @@ export interface SearchArgs {
   numResults?: number;
   livecrawl?: 'always' | 'fallback' | 'preferred';
 }
+
+// Deep Research API Types
+export interface DeepResearchRequest {
+  model: 'exa-research' | 'exa-research-pro';
+  instructions: string;
+  output?: {
+    inferSchema?: boolean;
+  };
+}
+
+export interface DeepResearchStartResponse {
+  id: string;
+  outputSchema?: {
+    type: string;
+    properties: any;
+    required: string[];
+    additionalProperties: boolean;
+  };
+}
+
+export interface DeepResearchCheckResponse {
+  id: string;
+  createdAt: number;
+  status: 'running' | 'completed' | 'failed';
+  instructions: string;
+  schema?: {
+    type: string;
+    properties: any;
+    required: string[];
+    additionalProperties: boolean;
+  };
+  data?: {
+    report?: string;
+    [key: string]: any;
+  };
+  operations?: Array<{
+    type: string;
+    stepId: string;
+    text?: string;
+    query?: string;
+    goal?: string;
+    results?: any[];
+    url?: string;
+    thought?: string;
+    data?: any;
+  }>;
+  citations?: {
+    [key: string]: Array<{
+      id: string;
+      url: string;
+      title: string;
+      snippet: string;
+    }>;
+  };
+  timeMs?: number;
+  model?: string;
+  costDollars?: {
+    total: number;
+    research: {
+      searches: number;
+      pages: number;
+      reasoningTokens: number;
+    };
+  };
+}
+
+export interface DeepResearchErrorResponse {
+  response: {
+    message: string;
+    error: string;
+    statusCode: number;
+  };
+  status: number;
+  options: any;
+  message: string;
+  name: string;
+}
