@@ -62,20 +62,15 @@ export function registerDeepResearchCheckTool(server: McpServer, config?: { exaA
         let resultText: string;
         
         if (response.data.status === 'completed') {
-          // Task completed - return full results
+          // Task completed - return only the essential research report to avoid context overflow
           resultText = JSON.stringify({
             success: true,
             status: response.data.status,
             taskId: response.data.id,
-            createdAt: new Date(response.data.createdAt).toISOString(),
-            instructions: response.data.instructions,
-            results: response.data.data,
-            operations: response.data.operations,
-            citations: response.data.citations,
+            report: response.data.data?.report || "No report generated",
             timeMs: response.data.timeMs,
             model: response.data.model,
-            cost: response.data.costDollars,
-            message: "🎉 Deep research completed successfully! The comprehensive research report with analysis, citations, and sources is available in the 'results' field."
+            message: "🎉 Deep research completed! Here's your comprehensive research report."
           }, null, 2);
           logger.log("Research completed successfully");
         } else if (response.data.status === 'running') {
