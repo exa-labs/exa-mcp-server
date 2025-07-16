@@ -79,15 +79,12 @@ export function registerDeepResearchCheckTool(server: McpServer, config?: { exaA
           }, null, 2);
           logger.log("Research completed successfully");
         } else if (response.data.status === 'running') {
-          // Task still running - return status with operations progress
+          // Task still running - return minimal status to avoid filling context window
           resultText = JSON.stringify({
             success: true,
             status: response.data.status,
             taskId: response.data.id,
-            createdAt: new Date(response.data.createdAt).toISOString(),
-            instructions: response.data.instructions,
-            operations: response.data.operations || [],
-            message: "🔄 Deep research is still running. The AI agent is searching the web and analyzing sources. CONTINUE POLLING: Call this same tool again with the same task ID in a few seconds to check progress.",
+            message: "🔄 Research in progress. Continue polling...",
             nextAction: "Call deep_researcher_check again with the same task ID"
           }, null, 2);
           logger.log("Research still in progress");
