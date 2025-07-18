@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/exa-labs-exa-mcp-server-badge.png)](https://mseep.ai/app/exa-labs-exa-mcp-server)
+
 # Exa MCP Server 🔍
 [![npm version](https://badge.fury.io/js/exa-mcp-server.svg)](https://www.npmjs.com/package/exa-mcp-server)
 [![smithery badge](https://smithery.ai/badge/exa)](https://smithery.ai/server/exa)
