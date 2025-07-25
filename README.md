@@ -41,6 +41,12 @@ Add this to your Claude Desktop configuration file:
 npm install -g exa-mcp-server
 ```
 
+### Using Claude Code
+
+```bash
+claude mcp add exa -e EXA_API_KEY=YOUR_API_KEY -- npx -y exa-mcp-server
+```
+
 ### Using Smithery
 
 To install the Exa MCP server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/exa):
