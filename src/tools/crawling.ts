@@ -65,7 +65,7 @@ export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: s
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(response.data, null, 2)
+            text: JSON.stringify(response.data.results, null, 2)
           }]
         };
         
