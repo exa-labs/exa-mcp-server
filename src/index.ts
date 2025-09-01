@@ -59,6 +59,7 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
     // Create MCP server
     const server = new McpServer({
       name: "exa-search-server",
+      title: "Exa",
       version: "2.0.3"
     });
     
