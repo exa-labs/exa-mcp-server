@@ -1,5 +1,7 @@
 # Exa MCP Server 🔍
 [![npm version](https://badge.fury.io/js/exa-mcp-server.svg)](https://www.npmjs.com/package/exa-mcp-server)
+
+[![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/exa-labs/exa-mcp-server)](https://archestra.ai/mcp-catalog/exa-labs__exa-mcp-server)
 [![smithery badge](https://smithery.ai/badge/exa)](https://smithery.ai/server/exa)
 
 A Model Context Protocol (MCP) server lets AI assistants like Claude use the Exa AI Search API for web searches. This setup allows AI models to get real-time web information in a safe and controlled way.
