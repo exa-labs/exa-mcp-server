@@ -80,6 +80,9 @@ For Cursor and Claude Code, use this HTTP-based configuration format:
   }
 }
 ```
+Or for Cursor you can use this button.
+
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](cursor://anysphere.cursor-deeplink/mcp/install?name=exa&config=eyJ0eXBlIjoiaHR0cCIsInVybCI6Imh0dHBzOi8vbWNwLmV4YS5haS9tY3AiLCJoZWFkZXJzIjp7fX0%3D)
 
 ### NPM Installation
 
