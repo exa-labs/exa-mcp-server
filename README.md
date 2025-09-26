@@ -1,5 +1,7 @@
 # Exa MCP Server 🔍
 [![npm version](https://badge.fury.io/js/exa-mcp-server.svg)](https://www.npmjs.com/package/exa-mcp-server)
+
+[![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/exa-labs/exa-mcp-server)](https://archestra.ai/mcp-catalog/exa-labs__exa-mcp-server)
 [![smithery badge](https://smithery.ai/badge/exa)](https://smithery.ai/server/exa)
 
 ## 🆕 `exa-code`: fast, efficient web context for coding agents
