@@ -31,7 +31,7 @@
   "author": "Exa Labs",
   "scripts": {
     "build": "npm run build:shttp",
-    "build:stdio": "npx @smithery/cli@latest build src/index.ts --transport stdio && echo '#!/usr/bin/env node' | cat - .smithery/index.cjs > temp && mv temp .smithery/index.cjs && chmod +x .smithery/index.cjs",
+    "build:stdio": "npx @smithery/cli@latest build src/index.ts --transport stdio && node scripts/fix-shebang.cjs",
     "build:shttp": "npx @smithery/cli@latest build src/index.ts --transport shttp",
     "prepare": "npm run build:stdio",
     "watch": "tsc --watch",
