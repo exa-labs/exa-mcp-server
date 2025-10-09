@@ -91,6 +91,25 @@ For Cursor and Claude Code, use this HTTP-based configuration format:
 }
 ```
 
+### Codex Configuration for Remote MCP
+
+Open your Codex configuration file:
+
+```bash
+code ~/.codex/config.toml
+```
+
+Add this configuration:
+
+```toml
+[mcp_servers.exa]
+command = "npx"
+args = ["-y", "mcp-remote", "https://mcp.exa.ai/mcp"]
+env = { EXA_API_KEY = "your-api-key-here" }
+```
+
+Replace `your-api-key-here` with your actual Exa API key from [dashboard.exa.ai/api-keys](https://dashboard.exa.ai/api-keys).
+
 ### NPM Installation
 
 ```bash
