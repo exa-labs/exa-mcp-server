@@ -33,17 +33,22 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         });
 
         let searchQuery = query;
+        let includeDomains: string[];
+
         if (searchType === "profiles") {
-          searchQuery = `${query} LinkedIn profile`;
+          searchQuery = `${query}`;
+          includeDomains = ["linkedin.com/in"];
         } else if (searchType === "companies") {
-          searchQuery = `${query} LinkedIn company`;
+          searchQuery = `${query}`;
+          includeDomains = ["linkedin.com/company"];
         } else {
-          searchQuery = `${query} LinkedIn`;
+          searchQuery = `${query}`;
+          includeDomains = ["linkedin.com"];
         }
 
         const searchRequest: ExaSearchRequest = {
           query: searchQuery,
-          type: "neural",
+          type: "keyword",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           contents: {
             text: {
@@ -51,7 +56,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
             },
             livecrawl: 'preferred'
           },
-          includeDomains: ["linkedin.com"]
+          includeDomains: includeDomains
         };
         
         logger.log("Sending request to Exa API for LinkedIn search");
