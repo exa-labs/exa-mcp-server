@@ -34,21 +34,25 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
 
         let searchQuery = query;
         let includeDomains: string[];
+        let searchTypeValue: "keyword" | "neural";
 
         if (searchType === "profiles") {
           searchQuery = `${query}`;
           includeDomains = ["linkedin.com/in"];
+          searchTypeValue = "keyword";
         } else if (searchType === "companies") {
           searchQuery = `${query}`;
           includeDomains = ["linkedin.com/company"];
+          searchTypeValue = "keyword";
         } else {
           searchQuery = `${query}`;
           includeDomains = ["linkedin.com"];
+          searchTypeValue = "neural";
         }
 
         const searchRequest: ExaSearchRequest = {
           query: searchQuery,
-          type: "keyword",
+          type: searchTypeValue,
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           contents: {
             text: {
