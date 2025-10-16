@@ -10,6 +10,7 @@ import { registerLinkedInSearchTool } from "./tools/linkedInSearch.js";
 import { registerDeepResearchStartTool } from "./tools/deepResearchStart.js";
 import { registerDeepResearchCheckTool } from "./tools/deepResearchCheck.js";
 import { registerExaCodeTool } from "./tools/exaCode.js";
+import { registerAnswerTool } from "./tools/answer.js";
 import { log } from "./utils/logger.js";
 
 // Configuration schema for the EXA API key and tool selection
@@ -26,6 +27,7 @@ export const stateless = true;
 const availableTools = {
   'web_search_exa': { name: 'Web Search (Exa)', description: 'Real-time web search using Exa AI', enabled: true },
   'get_code_context_exa': { name: 'Code Context Search', description: 'Search for code snippets, examples, and documentation from open source repositories', enabled: true },
+  'answer_exa': { name: 'Answer', description: 'Get LLM-powered answers to questions with search-backed citations', enabled: true },
   'crawling_exa': { name: 'Web Crawling', description: 'Extract content from specific URLs', enabled: false },
   'deep_researcher_start': { name: 'Deep Researcher Start', description: 'Start a comprehensive AI research task', enabled: false },
   'deep_researcher_check': { name: 'Deep Researcher Check', description: 'Check status and retrieve results of research task', enabled: false },
@@ -112,7 +114,12 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
       registerExaCodeTool(server, config);
       registeredTools.push('get_code_context_exa');
     }
-    
+
+    if (shouldRegisterTool('answer_exa')) {
+      registerAnswerTool(server, config);
+      registeredTools.push('answer_exa');
+    }
+
     if (config.debug) {
       log(`Registered ${registeredTools.length} tools: ${registeredTools.join(', ')}`);
     }

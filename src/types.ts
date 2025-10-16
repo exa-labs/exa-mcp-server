@@ -153,3 +153,56 @@ export interface ExaCodeResponse {
   outputTokens?: number;
   traces?: any;
 }
+
+// Shared cost structure used across multiple endpoints
+export interface CostDollars {
+  total: number;
+  breakDown?: Array<{
+    search?: number;
+    contents?: number;
+    breakdown?: {
+      keywordSearch?: number;
+      neuralSearch?: number;
+      contentText?: number;
+      contentHighlight?: number;
+      contentSummary?: number;
+    };
+  }>;
+  perRequestPrices?: {
+    neuralSearch_1_25_results?: number;
+    neuralSearch_26_100_results?: number;
+    neuralSearch_100_plus_results?: number;
+    keywordSearch_1_100_results?: number;
+    keywordSearch_100_plus_results?: number;
+  };
+  perPagePrices?: {
+    contentText?: number;
+    contentHighlight?: number;
+    contentSummary?: number;
+  };
+}
+
+// Answer API Types
+export interface AnswerRequest {
+  query: string;
+  stream?: boolean;
+  text?: boolean;
+  outputSchema?: Record<string, any>; // Any valid JSON schema
+}
+
+export interface Citation {
+  id: string;
+  url: string;
+  title: string;
+  author: string | null;
+  publishedDate: string | null;
+  text?: string;
+  image?: string;
+  favicon?: string;
+}
+
+export interface AnswerResponse {
+  answer: string;
+  citations: Citation[];
+  costDollars: CostDollars;
+}
