@@ -16,6 +16,7 @@ import { log } from "./utils/logger.js";
 export const configSchema = z.object({
   exaApiKey: z.string().optional().describe("Exa AI API key for search operations"),
   enabledTools: z.array(z.string()).optional().describe("List of tools to enable (if not specified, all tools are enabled)"),
+  tools: z.string().optional().describe("Comma-separated list of tools to enable (alternative to enabledTools for CLI compatibility)"),
   debug: z.boolean().default(false).describe("Enable debug logging")
 });
 
@@ -51,6 +52,14 @@ const availableTools = {
 
 export default function ({ config }: { config: z.infer<typeof configSchema> }) {
   try {
+    let enabledTools = config.enabledTools;
+    if (config.tools && !enabledTools) {
+      enabledTools = config.tools.split(',').map(tool => tool.trim()).filter(tool => tool.length > 0);
+      if (config.debug) {
+        log(`Parsed tools parameter: ${enabledTools.join(', ')}`);
+      }
+    }
+    
     // Set the API key in environment for tool functions to use
     // process.env.EXA_API_KEY = config.exaApiKey;
     
@@ -69,8 +78,8 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 
     // Helper function to check if a tool should be registered
     const shouldRegisterTool = (toolId: string): boolean => {
-      if (config.enabledTools && config.enabledTools.length > 0) {
-        return config.enabledTools.includes(toolId);
+      if (enabledTools && enabledTools.length > 0) {
+        return enabledTools.includes(toolId);
       }
       return availableTools[toolId as keyof typeof availableTools]?.enabled ?? false;
     };
