@@ -1,16 +1,22 @@
 // Exa API Types
 export interface ExaSearchRequest {
   query: string;
-  type: string;
+  useAutoprompt?: boolean;
+  type?: string;
   category?: string;
   includeDomains?: string[];
   excludeDomains?: string[];
   startPublishedDate?: string;
   endPublishedDate?: string;
   numResults: number;
-  contents: {
-    text: {
+  contents?: {
+    text?: {
       maxCharacters?: number;
+    } | boolean;
+    highlights?: {
+      numSentences?: number;
+      highlightsPerUrl?: number;
+      query?: string;
     } | boolean;
     livecrawl?: 'always' | 'fallback' | 'preferred';
     subpages?: number;

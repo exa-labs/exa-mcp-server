@@ -11,9 +11,18 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
     "Search the web using Exa AI - performs real-time web searches and can scrape content from specific URLs. Supports configurable result counts and returns the content from the most relevant websites.",
     {
       query: z.string().describe("Search query"),
-      numResults: z.number().optional().describe("Number of search results to return (default: 5)")
+      numResults: z.number().optional().describe("Number of search results to return (default: 5)"),
+      useAutoprompt: z.boolean().optional().describe("Let Exa optimize the query (default: true)"),
+      searchType: z.enum(["neural", "keyword", "auto"]).optional().describe("Search type: neural (semantic), keyword (traditional), or auto (default: auto)"),
+      startPublishedDate: z.string().optional().describe("Start date filter (ISO 8601 format, e.g., '2025-01-01')"),
+      endPublishedDate: z.string().optional().describe("End date filter (ISO 8601 format)"),
+      includeDomains: z.array(z.string()).optional().describe("Only include results from these domains (e.g., ['.edu'])"),
+      excludeDomains: z.array(z.string()).optional().describe("Exclude results from these domains"),
+      useHighlights: z.boolean().optional().describe("Use highlights instead of full text for token efficiency (default: false)"),
+      highlightNumSentences: z.number().optional().describe("Number of sentences per highlight (default: 3)"),
+      highlightPerUrl: z.number().optional().describe("Number of highlights per URL (default: 2)")
     },
-    async ({ query, numResults }) => {
+    async ({ query, numResults, useAutoprompt, searchType, startPublishedDate, endPublishedDate, includeDomains, excludeDomains, useHighlights, highlightNumSentences, highlightPerUrl }) => {
       const requestId = `web_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'web_search_exa');
       
@@ -33,9 +42,20 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
 
         const searchRequest: ExaSearchRequest = {
           query,
-          type: "auto",
+          useAutoprompt: useAutoprompt ?? true, // Default to true for query optimization
+          type: searchType || "auto",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
-          contents: {
+          ...(startPublishedDate && { startPublishedDate }),
+          ...(endPublishedDate && { endPublishedDate }),
+          ...(includeDomains && { includeDomains }),
+          ...(excludeDomains && { excludeDomains }),
+          contents: useHighlights ? {
+            highlights: {
+              numSentences: highlightNumSentences || 3,
+              highlightsPerUrl: highlightPerUrl || 2
+            },
+            livecrawl: 'preferred'
+          } : {
             text: {
               maxCharacters: API_CONFIG.DEFAULT_MAX_CHARACTERS
             },
