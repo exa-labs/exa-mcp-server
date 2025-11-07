@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "agnost": "^0.1.3",
+    "agnost": "^0.1.5",
     "axios": "^1.7.8",
     "zod": "^3.22.4"
   },
