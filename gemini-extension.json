@@ -5,14 +5,10 @@
   "contextFileName": "GEMINI.md",
   "mcpServers": {
     "exa": {
-      "command": "node",
-      "args": [
-        "${extensionPath}/.smithery/stdio/index.cjs"
-      ],
-      "env": {
-        "EXA_API_KEY": "${EXA_API_KEY}"
+      "url": "https://mcp.exa.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer ${EXA_API_KEY}"
       }
     }
   }
 }
-
