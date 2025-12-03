@@ -8,10 +8,10 @@ import { createRequestLogger } from "../utils/logger.js";
 export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "deep_search_exa",
-    "Searches the web and return results in a natural language format. Deep search uses smart query expansion and provides high-quality context for each result. You can provide additional query variations for even better results.",
+    "Searches the web and return results in a natural language format.",
     {
-      objective: z.string().describe("Query: Description of what the web search is looking for. Try to make the search query atomic - looking for a specific piece of information. May include guidance about preferred sources or freshness."),
-      search_queries: z.array(z.string()).optional().describe("Additional Queries: Optional list of additional search queries for query expansion. The search queries should be related to the objective. Only 2-4 additional queries are recommended."),
+      objective: z.string().describe("Natural language description of what the web search is looking for. Try to make the search query atomic - looking for a specific piece of information. May include guidance about preferred sources or freshness."),
+      search_queries: z.array(z.string()).optional().describe("Optional list of keyword search queries, may include search operators. The search queries should be related to the user's objective. Limited to 5 entries of up to 5 words each (around 200 characters)."),
     },
     {
       readOnlyHint: true,
@@ -40,7 +40,8 @@ export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?:
           query: objective,
           type: "deep",
           contents: {
-            context: true
+            context: false,
+            summary: true
           }
         };
         
@@ -62,7 +63,7 @@ export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?:
         
         logger.log("Received response from Exa API");
 
-        if (!response.data || !response.data.context) {
+        if (!response.data || !response.data.results || response.data.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           return {
             content: [{
@@ -72,12 +73,17 @@ export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?:
           };
         }
 
-        logger.log(`Context received with ${response.data.context.length} characters`);
+        const summaries = response.data.results
+          .filter(r => r.summary)
+          .map(r => `${r.title}\n${r.url}\n${r.summary}`)
+          .join("\n\n");
+
+        logger.log(`Received ${response.data.results.length} results with summaries`);
         
         const result = {
           content: [{
             type: "text" as const,
-            text: response.data.context
+            text: summaries || "No summaries available for the search results."
           }]
         };
         
