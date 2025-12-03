@@ -40,8 +40,7 @@ export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?:
           query: objective,
           type: "deep",
           contents: {
-            context: false,
-            summary: true
+            context: true
           }
         };
         
