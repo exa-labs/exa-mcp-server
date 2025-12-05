@@ -31,7 +31,8 @@ export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: st
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-exa-integration': 'exa-code-mcp'
           },
           timeout: 30000
         });

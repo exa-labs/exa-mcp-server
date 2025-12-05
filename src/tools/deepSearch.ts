@@ -31,7 +31,8 @@ export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?:
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-exa-integration': 'deep-search-mcp'
           },
           timeout: 25000
         });

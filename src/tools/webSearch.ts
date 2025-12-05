@@ -34,7 +34,8 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-exa-integration': 'web-search-mcp'
           },
           timeout: 25000
         });
@@ -112,4 +113,4 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
       }
     }
   );
-} 
+}  

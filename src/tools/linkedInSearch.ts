@@ -27,7 +27,8 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-exa-integration': 'linkedin-search-mcp'
           },
           timeout: 25000
         });
@@ -114,4 +115,4 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
       }
     }
   );
-} 
+}  

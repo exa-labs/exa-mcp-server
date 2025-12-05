@@ -26,7 +26,8 @@ export function registerDeepResearchStartTool(server: McpServer, config?: { exaA
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-exa-integration': 'deep-research-mcp'
           },
           timeout: 25000
         });
@@ -106,4 +107,4 @@ export function registerDeepResearchStartTool(server: McpServer, config?: { exaA
       }
     }
   );
-} 
+}  

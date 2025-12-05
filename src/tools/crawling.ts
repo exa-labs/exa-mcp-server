@@ -25,7 +25,8 @@ export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: s
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || ''
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-exa-integration': 'crawling-mcp'
           },
           timeout: 25000
         });
@@ -100,4 +101,4 @@ export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: s
       }
     }
   );
-} 
+}  
