@@ -23,6 +23,9 @@ export interface ExaSearchRequest {
     subpages?: number;
     subpageTarget?: string[];
   };
+  userLocation?: string;
+  includeText?: string[];
+  excludeText?: string[];
 }
 
 export interface ExaCrawlRequest {
