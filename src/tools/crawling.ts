@@ -2,6 +2,7 @@ import { z } from "zod";
 import axios from "axios";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
+import { ExaCrawlRequest } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 
 export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: string }): void {
@@ -31,14 +32,12 @@ export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: s
           timeout: 25000
         });
 
-        const crawlRequest = {
+        const crawlRequest: ExaCrawlRequest = {
           ids: [url],
-          contents: {
-            text: {
-              maxCharacters: maxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS
-            },
-            livecrawl: 'preferred'
-          }
+          text: {
+            maxCharacters: maxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS
+          },
+          livecrawl: 'preferred'
         };
         
         logger.log("Sending crawl request to Exa API");
