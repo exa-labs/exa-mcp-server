@@ -3,6 +3,7 @@ import axios from "axios";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { createRequestLogger } from "../utils/logger.js";
+import { checkpoint } from "agnost";
 
 export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
@@ -41,6 +42,7 @@ export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: s
           }
         };
         
+        checkpoint('crawl_request_prepared');
         logger.log("Sending crawl request to Exa API");
         
         const response = await axiosInstance.post(
@@ -49,10 +51,12 @@ export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: s
           { timeout: 25000 }
         );
         
+        checkpoint('crawl_response_received');
         logger.log("Received response from Exa API");
 
         if (!response.data || !response.data.results) {
           logger.log("Warning: Empty or invalid response from Exa API");
+          checkpoint('crawl_complete');
           return {
             content: [{
               type: "text" as const,
@@ -70,6 +74,7 @@ export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: s
           }]
         };
         
+        checkpoint('crawl_complete');
         logger.complete();
         return result;
       } catch (error) {

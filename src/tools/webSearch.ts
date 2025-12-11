@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
+import { checkpoint } from "agnost"
 
 export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
@@ -53,6 +54,7 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           }
         };
         
+        checkpoint('web_search_request_prepared');
         logger.log("Sending request to Exa API");
         
         const response = await axiosInstance.post<ExaSearchResponse>(
@@ -61,10 +63,12 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           { timeout: 25000 }
         );
         
+        checkpoint('exa_search_response_received');
         logger.log("Received response from Exa API");
 
         if (!response.data || !response.data.context) {
           logger.log("Warning: Empty or invalid response from Exa API");
+          checkpoint('web_search_complete');
           return {
             content: [{
               type: "text" as const,
@@ -82,6 +86,7 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           }]
         };
         
+        checkpoint('web_search_complete');
         logger.complete();
         return result;
       } catch (error) {

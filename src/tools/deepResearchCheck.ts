@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { DeepResearchCheckResponse, DeepResearchErrorResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
+import { checkpoint } from "agnost";
 
 // Helper function to create a delay
 function delay(ms: number): Promise<void> {
@@ -27,6 +28,7 @@ export function registerDeepResearchCheckTool(server: McpServer, config?: { exaA
         // Built-in delay to allow processing time
         logger.log("Waiting 5 seconds before checking status...");
         await delay(5000);
+        checkpoint('deep_research_check_delay_complete');
 
         // Create a fresh axios instance for each request
         const axiosInstance = axios.create({
@@ -41,15 +43,18 @@ export function registerDeepResearchCheckTool(server: McpServer, config?: { exaA
 
         logger.log(`Checking status for task: ${taskId}`);
         
+        checkpoint('deep_research_check_request_prepared');
         const response = await axiosInstance.get<DeepResearchCheckResponse>(
           `${API_CONFIG.ENDPOINTS.RESEARCH_TASKS}/${taskId}`,
           { timeout: 25000 }
         );
         
+        checkpoint('deep_research_check_response_received');
         logger.log(`Task status: ${response.data.status}`);
 
         if (!response.data) {
           logger.log("Warning: Empty response from Exa Research API");
+          checkpoint('deep_research_check_complete');
           return {
             content: [{
               type: "text" as const,
@@ -113,6 +118,7 @@ export function registerDeepResearchCheckTool(server: McpServer, config?: { exaA
           }]
         };
         
+        checkpoint('deep_research_check_complete');
         logger.complete();
         return result;
       } catch (error) {

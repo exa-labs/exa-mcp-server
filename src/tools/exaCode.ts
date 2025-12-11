@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaCodeRequest, ExaCodeResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
+import { checkpoint } from "agnost";
 
 export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
@@ -42,6 +43,7 @@ export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: st
           tokensNum
         };
         
+        checkpoint('code_context_request_prepared');
         logger.log("Sending code context request to Exa API");
         
         const response = await axiosInstance.post<ExaCodeResponse>(
@@ -50,10 +52,12 @@ export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: st
           { timeout: 30000 }
         );
         
+        checkpoint('code_context_response_received');
         logger.log("Received code context response from Exa API");
 
         if (!response.data) {
           logger.log("Warning: Empty response from Exa Code API");
+          checkpoint('code_context_complete');
           return {
             content: [{
               type: "text" as const,
@@ -76,6 +80,7 @@ export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: st
           }]
         };
         
+        checkpoint('code_context_complete');
         logger.complete();
         return result;
       } catch (error) {

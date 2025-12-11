@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
+import { checkpoint } from "agnost";
 
 export function registerCompanyResearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
@@ -45,6 +46,7 @@ export function registerCompanyResearchTool(server: McpServer, config?: { exaApi
           includeDomains: ["bloomberg.com", "reuters.com", "crunchbase.com", "sec.gov", "linkedin.com", "forbes.com", "businesswire.com", "prnewswire.com"]
         };
         
+        checkpoint('company_research_request_prepared');
         logger.log("Sending request to Exa API for company research");
         
         const response = await axiosInstance.post<ExaSearchResponse>(
@@ -53,10 +55,12 @@ export function registerCompanyResearchTool(server: McpServer, config?: { exaApi
           { timeout: 25000 }
         );
         
+        checkpoint('company_research_response_received');
         logger.log("Received response from Exa API");
 
         if (!response.data || !response.data.results) {
           logger.log("Warning: Empty or invalid response from Exa API");
+          checkpoint('company_research_complete');
           return {
             content: [{
               type: "text" as const,
@@ -74,6 +78,7 @@ export function registerCompanyResearchTool(server: McpServer, config?: { exaApi
           }]
         };
         
+        checkpoint('company_research_complete');
         logger.complete();
         return result;
       } catch (error) {

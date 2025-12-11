@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { DeepResearchRequest, DeepResearchStartResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
+import { checkpoint } from "agnost";
 
 export function registerDeepResearchStartTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
@@ -40,6 +41,9 @@ export function registerDeepResearchStartTool(server: McpServer, config?: { exaA
           }
         };
         
+        checkpoint('deep_research_start_request_prepared', {
+          model: researchRequest.model
+        });
         logger.log(`Starting research with model: ${researchRequest.model}`);
         
         const response = await axiosInstance.post<DeepResearchStartResponse>(
@@ -48,10 +52,12 @@ export function registerDeepResearchStartTool(server: McpServer, config?: { exaA
           { timeout: 25000 }
         );
         
+        checkpoint('deep_research_start_response_received');
         logger.log(`Research task started with ID: ${response.data.id}`);
 
         if (!response.data || !response.data.id) {
           logger.log("Warning: Empty or invalid response from Exa Research API");
+          checkpoint('deep_research_start_complete');
           return {
             content: [{
               type: "text" as const,
@@ -76,6 +82,7 @@ export function registerDeepResearchStartTool(server: McpServer, config?: { exaA
           }]
         };
         
+        checkpoint('deep_research_start_complete');
         logger.complete();
         return result;
       } catch (error) {
