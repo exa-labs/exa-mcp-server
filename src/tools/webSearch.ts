@@ -15,19 +15,39 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
       numResults: z.number().optional().describe("Number of search results to return (default: 8)"),
       livecrawl: z.enum(['fallback', 'preferred']).optional().describe("Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')"),
       type: z.enum(['auto', 'fast', 'deep']).optional().describe("Search type - 'auto': balanced search (default), 'fast': quick results, 'deep': comprehensive search"),
-      contextMaxCharacters: z.number().optional().describe("Maximum characters for context string optimized for LLMs (default: 10000)")
+      contextMaxCharacters: z.number().optional().describe("Maximum characters for context string optimized for LLMs (default: 10000)"),
+      userLocation: z.string().optional().describe("The two-letter ISO country code of the user, e.g. US."),
+      includeDomains: z.array(z.string()).optional().describe("List of domains to include in the search. If specified, results will only come from these domains."),
+      excludeDomains: z.array(z.string()).optional().describe("List of domains to exclude from search results. If specified, no results will be returned from these domains."),
+      includeText: z.array(z.string()).optional().describe("List of strings that must be present in webpage text of results. Currently, only 1 string is supported, of up to 5 words."),
+      excludeText: z.array(z.string()).optional().describe("List of strings that must not be present in webpage text of results. Currently, only 1 string is supported, of up to 5 words. Checks from the first 1000 words of the webpage text."),
+      startPublishedDate: z.string().optional().describe("Only links with a published date after this will be returned. Must be specified in ISO 8601 format."),
+      endPublishedDate: z.string().optional().describe("Only links with a published date before this will be returned. Must be specified in ISO 8601 format."),
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ query, numResults, livecrawl, type, contextMaxCharacters }) => {
+    async ({
+      query,
+      numResults,
+      livecrawl,
+      type,
+      contextMaxCharacters,
+      userLocation,
+      includeDomains,
+      excludeDomains,
+      includeText,
+      excludeText,
+      startPublishedDate,
+      endPublishedDate
+    }) => {
       const requestId = `web_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'web_search_exa');
-      
+
       logger.start(query);
-      
+
       try {
         // Create a fresh axios instance for each request
         const axiosInstance = axios.create({
@@ -51,19 +71,28 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
               maxCharacters: contextMaxCharacters || 10000
             },
             livecrawl: livecrawl || 'fallback'
-          }
+          },
+          userLocation,
+          includeDomains,
+          excludeDomains,
+          includeText,
+          excludeText,
+          startPublishedDate,
+          endPublishedDate
         };
-        
+
         checkpoint('web_search_request_prepared');
+
         logger.log("Sending request to Exa API");
-        
+
         const response = await axiosInstance.post<ExaSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
           searchRequest,
           { timeout: 25000 }
         );
-        
+
         checkpoint('exa_search_response_received');
+
         logger.log("Received response from Exa API");
 
         if (!response.data || !response.data.context) {
@@ -78,25 +107,26 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
         }
 
         logger.log(`Context received with ${response.data.context.length} characters`);
-        
+
         const result = {
           content: [{
             type: "text" as const,
             text: response.data.context
           }]
         };
-        
+
         checkpoint('web_search_complete');
+
         logger.complete();
         return result;
       } catch (error) {
         logger.error(error);
-        
+
         if (axios.isAxiosError(error)) {
           // Handle Axios errors specifically
           const statusCode = error.response?.status || 'unknown';
           const errorMessage = error.response?.data?.message || error.message;
-          
+
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
@@ -106,7 +136,7 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
             isError: true,
           };
         }
-        
+
         // Handle generic errors
         return {
           content: [{
@@ -118,4 +148,4 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
       }
     }
   );
-}  
+}
