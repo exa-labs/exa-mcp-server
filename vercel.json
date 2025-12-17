@@ -1,0 +1,11 @@
+{
+  "functions": {
+    "api/mcp.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "dist"
+}
+
