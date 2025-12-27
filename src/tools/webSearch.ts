@@ -18,6 +18,7 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
       contextMaxCharacters: z.number().optional().describe("Maximum characters for context string optimized for LLMs (default: 10000)")
     },
     {
+      title: "Web Search",
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true
