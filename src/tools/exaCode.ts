@@ -15,6 +15,7 @@ export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: st
       tokensNum: z.number().min(1000).max(50000).default(5000).describe("Number of tokens to return (1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation.")
     },
     {
+      title: "Get Code Context",
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true
