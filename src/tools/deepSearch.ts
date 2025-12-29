@@ -15,9 +15,11 @@ export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?:
       search_queries: z.array(z.string()).optional().describe("Optional list of keyword search queries, may include search operators. The search queries should be related to the user's objective. Limited to 5 entries of up to 5 words each (around 200 characters)."),
     },
     {
+      title: "Deep Search",
       readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: true
+      idempotentHint: true,
+      openWorldHint: true
     },
     async ({ objective, search_queries }) => {
       const requestId = `deep_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
