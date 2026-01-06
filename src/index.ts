@@ -7,6 +7,7 @@ import { trackMCP, createConfig } from 'agnost';
 
 // Import tool implementations
 import { registerWebSearchTool } from "./tools/webSearch.js";
+import { registerWebSearchAdvancedTool } from "./tools/webSearchAdvanced.js";
 import { registerDeepSearchTool } from "./tools/deepSearch.js";
 import { registerCompanyResearchTool } from "./tools/companyResearch.js";
 import { registerCrawlingTool } from "./tools/crawling.js";
@@ -14,19 +15,32 @@ import { registerLinkedInSearchTool } from "./tools/linkedInSearch.js";
 import { registerDeepResearchStartTool } from "./tools/deepResearchStart.js";
 import { registerDeepResearchCheckTool } from "./tools/deepResearchCheck.js";
 import { registerExaCodeTool } from "./tools/exaCode.js";
+import { registerFindSimilarTool } from "./tools/findSimilar.js";
+import { registerAnswerTool } from "./tools/answer.js";
+import { registerCrawlUrlsTool } from "./tools/crawlUrls.js";
 import { log } from "./utils/logger.js";
 
 // Configuration schema for the EXA API key and tool selection
 export const configSchema = z.object({
   exaApiKey: z.string().optional().describe("Exa AI API key for search operations"),
+  // NEW: Self-documenting enabled/disabled pattern (preferred)
+  enabled: z.union([
+    z.array(z.string()),
+    z.string()
+  ]).optional().describe("Tools to enable (comma-separated or array). All other tools will be disabled."),
+  disabled: z.union([
+    z.array(z.string()),
+    z.string()
+  ]).optional().describe("Tools to disable (comma-separated or array). Only used with 'enabled' param."),
+  // LEGACY: Still supported for backwards compatibility
   enabledTools: z.union([
     z.array(z.string()),
     z.string()
-  ]).optional().describe("List of tools to enable (comma-separated string or array)"),
+  ]).optional().describe("[LEGACY] List of tools to enable (comma-separated string or array)"),
   tools: z.union([
     z.array(z.string()),
     z.string()
-  ]).optional().describe("List of tools to enable (comma-separated string or array) - alias for enabledTools"),
+  ]).optional().describe("[LEGACY] List of tools to enable (comma-separated string or array) - alias for enabledTools"),
   debug: z.boolean().default(false).describe("Enable debug logging")
 });
 
@@ -36,7 +50,11 @@ export const stateless = true;
 // Tool registry for managing available tools
 const availableTools = {
   'web_search_exa': { name: 'Web Search (Exa)', description: 'Real-time web search using Exa AI', enabled: true },
+  'web_search_advanced': { name: 'Advanced Web Search', description: 'Full API control with category filters, domain restrictions, date ranges, highlights, summaries, and subpage crawling', enabled: false },
   'get_code_context_exa': { name: 'Code Context Search', description: 'Search for code snippets, examples, and documentation from open source repositories', enabled: true },
+  'find_similar_exa': { name: 'Find Similar', description: 'Find web pages similar to a given URL', enabled: false },
+  'answer_exa': { name: 'Answer (Exa)', description: 'Get direct answers with citations from the web', enabled: false },
+  'crawl_urls_exa': { name: 'Crawl URLs', description: 'Crawl and extract content from multiple URLs with advanced options', enabled: false },
   'deep_search_exa': { name: 'Deep Search (Exa)', description: 'Advanced web search with query expansion and high-quality summaries', enabled: false },
   'crawling_exa': { name: 'Web Crawling', description: 'Extract content from specific URLs', enabled: false },
   'deep_researcher_start': { name: 'Deep Researcher Start', description: 'Start a comprehensive AI research task', enabled: false },
@@ -61,35 +79,57 @@ const availableTools = {
  * - And more!
  */
 
+// Helper to parse comma-separated string or array into string array
+function parseToolList(param: string | string[] | undefined): string[] | undefined {
+  if (!param) return undefined;
+  if (typeof param === 'string') {
+    return param.split(',').map(tool => tool.trim()).filter(tool => tool.length > 0);
+  }
+  return param;
+}
+
+// Get all available tool IDs
+function getAllToolIds(): string[] {
+  return Object.keys(availableTools);
+}
+
 export default function ({ config }: { config: z.infer<typeof configSchema> }) {
   try {
     // Parse and normalize tool selection
-    // Support both 'tools' and 'enabledTools' parameters
-    // Support both comma-separated strings and arrays
+    // Priority: 'enabled'/'disabled' (NEW) > 'tools'/'enabledTools' (LEGACY) > defaults
     let parsedEnabledTools: string[] | undefined;
-    
-    const toolsParam = config.tools || config.enabledTools;
-    
-    if (toolsParam) {
-      if (typeof toolsParam === 'string') {
-        // Parse comma-separated string into array
-        parsedEnabledTools = toolsParam
-          .split(',')
-          .map(tool => tool.trim())
-          .filter(tool => tool.length > 0);
-      } else if (Array.isArray(toolsParam)) {
-        parsedEnabledTools = toolsParam;
+    let parsedDisabledTools: string[] | undefined;
+    let usingNewPattern = false;
+
+    // Check for NEW pattern: enabled/disabled params
+    if (config.enabled) {
+      usingNewPattern = true;
+      parsedEnabledTools = parseToolList(config.enabled);
+      parsedDisabledTools = parseToolList(config.disabled);
+
+      // If only 'enabled' is provided without 'disabled', all other tools are implicitly disabled
+      if (!parsedDisabledTools && parsedEnabledTools) {
+        parsedDisabledTools = getAllToolIds().filter(id => !parsedEnabledTools!.includes(id));
       }
+    } else {
+      // LEGACY pattern: tools/enabledTools params
+      const toolsParam = config.tools || config.enabledTools;
+      parsedEnabledTools = parseToolList(toolsParam);
     }
-    
+
     // Create normalized config with parsed tools
     const normalizedConfig = {
       ...config,
       enabledTools: parsedEnabledTools
     };
-    
+
     if (config.debug) {
       log("Starting Exa MCP Server in debug mode");
+      if (usingNewPattern) {
+        log(`Using NEW enabled/disabled pattern`);
+      } else if (parsedEnabledTools) {
+        log(`Using LEGACY tools pattern`);
+      }
       if (parsedEnabledTools) {
         log(`Enabled tools from config: ${parsedEnabledTools.join(', ')}`);
       }
@@ -99,7 +139,7 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
     const server = new McpServer({
       name: "exa-search-server",
       title: "Exa",
-      version: "3.1.3"
+      version: "3.2.0"
     });
     
     log("Server initialized with modern MCP SDK and Smithery CLI support");
@@ -119,7 +159,27 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
       registerWebSearchTool(server, normalizedConfig);
       registeredTools.push('web_search_exa');
     }
-    
+
+    if (shouldRegisterTool('web_search_advanced')) {
+      registerWebSearchAdvancedTool(server, normalizedConfig);
+      registeredTools.push('web_search_advanced');
+    }
+
+    if (shouldRegisterTool('find_similar_exa')) {
+      registerFindSimilarTool(server, normalizedConfig);
+      registeredTools.push('find_similar_exa');
+    }
+
+    if (shouldRegisterTool('answer_exa')) {
+      registerAnswerTool(server, normalizedConfig);
+      registeredTools.push('answer_exa');
+    }
+
+    if (shouldRegisterTool('crawl_urls_exa')) {
+      registerCrawlUrlsTool(server, normalizedConfig);
+      registeredTools.push('crawl_urls_exa');
+    }
+
     if (shouldRegisterTool('deep_search_exa')) {
       registerDeepSearchTool(server, normalizedConfig);
       registeredTools.push('deep_search_exa');
@@ -155,8 +215,20 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
       registeredTools.push('get_code_context_exa');
     }
     
+    // Compute disabled tools for logging
+    const disabledTools = getAllToolIds().filter(id => !registeredTools.includes(id));
+
     if (normalizedConfig.debug) {
       log(`Registered ${registeredTools.length} tools: ${registeredTools.join(', ')}`);
+      if (disabledTools.length > 0) {
+        log(`Disabled tools: ${disabledTools.join(', ')}`);
+      }
+    }
+
+    // Echo full state in startup log (always, not just debug mode)
+    log(`Exa MCP loaded - ENABLED: ${registeredTools.join(', ')} | DISABLED: ${disabledTools.join(', ') || 'none'}`);
+    if (usingNewPattern) {
+      log(`Using self-documenting enabled/disabled URL pattern`);
     }
     
     // Register prompts to help users get started
