@@ -1,7 +1,7 @@
 // Exa API Types
 export interface ExaSearchRequest {
   query: string;
-  type: 'auto' | 'fast' | 'deep';
+  type: 'auto' | 'fast' | 'deep' | 'neural';
   category?: string;
   includeDomains?: string[];
   excludeDomains?: string[];
@@ -22,6 +22,64 @@ export interface ExaSearchRequest {
     livecrawl?: 'fallback' | 'preferred';
     subpages?: number;
     subpageTarget?: string[];
+  };
+}
+
+// Advanced Search Request - Full Exa API surface
+export interface ExaAdvancedSearchRequest {
+  query: string;
+  type?: 'auto' | 'fast' | 'deep' | 'neural';
+  numResults?: number;
+
+  // Category filtering
+  category?: 'company' | 'research paper' | 'news' | 'pdf' | 'github' | 'tweet' | 'personal site' | 'people' | 'financial report';
+
+  // Domain filtering
+  includeDomains?: string[];
+  excludeDomains?: string[];
+
+  // Date filtering
+  startPublishedDate?: string;
+  endPublishedDate?: string;
+  startCrawlDate?: string;
+  endCrawlDate?: string;
+
+  // Content filtering
+  includeText?: string[];
+  excludeText?: string[];
+
+  // Geo-targeting
+  userLocation?: string;
+
+  // Content moderation
+  moderation?: boolean;
+
+  // Additional queries for expanded search
+  additionalQueries?: string[];
+
+  // Contents configuration
+  contents: {
+    text?: {
+      maxCharacters?: number;
+    } | boolean;
+    context?: {
+      maxCharacters?: number;
+    } | boolean;
+    summary?: {
+      query?: string;
+      schema?: object;
+    } | boolean;
+    highlights?: {
+      numSentences?: number;
+      highlightsPerUrl?: number;
+      query?: string;
+    } | boolean;
+    livecrawl?: 'never' | 'fallback' | 'always' | 'preferred';
+    livecrawlTimeout?: number;
+    subpages?: number;
+    subpageTarget?: string[];
+    extractLinks?: number;
+    extractImages?: number;
   };
 }
 
