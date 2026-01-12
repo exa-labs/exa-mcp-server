@@ -7,7 +7,7 @@ import { initializeMcpServer } from '../src/mcp-handler.js';
  * This handler is automatically deployed as a Vercel Function and provides
  * Streamable HTTP transport for the MCP protocol.
  * 
- * Supports URL query parameters (100% compatible with hosted version):
+ * Supports URL query parameters (100% compatible with production mcp.exa.ai):
  * - ?exaApiKey=YOUR_KEY - Pass API key via URL
  * - ?tools=web_search_exa,get_code_context_exa - Enable specific tools
  * - ?debug=true - Enable debug logging
@@ -22,16 +22,12 @@ import { initializeMcpServer } from '../src/mcp-handler.js';
  * ARCHITECTURE NOTE:
  * The mcp-handler library creates a single server instance and doesn't pass
  * the request to the initializeServer callback. To support per-request
- * configuration via URL params (like ?tools=...), we use dynamic handler
- * caching: we create and cache handlers based on the unique configuration
- * derived from URL parameters. This ensures feature parity with the
- * production Smithery-based deployment at mcp.exa.ai.
+ * configuration via URL params (like ?tools=... and ?exaApiKey=...), we
+ * create a fresh handler for each request. This ensures:
+ * 1. Feature parity with the production Smithery-based deployment at mcp.exa.ai
+ * 2. Each request gets its own configuration (no API key leakage between users)
+ * 3. Users can specify different tools and API keys per request
  */
-
-type HandlerFunction = (request: Request) => Promise<Response>;
-
-// Cache for handlers keyed by configuration
-const handlerCache = new Map<string, HandlerFunction>();
 
 /**
  * Extract configuration from request URL or environment variables
@@ -88,49 +84,24 @@ function getConfigFromUrl(url: string) {
 }
 
 /**
- * Generate a cache key from the configuration
- * We only include tools in the cache key since API key shouldn't affect
- * which tools are registered, and debug is a logging concern
+ * Create a fresh handler for the given configuration
+ * We create a new handler per request to ensure each request gets its own
+ * configuration (tools and API key). This prevents API key leakage between
+ * different users who might pass different keys via URL.
  */
-function getCacheKey(enabledTools: string[] | undefined): string {
-  if (!enabledTools || enabledTools.length === 0) {
-    return 'default';
-  }
-  // Sort tools for consistent cache keys
-  return enabledTools.slice().sort().join(',');
+function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean }) {
+  return createMcpHandler(
+    (server: any) => {
+      initializeMcpServer(server, config);
+    },
+    {}, // Server options
+    { basePath: '/api' } // Config - basePath for Vercel Functions
+  );
 }
 
 /**
- * Get or create a handler for the given configuration
- * Handlers are cached by their tool configuration to avoid recreating
- * them for the same set of enabled tools
- */
-function getOrCreateHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean }): HandlerFunction {
-  const cacheKey = getCacheKey(config.enabledTools);
-  
-  if (!handlerCache.has(cacheKey)) {
-    if (config.debug) {
-      console.log(`[EXA-MCP] Creating new handler for config: ${cacheKey}`);
-    }
-    
-    const newHandler = createMcpHandler(
-      (server: any) => {
-        // Initialize the MCP server with the extracted configuration
-        initializeMcpServer(server, config);
-      },
-      {}, // Server options
-      { basePath: '/api' } // Config - basePath for Vercel Functions
-    );
-    
-    handlerCache.set(cacheKey, newHandler);
-  }
-  
-  return handlerCache.get(cacheKey)!;
-}
-
-/**
- * Main request handler that extracts config from URL and routes to
- * the appropriate cached handler
+ * Main request handler that extracts config from URL and creates
+ * a fresh handler for each request
  */
 async function handleRequest(request: Request): Promise<Response> {
   // Extract configuration from the request URL
@@ -139,11 +110,11 @@ async function handleRequest(request: Request): Promise<Response> {
   if (config.debug) {
     console.log(`[EXA-MCP] Request URL: ${request.url}`);
     console.log(`[EXA-MCP] Enabled tools: ${config.enabledTools?.join(', ') || 'default'}`);
-    console.log(`[EXA-MCP] Handler cache size: ${handlerCache.size}`);
+    console.log(`[EXA-MCP] API key provided: ${config.exaApiKey ? 'yes' : 'no (using env var)'}`);
   }
   
-  // Get or create a handler for this configuration
-  const handler = getOrCreateHandler(config);
+  // Create a fresh handler for this request's configuration
+  const handler = createHandler(config);
   
   // Delegate to the handler
   return handler(request);
