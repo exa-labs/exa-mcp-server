@@ -5,6 +5,12 @@
       "memory": 1024
     }
   },
+  "rewrites": [
+    {
+      "source": "/.well-known/mcp-config",
+      "destination": "/api/.well-known/mcp-config"
+    }
+  ],
   "buildCommand": "npm run build:vercel",
   "outputDirectory": "dist"
 }
