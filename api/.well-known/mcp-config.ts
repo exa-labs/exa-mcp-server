@@ -28,7 +28,7 @@ const configSchema = {
     "exaApiKey": {
       "type": "string",
       "title": "Exa API Key",
-      "description": "Your Exa AI API key for search operations. Get one at https://exa.ai"
+      "description": "Your Exa AI API key for search operations (optional - server has a fallback key). Get one at https://exa.ai"
     },
     "tools": {
       "type": "string",
@@ -47,7 +47,6 @@ const configSchema = {
       "default": false
     }
   },
-  "required": ["exaApiKey"],
   "additionalProperties": false
 };
 
