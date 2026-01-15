@@ -18,6 +18,13 @@ export function registerDeepResearchCheckTool(server: McpServer, config?: { exaA
     {
       taskId: z.string().describe("The task ID returned from deep_researcher_start tool")
     },
+    {
+      title: "Check Deep Research Status",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true
+    },
     async ({ taskId }) => {
       const requestId = `deep_researcher_check-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'deep_researcher_check');

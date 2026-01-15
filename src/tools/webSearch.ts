@@ -18,9 +18,11 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
       contextMaxCharacters: z.number().optional().describe("Maximum characters for context string optimized for LLMs (default: 10000)")
     },
     {
+      title: "Web Search",
       readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: true
+      idempotentHint: true,
+      openWorldHint: true
     },
     async ({ query, numResults, livecrawl, type, contextMaxCharacters }) => {
       const requestId = `web_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;

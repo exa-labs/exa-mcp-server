@@ -14,6 +14,13 @@ export function registerDeepResearchStartTool(server: McpServer, config?: { exaA
       instructions: z.string().describe("Complex research question or detailed instructions for the AI researcher. Be specific about what you want to research and any particular aspects you want covered."),
       model: z.enum(['exa-research', 'exa-research-pro']).optional().describe("Research model: 'exa-research' (faster, 15-45s, good for most queries) or 'exa-research-pro' (more comprehensive, 45s-2min, for complex topics). Default: exa-research")
     },
+    {
+      title: "Start Deep Research",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true
+    },
     async ({ instructions, model }) => {
       const requestId = `deep_researcher_start-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'deep_researcher_start');

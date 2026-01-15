@@ -13,6 +13,13 @@ export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: s
       url: z.string().describe("URL to crawl and extract content from"),
       maxCharacters: z.number().optional().describe("Maximum characters to extract (default: 3000)")
     },
+    {
+      title: "Web Crawling",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true
+    },
     async ({ url, maxCharacters }) => {
       const requestId = `crawling_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'crawling_exa');

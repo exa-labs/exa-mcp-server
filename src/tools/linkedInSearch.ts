@@ -15,6 +15,13 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
       searchType: z.enum(["profiles", "companies", "all"]).optional().describe("Type of LinkedIn content to search (default: all)"),
       numResults: z.number().optional().describe("Number of LinkedIn results to return (default: 5)")
     },
+    {
+      title: "LinkedIn Search",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true
+    },
     async ({ query, searchType, numResults }) => {
       const requestId = `linkedin_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'linkedin_search_exa');

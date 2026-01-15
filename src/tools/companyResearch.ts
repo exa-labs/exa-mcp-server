@@ -14,6 +14,13 @@ export function registerCompanyResearchTool(server: McpServer, config?: { exaApi
       companyName: z.string().describe("Name of the company to research"),
       numResults: z.number().optional().describe("Number of search results to return (default: 5)")
     },
+    {
+      title: "Company Research",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true
+    },
     async ({ companyName, numResults }) => {
       const requestId = `company_research_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'company_research_exa');
