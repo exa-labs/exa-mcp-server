@@ -42,7 +42,7 @@ const availableTools = {
   'deep_researcher_start': { name: 'Deep Researcher Start', description: 'Start a comprehensive AI research task', enabled: false },
   'deep_researcher_check': { name: 'Deep Researcher Check', description: 'Check status and retrieve results of research task', enabled: false },
   'linkedin_search_exa': { name: 'LinkedIn Search', description: 'Search LinkedIn profiles and companies', enabled: false },
-  'company_research_exa': { name: 'Company Research', description: 'Research companies and organizations', enabled: false },
+  'company_research_exa': { name: 'Company Research', description: 'Research companies and organizations', enabled: true },
 };  
 
 /**
