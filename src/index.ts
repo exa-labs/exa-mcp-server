@@ -13,6 +13,7 @@ import { registerLinkedInSearchTool } from "./tools/linkedInSearch.js";
 import { registerDeepResearchStartTool } from "./tools/deepResearchStart.js";
 import { registerDeepResearchCheckTool } from "./tools/deepResearchCheck.js";
 import { registerExaCodeTool } from "./tools/exaCode.js";
+import { registerNTSLAssistantTool } from "./tools/ntslAssistant.js";
 import { log } from "./utils/logger.js";
 
 // Configuration schema for the EXA API key and tool selection
@@ -41,6 +42,7 @@ const availableTools = {
   'deep_researcher_check': { name: 'Deep Researcher Check', description: 'Check status and retrieve results of research task', enabled: false },
   'linkedin_search_exa': { name: 'LinkedIn Search', description: 'Search LinkedIn profiles and companies', enabled: false },
   'company_research_exa': { name: 'Company Research', description: 'Research companies and organizations', enabled: false },
+  'ntsl_assistant': { name: 'NTSL Assistant', description: 'Generate, validate, and explain NTSL code for Profitchart trading bots', enabled: false },
 };  
 
 /**
@@ -147,7 +149,12 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
       registerExaCodeTool(server, normalizedConfig);
       registeredTools.push('get_code_context_exa');
     }
-    
+
+    if (shouldRegisterTool('ntsl_assistant')) {
+      registerNTSLAssistantTool(server, normalizedConfig);
+      registeredTools.push('ntsl_assistant');
+    }
+
     if (normalizedConfig.debug) {
       log(`Registered ${registeredTools.length} tools: ${registeredTools.join(', ')}`);
     }
