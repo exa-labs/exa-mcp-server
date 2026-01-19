@@ -115,6 +115,42 @@ env = { EXA_API_KEY = "your-api-key-here" }
 
 Replace `your-api-key-here` with your actual Exa API key from [dashboard.exa.ai/api-keys](https://dashboard.exa.ai/api-keys).
 
+### OpenCode Configuration
+
+[OpenCode](https://github.com/anomalyco/opencode) is a terminal-based AI coding assistant with MCP support. Add this to your `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "mcp": {
+    "exa": {
+      "type": "local",
+      "command": ["npx", "-y", "exa-mcp-server"],
+      "environment": {
+        "EXA_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+To enable specific tools:
+
+```json
+{
+  "mcp": {
+    "exa": {
+      "type": "local",
+      "command": ["npx", "-y", "exa-mcp-server", "tools=web_search_exa,get_code_context_exa"],
+      "environment": {
+        "EXA_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+Replace `your-api-key-here` with your actual Exa API key from [dashboard.exa.ai/api-keys](https://dashboard.exa.ai/api-keys).
+
 ### Claude Code Plugin
 
 The easiest way to get started with Exa in Claude Code, using plugins:
