@@ -1,7 +1,7 @@
 {
   "name": "exa-mcp-server",
-  "version": "3.0.9",
-  "description": "A Model Context Protocol server with Exa for web search and web crawling. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities. Supports customizable result counts, live crawling options, and returns content from the most relevant websites.",
+  "version": "3.1.0",
+  "description": "A Model Context Protocol server with Exa for web search, web crawling, and NTSL trading bot generation. Provides real-time web searches with configurable tool selection, and includes NTSL Assistant for creating, validating, and explaining Profitchart trading strategies. Supports customizable result counts, live crawling options, and returns content from the most relevant websites.",
   "mcpName": "io.github.exa-labs/exa-mcp-server",
   "type": "module",
   "module": "./src/index.ts",

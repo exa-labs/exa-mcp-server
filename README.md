@@ -37,7 +37,7 @@ https://mcp.exa.ai/mcp?tools=web_search_exa,get_code_context_exa
 
 Or enable all tools:
 ```
-https://mcp.exa.ai/mcp?tools=web_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check
+https://mcp.exa.ai/mcp?tools=web_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check,ntsl_assistant
 ```
 
 You may include your exa api key in the url like this:
@@ -212,6 +212,7 @@ The Exa MCP server includes powerful tools for developers and researchers:
 - **linkedin_search**: Search LinkedIn for companies and people using Exa AI. Simply include company names, person names, or specific LinkedIn URLs in your query.
 - **deep_researcher_start**: Start a smart AI researcher for complex questions. The AI will search the web, read many sources, and think deeply about your question to create a detailed research report.
 - **deep_researcher_check**: Check if your research is ready and get the results. Use this after starting a research task to see if it's done and get your comprehensive report.
+- **ntsl_assistant**: 🤖 **NEW!** Generate, validate, and explain NTSL (Nelogica Trading System Language) code for Profitchart trading bots. Perfect for creating automated trading strategies with built-in templates for common patterns. [See full documentation](./NTSL_ASSISTANT_README.md)
 
 **Note:** By default, only `web_search_exa` and `get_code_context_exa` are enabled. You can enable additional tools using the `tools=` parameter (see examples below).
 
@@ -247,7 +248,7 @@ You can either enable all tools or any specfic tools. Use a comma-separated list
       "args": [
         "-y",
         "exa-mcp-server",
-        "tools=get_code_context_exa,web_search_exa,company_research_exa,crawling_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check"
+        "tools=get_code_context_exa,web_search_exa,company_research_exa,crawling_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check,ntsl_assistant"
       ],
       "env": {
         "EXA_API_KEY": "your-api-key-here"
@@ -269,8 +270,42 @@ npx exa-mcp-server
 npx exa-mcp-server tools=web_search_exa
 
 # All tools
-npx exa-mcp-server tools=web_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check
+npx exa-mcp-server tools=web_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check,ntsl_assistant
 ```
+
+## 🤖 NTSL Assistant for Trading Automation
+
+NEW! The NTSL Assistant helps AI agents like **Manus AI** generate, validate, and execute trading strategies for Profitchart using NTSL (Nelogica Trading System Language).
+
+### Features:
+- 🎯 **Generate NTSL Code**: Create complete trading bots from descriptions
+- ✅ **Validate Syntax**: Check code for errors and best practices
+- 📖 **Explain Strategies**: Understand what trading code does
+- 📚 **Full Documentation**: Complete NTSL language reference
+
+### Quick Start:
+
+```json
+{
+  "mcpServers": {
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp?tools=ntsl_assistant"
+    }
+  }
+}
+```
+
+### Example Strategies Included:
+- Moving Average Crossover
+- RSI (Relative Strength Index)
+- Bollinger Bands
+- Breakout/Channel Trading
+- Trailing Stops
+- Time-based Exits
+- Daily Limits
+
+**[📖 Full NTSL Assistant Documentation](./NTSL_ASSISTANT_README.md)**
 
 ---
 
