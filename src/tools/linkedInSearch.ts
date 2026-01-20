@@ -9,17 +9,16 @@ import { checkpoint } from "agnost";
 export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "linkedin_search_exa",
-    "Search LinkedIn profiles and companies using Exa AI - finds professional profiles, company pages, and business-related content on LinkedIn. Useful for networking, recruitment, and business research.",
+    "Search for people on LinkedIn using Exa AI - finds professional profiles and people. Useful for networking, recruitment, and finding professionals.",
     {
-      query: z.string().describe("LinkedIn search query (e.g., person name, company, job title)"),
-      searchType: z.enum(["profiles", "companies", "all"]).optional().describe("Type of LinkedIn content to search (default: all)"),
-      numResults: z.number().optional().describe("Number of LinkedIn results to return (default: 5)")
+      query: z.string().describe("Search query for finding people on LinkedIn"),
+      numResults: z.number().optional().describe("Number of LinkedIn profile results to return (default: 5)")
     },
-    async ({ query, searchType, numResults }) => {
+    async ({ query, numResults }) => {
       const requestId = `linkedin_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'linkedin_search_exa');
       
-      logger.start(`${query} (${searchType || 'all'})`);
+      logger.start(`${query}`);
       
       try {
         // Create a fresh axios instance for each request
@@ -35,25 +34,18 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         });
 
         let searchQuery = query;
-        if (searchType === "profiles") {
-          searchQuery = `${query} LinkedIn profile`;
-        } else if (searchType === "companies") {
-          searchQuery = `${query} LinkedIn company`;
-        } else {
-          searchQuery = `${query} LinkedIn`;
-        }
+        searchQuery = `${query} LinkedIn profile`;
 
         const searchRequest: ExaSearchRequest = {
           query: searchQuery,
           type: "auto",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
+          category: "people",
           contents: {
             text: {
               maxCharacters: API_CONFIG.DEFAULT_MAX_CHARACTERS
             },
-            livecrawl: 'preferred'
           },
-          includeDomains: ["linkedin.com"]
         };
         
         checkpoint('linkedin_search_request_prepared');
