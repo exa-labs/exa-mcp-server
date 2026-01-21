@@ -13,7 +13,7 @@
       "name": "exa-mcp-server",
       "source": "./",
       "description": "A Model Context Protocol server with Exa for web search, code search, and web crawling. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities.",
-      "version": "3.1.3",
+      "version": "3.1.4",
       "author": {
         "name": "Exa",
         "email": "hello@exa.ai"
