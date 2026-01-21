@@ -60,8 +60,6 @@ export interface ExaAdvancedSearchRequest {
     livecrawlTimeout?: number;
     subpages?: number;
     subpageTarget?: string[];
-    extractLinks?: number;
-    extractImages?: number;
   };
 }
 

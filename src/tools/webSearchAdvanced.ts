@@ -50,9 +50,6 @@ export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaA
 
       subpages: z.number().optional().describe("Number of subpages to crawl from each result (1-10)"),
       subpageTarget: z.array(z.string()).optional().describe("Keywords to target when selecting subpages"),
-
-      extractLinks: z.number().optional().describe("Number of links to extract per page"),
-      extractImages: z.number().optional().describe("Number of images to extract per result"),
     },
     {
       readOnlyHint: true,
@@ -105,14 +102,6 @@ export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaA
 
         if (params.subpageTarget) {
           contents.subpageTarget = params.subpageTarget;
-        }
-
-        if (params.extractLinks) {
-          contents.extractLinks = params.extractLinks;
-        }
-
-        if (params.extractImages) {
-          contents.extractImages = params.extractImages;
         }
 
         const searchRequest: ExaAdvancedSearchRequest = {
