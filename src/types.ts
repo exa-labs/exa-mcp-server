@@ -25,6 +25,46 @@ export interface ExaSearchRequest {
   };
 }
 
+export interface ExaAdvancedSearchRequest {
+  query: string;
+  type: 'auto' | 'fast' | 'deep' | 'neural';
+  numResults?: number;
+  category?: 'company' | 'research paper' | 'news' | 'pdf' | 'github' | 'tweet' | 'personal site' | 'people' | 'financial report';
+  includeDomains?: string[];
+  excludeDomains?: string[];
+  startPublishedDate?: string;
+  endPublishedDate?: string;
+  startCrawlDate?: string;
+  endCrawlDate?: string;
+  includeText?: string[];
+  excludeText?: string[];
+  userLocation?: string;
+  moderation?: boolean;
+  additionalQueries?: string[];
+  contents: {
+    text?: {
+      maxCharacters?: number;
+    } | boolean;
+    context?: {
+      maxCharacters?: number;
+    } | boolean;
+    summary?: {
+      query?: string;
+    } | boolean;
+    highlights?: {
+      numSentences?: number;
+      highlightsPerUrl?: number;
+      query?: string;
+    };
+    livecrawl?: 'never' | 'fallback' | 'always' | 'preferred';
+    livecrawlTimeout?: number;
+    subpages?: number;
+    subpageTarget?: string[];
+    extractLinks?: number;
+    extractImages?: number;
+  };
+}
+
 export interface ExaCrawlRequest {
   ids: string[];
   text: boolean;
