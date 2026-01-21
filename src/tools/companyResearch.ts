@@ -33,16 +33,13 @@ export function registerCompanyResearchTool(server: McpServer, config?: { exaApi
         });
 
         const searchRequest: ExaSearchRequest = {
-          query: `${companyName} company business corporation information news financial`,
+          query: `${companyName} company`,
           type: "auto",
-          numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
+          numResults: numResults || 5,
+          category: "company",
           contents: {
-            text: {
-              maxCharacters: API_CONFIG.DEFAULT_MAX_CHARACTERS
-            },
-            livecrawl: 'preferred'
-          },
-          includeDomains: ["bloomberg.com", "reuters.com", "crunchbase.com", "sec.gov", "linkedin.com", "forbes.com", "businesswire.com", "prnewswire.com"]
+            text: true
+          }
         };
         
         logger.log("Sending request to Exa API for company research");
