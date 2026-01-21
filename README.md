@@ -45,7 +45,7 @@ You may include your exa api key in the url like this:
 https://mcp.exa.ai/mcp?exaApiKey=YOUREXAKEY
 ```
 
-**Note:** By default, only `web_search_exa` and `get_code_context_exa` are enabled. Add other tools as needed using the `tools` parameter.
+**Note:** By default, `web_search_exa`, `get_code_context_exa`, and `company_research_exa` are enabled. Add other tools as needed using the `tools` parameter.
 
 ---
 
@@ -204,17 +204,31 @@ Replace `your-api-key-here` with your actual Exa API key from [dashboard.exa.ai/
 The Exa MCP server includes powerful tools for developers and researchers:
 
 
-#### 🌐 **Tools**
-- **get_code_context_exa**: Search and get relevant code snippets, examples, and documentation from open source libraries, GitHub repositories, and programming frameworks. Perfect for finding up-to-date code documentation, implementation examples, API usage patterns, and best practices from real codebases.
-- **web_search_exa**: Performs real-time web searches with optimized results and content extraction.
-- **deep_search_exa**: Deep web search with smart query expansion and high-quality summaries for each result.
-- **company_research_exa**: Comprehensive company research tool that crawls company websites to gather detailed information about businesses.
-- **crawling_exa**: Extracts content from specific URLs, useful for reading articles, PDFs, or any web page when you have the exact URL.
-- **linkedin_search_exa**: Search for people on LinkedIn using Exa AI. Simply include person names or specific LinkedIn URLs in your query.
-- **deep_researcher_start**: Start a smart AI researcher for complex questions. The AI will search the web, read many sources, and think deeply about your question to create a detailed research report.
-- **deep_researcher_check**: Check if your research is ready and get the results. Use this after starting a research task to see if it's done and get your comprehensive report.
+#### Enabled by Default
 
-**Note:** By default, only `web_search_exa` and `get_code_context_exa` are enabled. You can enable additional tools using the `tools=` parameter (see examples below).
+These tools are turned on automatically:
+
+- **web_search_exa**: Search the web in real-time and get clean, ready-to-use content.
+- **get_code_context_exa**: Find code snippets, examples, and documentation from GitHub repos, docs sites, and StackOverflow.
+- **company_research_exa**: Research companies by crawling their websites and gathering business information.
+
+#### Available (Off by Default)
+
+These tools need to be turned on manually using the `tools` parameter:
+
+- **deep_search_exa**: Deep web search with smart query expansion and summaries for each result.
+- **crawling_exa**: Get content from a specific URL (articles, PDFs, or any web page).
+- **linkedin_search_exa**: Search for people on LinkedIn.
+- **deep_researcher_start**: Start an AI researcher that reads many sources and creates a detailed report.
+- **deep_researcher_check**: Check if your research is done and get the report.
+
+#### Turn On All Tools
+
+To enable every tool, use this command:
+
+```bash
+npx exa-mcp-server tools=web_search_exa,get_code_context_exa,company_research_exa,deep_search_exa,crawling_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check
+```
 
 #### 💻 **Setup for Code Search Only** (Recommended for Developers)
 
@@ -263,7 +277,7 @@ You can either enable all tools or any specfic tools. Use a comma-separated list
 If you prefer to run the server directly, you can use npx:
 
 ```bash
-# Run with default tools only (web_search_exa and get_code_context_exa)
+# Run with default tools (web_search_exa, get_code_context_exa, company_research_exa)
 npx exa-mcp-server
 
 # Enable specific tools only
