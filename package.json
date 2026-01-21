@@ -53,9 +53,12 @@
     "@types/node": "^20.11.24",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
-    "vercel": "^37.0.0"
+    "vercel": "^50.4.8"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "overrides": {
+    "tar": "^7.5.6"
   }
 }
