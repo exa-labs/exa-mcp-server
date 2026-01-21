@@ -2,12 +2,12 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
   "name": "io.github.exa-labs/exa-mcp-server",
   "description": "MCP server with Exa for web search and web crawling. Exa is the search engine for AI Applications.",
-  "version": "3.1.4",
+  "version": "3.1.5",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "exa-mcp-server",
-      "version": "3.1.4"
+      "version": "3.1.5"
     }
   ],
   "remotes": [
