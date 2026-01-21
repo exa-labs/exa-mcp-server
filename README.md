@@ -37,7 +37,7 @@ https://mcp.exa.ai/mcp?tools=web_search_exa,get_code_context_exa
 
 Or enable all tools:
 ```
-https://mcp.exa.ai/mcp?tools=web_search_exa,deep_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check
+https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,deep_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check
 ```
 
 You may include your exa api key in the url like this:
@@ -216,6 +216,7 @@ These tools are turned on automatically:
 
 These tools need to be turned on manually using the `tools` parameter:
 
+- **web_search_advanced_exa**: Advanced web search with full control over filters like category, domain, date range, highlights, summaries, and subpage crawling.
 - **deep_search_exa**: Deep web search with smart query expansion and summaries for each result.
 - **crawling_exa**: Get content from a specific URL (articles, PDFs, or any web page).
 - **linkedin_search_exa**: Search for people on LinkedIn.
@@ -227,7 +228,7 @@ These tools need to be turned on manually using the `tools` parameter:
 To enable every tool, use this command:
 
 ```bash
-npx exa-mcp-server tools=web_search_exa,get_code_context_exa,company_research_exa,deep_search_exa,crawling_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check
+npx exa-mcp-server tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,company_research_exa,deep_search_exa,crawling_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check
 ```
 
 #### 💻 **Setup for Code Search Only** (Recommended for Developers)
@@ -262,7 +263,7 @@ You can either enable all tools or any specfic tools. Use a comma-separated list
       "args": [
         "-y",
         "exa-mcp-server",
-        "tools=get_code_context_exa,web_search_exa,deep_search_exa,company_research_exa,crawling_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check"
+        "tools=get_code_context_exa,web_search_exa,web_search_advanced_exa,deep_search_exa,company_research_exa,crawling_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check"
       ],
       "env": {
         "EXA_API_KEY": "your-api-key-here"
@@ -284,7 +285,7 @@ npx exa-mcp-server
 npx exa-mcp-server tools=web_search_exa
 
 # All tools
-npx exa-mcp-server tools=web_search_exa,deep_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check
+npx exa-mcp-server tools=web_search_exa,web_search_advanced_exa,deep_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check
 ```
 
 ---
