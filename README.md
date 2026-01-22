@@ -216,7 +216,7 @@ These tools are turned on automatically:
 
 These tools need to be turned on manually using the `tools` parameter:
 
-- **web_search_advanced_exa**: Advanced web search with full control over filters like category, domain, date range, highlights, summaries, and subpage crawling. Use our Claude skills or carefully prompt the LLM for optimal results.
+- **web_search_advanced_exa**: Advanced web search with full control over filters like category, domain, date range, highlights, summaries, and subpage crawling. Use our Claude skill or carefully prompt the LLM for optimal results.
 - **deep_search_exa**: Deep web search with smart query expansion and summaries for each result.
 - **crawling_exa**: Get content from a specific URL (articles, PDFs, or any web page).
 - **linkedin_search_exa**: Search for people on LinkedIn.
