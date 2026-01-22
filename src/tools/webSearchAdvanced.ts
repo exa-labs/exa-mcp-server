@@ -41,8 +41,9 @@ export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaA
       summaryQuery: z.string().optional().describe("Focus query for summary generation"),
 
       enableHighlights: z.boolean().optional().describe("Enable highlights extraction"),
-      highlightsNumSentences: z.number().optional().describe("Number of sentences per highlight"),
-      highlightsPerUrl: z.number().optional().describe("Number of highlights per URL"),
+      highlightsMaxCharacters: z.number().optional().describe("Maximum total characters across all highlights per URL (default: 2000)"),
+      highlightsNumSentences: z.number().optional().describe("Deprecated: use highlightsMaxCharacters instead. Number of sentences per highlight"),
+      highlightsPerUrl: z.number().optional().describe("Deprecated: use highlightsMaxCharacters instead. Number of highlights per URL"),
       highlightsQuery: z.string().optional().describe("Query for highlight relevance"),
 
       livecrawl: z.enum(['never', 'fallback', 'always', 'preferred']).optional().describe("Live crawl mode - 'never': only cached, 'fallback': cached then live, 'always': always live, 'preferred': prefer live (default: 'fallback')"),
@@ -90,6 +91,7 @@ export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaA
 
         if (params.enableHighlights) {
           contents.highlights = {
+            maxCharacters: params.highlightsMaxCharacters,
             numSentences: params.highlightsNumSentences,
             highlightsPerUrl: params.highlightsPerUrl,
             query: params.highlightsQuery,
