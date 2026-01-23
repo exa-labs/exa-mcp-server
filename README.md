@@ -297,3 +297,8 @@ https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_con
 - [Documentation](https://docs.exa.ai/reference/exa-mcp)
 - [npm Package](https://www.npmjs.com/package/exa-mcp-server)
 - [Get Your Exa API Key](https://dashboard.exa.ai/api-keys)
+
+
+<br>
+
+Built with ❤️ by Exa
