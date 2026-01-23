@@ -39,7 +39,6 @@ Add to `.vscode/mcp.json`:
 {
   "servers": {
     "exa": {
-      "type": "stdio",
       "command": "npx",
       "args": ["-y", "exa-mcp-server"],
       "env": {
@@ -55,7 +54,7 @@ Add to `.vscode/mcp.json`:
 <summary><b>Claude Code</b></summary>
 
 ```bash
-claude mcp add exa -e EXA_API_KEY=your_api_key -- npx -y exa-mcp-server
+claude mcp add --transport stdio --env EXA_API_KEY=your_api_key exa -- npx -y exa-mcp-server
 ```
 </details>
 
@@ -85,7 +84,7 @@ Add to your config file:
 <summary><b>Codex</b></summary>
 
 ```bash
-codex mcp add exa -e EXA_API_KEY=your_api_key -- npx -y exa-mcp-server
+codex mcp add --env EXA_API_KEY=your_api_key exa -- npx -y exa-mcp-server
 ```
 </details>
 
@@ -230,11 +229,13 @@ Standard `mcpServers` format:
 | `deep_researcher_start` | Start an AI researcher |
 | `deep_researcher_check` | Check research status and get report |
 
-Enable specific tools with the `--tools` flag:
+To enable specific tools, use the remote MCP server with the `tools` parameter instead:
 
-```bash
-npx -y exa-mcp-server --tools=web_search_exa,deep_search_exa
 ```
+https://mcp.exa.ai/mcp?tools=web_search_exa,deep_search_exa,crawling_exa
+```
+
+See the [full documentation](https://docs.exa.ai/reference/exa-mcp) for more details on tool configuration.
 
 ## Remote MCP (Preferred)
 
