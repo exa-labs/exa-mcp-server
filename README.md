@@ -7,7 +7,7 @@
 
 Connect AI assistants to Exa's search capabilities: web search, code search, and company research.
 
-**[Full Documentation](https://docs.exa.ai/reference/exa-mcp)** | **[npm Package](https://www.npmjs.com/package/exa-mcp-server)** | **[Get API Key](https://dashboard.exa.ai/api-keys)**
+**[Full Documentation](https://docs.exa.ai/reference/exa-mcp)** | **[npm Package](https://www.npmjs.com/package/exa-mcp-server)** | **[Get Your Exa API Key](https://dashboard.exa.ai/api-keys)**
 
 ## Installation
 
@@ -118,6 +118,97 @@ Add to your Zed settings:
 </details>
 
 <details>
+<summary><b>Gemini CLI</b></summary>
+
+Add to `~/.gemini/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "exa": {
+      "httpUrl": "https://mcp.exa.ai/mcp"
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>v0 by Vercel</b></summary>
+
+In v0, select **Prompt Tools** > **Add MCP** and enter:
+
+```
+https://mcp.exa.ai/mcp
+```
+</details>
+
+<details>
+<summary><b>Warp</b></summary>
+
+Go to **Settings** > **MCP Servers** > **Add MCP Server** and add:
+
+```json
+{
+  "exa": {
+    "url": "https://mcp.exa.ai/mcp"
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>OpenCode</b></summary>
+
+Add to your `opencode.json`:
+
+```json
+{
+  "mcp": {
+    "exa": {
+      "type": "remote",
+      "url": "https://mcp.exa.ai/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>Kiro</b></summary>
+
+Add to `~/.kiro/settings/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "exa": {
+      "url": "https://mcp.exa.ai/mcp"
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>Roo Code</b></summary>
+
+Add to your Roo Code MCP config:
+
+```json
+{
+  "mcpServers": {
+    "exa": {
+      "type": "streamable-http",
+      "url": "https://mcp.exa.ai/mcp"
+    }
+  }
+}
+```
+</details>
+
+<details>
 <summary><b>Other Clients</b></summary>
 
 For clients that support remote MCP:
@@ -185,14 +276,14 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | `deep_researcher_start` | Start an AI researcher |
 | `deep_researcher_check` | Check research status and get report |
 
-Enable specific tools with the `tools` parameter:
+Enable all tools with the `tools` parameter:
 
 ```
-https://mcp.exa.ai/mcp?tools=web_search_exa,deep_search_exa
+https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,deep_search_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check
 ```
 
 ## Links
 
 - [Documentation](https://docs.exa.ai/reference/exa-mcp)
 - [npm Package](https://www.npmjs.com/package/exa-mcp-server)
-- [Get API Key](https://dashboard.exa.ai/api-keys)
+- [Get Your Exa API Key](https://dashboard.exa.ai/api-keys)
