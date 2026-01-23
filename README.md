@@ -86,6 +86,34 @@ codex mcp add exa --url https://mcp.exa.ai/mcp
 </details>
 
 <details>
+<summary><b>OpenCode</b></summary>
+
+Add to your `opencode.json`:
+
+```json
+{
+  "mcp": {
+    "exa": {
+      "type": "remote",
+      "url": "https://mcp.exa.ai/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>Antigravity</b></summary>
+
+Open the MCP Store panel (from the "..." dropdown in the side panel), then add a custom server with:
+
+```
+https://mcp.exa.ai/mcp
+```
+</details>
+
+<details>
 <summary><b>Windsurf</b></summary>
 
 Add to `~/.codeium/windsurf/mcp_config.json`:
@@ -152,24 +180,6 @@ Go to **Settings** > **MCP Servers** > **Add MCP Server** and add:
 {
   "exa": {
     "url": "https://mcp.exa.ai/mcp"
-  }
-}
-```
-</details>
-
-<details>
-<summary><b>OpenCode</b></summary>
-
-Add to your `opencode.json`:
-
-```json
-{
-  "mcp": {
-    "exa": {
-      "type": "remote",
-      "url": "https://mcp.exa.ai/mcp",
-      "enabled": true
-    }
   }
 }
 ```
