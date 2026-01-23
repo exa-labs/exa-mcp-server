@@ -196,4 +196,3 @@ https://mcp.exa.ai/mcp?tools=web_search_exa,deep_search_exa
 - [Documentation](https://docs.exa.ai/reference/exa-mcp)
 - [npm Package](https://www.npmjs.com/package/exa-mcp-server)
 - [Get API Key](https://dashboard.exa.ai/api-keys)
-- [Smithery](https://smithery.ai/server/exa)
