@@ -11,6 +11,17 @@ import { registerDeepResearchStartTool } from "./tools/deepResearchStart.js";
 import { registerDeepResearchCheckTool } from "./tools/deepResearchCheck.js";
 import { registerExaCodeTool } from "./tools/exaCode.js";
 import { registerWebSearchAdvancedTool } from "./tools/webSearchAdvanced.js";
+import {
+  registerWebsetsCreateTool,
+  registerWebsetsGetTool,
+  registerWebsetsListTool,
+  registerWebsetsDeleteTool,
+  registerWebsetsCancelTool,
+  registerWebsetsEnrichmentsCreateTool,
+  registerWebsetsEnrichmentsGetTool,
+  registerWebsetsItemsListTool,
+  registerWebsetsItemsGetTool,
+} from "./tools/websets/index.js";
 import { log } from "./utils/logger.js";
 
 // Tool registry for managing available tools
@@ -24,6 +35,15 @@ const availableTools = {
   'deep_researcher_start': { name: 'Deep Researcher Start', description: 'Start a comprehensive AI research task', enabled: false },
   'deep_researcher_check': { name: 'Deep Researcher Check', description: 'Check status and retrieve results of research task', enabled: false },
   'linkedin_search_exa': { name: 'LinkedIn Search', description: 'Search LinkedIn profiles and companies', enabled: false },
+  'websets_create': { name: 'Websets Create', description: 'Create a new Webset with search query and optional enrichments', enabled: false },
+  'websets_get': { name: 'Websets Get', description: 'Get a Webset by ID', enabled: false },
+  'websets_list': { name: 'Websets List', description: 'List all Websets', enabled: false },
+  'websets_delete': { name: 'Websets Delete', description: 'Delete a Webset', enabled: false },
+  'websets_cancel': { name: 'Websets Cancel', description: 'Cancel a running Webset', enabled: false },
+  'websets_enrichments_create': { name: 'Websets Enrichments Create', description: 'Add an enrichment column to a Webset', enabled: false },
+  'websets_enrichments_get': { name: 'Websets Enrichments Get', description: 'Get an enrichment by ID', enabled: false },
+  'websets_items_list': { name: 'Websets Items List', description: 'List items in a Webset', enabled: false },
+  'websets_items_get': { name: 'Websets Items Get', description: 'Get a specific item from a Webset', enabled: false },
 };
 
 export interface McpConfig {
@@ -102,6 +122,52 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     if (shouldRegisterTool('get_code_context_exa')) {
       registerExaCodeTool(server, config);
       registeredTools.push('get_code_context_exa');
+    }
+    
+    // Register Websets tools
+    if (shouldRegisterTool('websets_create')) {
+      registerWebsetsCreateTool(server, config);
+      registeredTools.push('websets_create');
+    }
+    
+    if (shouldRegisterTool('websets_get')) {
+      registerWebsetsGetTool(server, config);
+      registeredTools.push('websets_get');
+    }
+    
+    if (shouldRegisterTool('websets_list')) {
+      registerWebsetsListTool(server, config);
+      registeredTools.push('websets_list');
+    }
+    
+    if (shouldRegisterTool('websets_delete')) {
+      registerWebsetsDeleteTool(server, config);
+      registeredTools.push('websets_delete');
+    }
+    
+    if (shouldRegisterTool('websets_cancel')) {
+      registerWebsetsCancelTool(server, config);
+      registeredTools.push('websets_cancel');
+    }
+    
+    if (shouldRegisterTool('websets_enrichments_create')) {
+      registerWebsetsEnrichmentsCreateTool(server, config);
+      registeredTools.push('websets_enrichments_create');
+    }
+    
+    if (shouldRegisterTool('websets_enrichments_get')) {
+      registerWebsetsEnrichmentsGetTool(server, config);
+      registeredTools.push('websets_enrichments_get');
+    }
+    
+    if (shouldRegisterTool('websets_items_list')) {
+      registerWebsetsItemsListTool(server, config);
+      registeredTools.push('websets_items_list');
+    }
+    
+    if (shouldRegisterTool('websets_items_get')) {
+      registerWebsetsItemsGetTool(server, config);
+      registeredTools.push('websets_items_get');
     }
     
     if (config.debug) {

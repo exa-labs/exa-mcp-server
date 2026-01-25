@@ -32,6 +32,15 @@ const availableTools = {
   'deep_researcher_start': { name: 'Deep Researcher Start', description: 'Start a comprehensive AI research task', enabled: false },
   'deep_researcher_check': { name: 'Deep Researcher Check', description: 'Check status and retrieve results of research task', enabled: false },
   'linkedin_search_exa': { name: 'LinkedIn Search', description: 'Search LinkedIn profiles and companies', enabled: false },
+  'websets_create': { name: 'Websets Create', description: 'Create a new Webset with search query and optional enrichments', enabled: false },
+  'websets_get': { name: 'Websets Get', description: 'Get a Webset by ID', enabled: false },
+  'websets_list': { name: 'Websets List', description: 'List all Websets', enabled: false },
+  'websets_delete': { name: 'Websets Delete', description: 'Delete a Webset', enabled: false },
+  'websets_cancel': { name: 'Websets Cancel', description: 'Cancel a running Webset', enabled: false },
+  'websets_enrichments_create': { name: 'Websets Enrichments Create', description: 'Add an enrichment column to a Webset', enabled: false },
+  'websets_enrichments_get': { name: 'Websets Enrichments Get', description: 'Get an enrichment by ID', enabled: false },
+  'websets_items_list': { name: 'Websets Items List', description: 'List items in a Webset', enabled: false },
+  'websets_items_get': { name: 'Websets Items Get', description: 'Get a specific item from a Webset', enabled: false },
 };  
 
 /**
