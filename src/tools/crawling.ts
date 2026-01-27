@@ -8,7 +8,10 @@ import { checkpoint } from "agnost";
 export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "crawling_exa",
-    "Extract and crawl content from specific URLs using Exa AI - retrieves full text content, metadata, and structured information from web pages. Ideal for extracting detailed content from known URLs.",
+    `Get the full content of a specific webpage. Use when you have an exact URL.
+
+Best for: Extracting content from a known URL.
+Returns: Full text content and metadata from the page.`,
     {
       url: z.string().describe("URL to crawl and extract content from"),
       maxCharacters: z.number().optional().describe("Maximum characters to extract (default: 3000)")
@@ -106,4 +109,4 @@ export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: s
       }
     }
   );
-}  
+}    

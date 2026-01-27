@@ -9,7 +9,10 @@ import { checkpoint } from "agnost";
 export function registerPeopleSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "people_search_exa",
-    "Search for people using Exa AI - finds professional profiles and people. Useful for networking, recruitment, and finding professionals.",
+    `Find people and their professional profiles.
+
+Best for: Finding professionals, executives, or anyone with a public profile.
+Returns: Profile information and links.`,
     {
       query: z.string().describe("Search query for finding people"),
       numResults: z.number().optional().describe("Number of profile results to return (default: 5)")

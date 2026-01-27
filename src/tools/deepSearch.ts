@@ -9,7 +9,10 @@ import { checkpoint } from "agnost";
 export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "deep_search_exa",
-    "Searches the web and return results in a natural language format.",
+    `Deep search with automatic query expansion for thorough research. Generates multiple search variations to find comprehensive results.
+
+Best for: Complex questions that need information from multiple angles.
+Returns: Synthesized content from expanded searches.`,
     {
       objective: z.string().describe("Natural language description of what the web search is looking for. Try to make the search query atomic - looking for a specific piece of information. May include guidance about preferred sources or freshness."),
       search_queries: z.array(z.string()).optional().describe("Optional list of keyword search queries, may include search operators. The search queries should be related to the user's objective. Limited to 5 entries of up to 5 words each (around 200 characters)."),

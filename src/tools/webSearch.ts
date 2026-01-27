@@ -9,7 +9,10 @@ import { checkpoint } from "agnost"
 export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "web_search_exa",
-    "Search the web using Exa AI - performs real-time web searches and can scrape content from specific URLs. Supports configurable result counts and returns the content from the most relevant websites.",
+    `Search the web for any topic and get clean, ready-to-use content.
+
+Best for: Finding current information, news, facts, or answering questions about any topic.
+Returns: Clean text content from top search results, ready for LLM use.`,
     {
       query: z.string().describe("Websearch query"),
       numResults: z.number().optional().describe("Number of search results to return (default: 8)"),
@@ -118,4 +121,4 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
       }
     }
   );
-}  
+}    

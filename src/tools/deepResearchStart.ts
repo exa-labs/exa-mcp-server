@@ -9,7 +9,11 @@ import { checkpoint } from "agnost";
 export function registerDeepResearchStartTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "deep_researcher_start",
-    "Start a comprehensive AI-powered deep research task for complex queries. This tool initiates an intelligent agent that performs extensive web searches, crawls relevant pages, analyzes information, and synthesizes findings into a detailed research report. The agent thinks critically about the research topic and provides thorough, well-sourced answers. Use this for complex research questions that require in-depth analysis rather than simple searches. After starting a research task, IMMEDIATELY use deep_researcher_check with the returned task ID to monitor progress and retrieve results.",
+    `Start an AI research agent that searches, reads, and writes a detailed report. Takes 15 seconds to 2 minutes.
+
+Best for: Complex research questions needing deep analysis and synthesis.
+Returns: Task ID - use deep_researcher_check to get results.
+Important: Call deep_researcher_check with the returned task ID to get the report.`,
     {
       instructions: z.string().describe("Complex research question or detailed instructions for the AI researcher. Be specific about what you want to research and any particular aspects you want covered."),
       model: z.enum(['exa-research', 'exa-research-pro']).optional().describe("Research model: 'exa-research' (faster, 15-45s, good for most queries) or 'exa-research-pro' (more comprehensive, 45s-2min, for complex topics). Default: exa-research")
@@ -114,4 +118,4 @@ export function registerDeepResearchStartTool(server: McpServer, config?: { exaA
       }
     }
   );
-}  
+}    
