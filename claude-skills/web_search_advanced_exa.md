@@ -1,28 +1,3 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://exa.ai/docs/llms.txt
-> Use this file to discover all available pages before exploring further.
-
-# Advanced Web Search Claude Skill (Exa)
-
-Advanced web search using Exa with **fine-grained filters** (domains, category, dates, include/exclude text) plus optional **highlights, summaries, and subpage crawling**.
-
-<Card title="Copy and Paste in Claude Code">
-  Click the copy button on the code block below and paste it into Claude Code.
-</Card>
-
-```
-Step 1: Install or update Exa MCP (web_search_advanced_exa only)
-
-Note: `web_search_advanced_exa` is disabled by default in Exa MCP, so you must explicitly enable it via the `tools=` parameter.
-
-If Exa MCP already exists in your MCP configuration, either uninstall it first and install the new one,
-or update your existing MCP config with this endpoint. Run this command in your terminal:
-
-claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
-
-
-Step 2: Add this Claude skill
-
 ---
 name: web-search-advanced-exa
 description: Advanced web search using Exa. Full control over filtering (domains, dates, category, text) plus highlights/summaries and subpage crawling.
