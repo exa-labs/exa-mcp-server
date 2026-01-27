@@ -1,6 +1,6 @@
 ---
 name: company-research
-description: Company research using Exa search. Finds company info, competitors, news, tweets, financials, LinkedIn profiles, builds company lists.
+description: Company research using Exa search. Finds company info, competitors, news, tweets, financials, people profiles, builds company lists.
 triggers:
   - company research
   - competitor analysis
@@ -48,12 +48,12 @@ Use appropriate Exa category:
   location, funding, revenue
 - news → press coverage
 - tweet → social presence
-- people → LinkedIn profiles (public data)
+- people → People profiles (public data)
 
-## LinkedIn
+## People Search
 
-Public LinkedIn via Exa: category "people", no other filters
-Auth-required LinkedIn → use Claude in Chrome browser fallback
+Public people profiles via Exa: category "people", no other filters
+Auth-required profiles → use Claude in Chrome browser fallback
 
 ## Browser Fallback
 

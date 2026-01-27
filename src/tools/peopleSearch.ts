@@ -6,17 +6,17 @@ import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { checkpoint } from "agnost";
 
-export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerPeopleSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
-    "linkedin_search_exa",
-    "Search for people on LinkedIn using Exa AI - finds professional profiles and people. Useful for networking, recruitment, and finding professionals.",
+    "people_search_exa",
+    "Search for people using Exa AI - finds professional profiles and people. Useful for networking, recruitment, and finding professionals.",
     {
-      query: z.string().describe("Search query for finding people on LinkedIn"),
-      numResults: z.number().optional().describe("Number of LinkedIn profile results to return (default: 5)")
+      query: z.string().describe("Search query for finding people"),
+      numResults: z.number().optional().describe("Number of profile results to return (default: 5)")
     },
     async ({ query, numResults }) => {
-      const requestId = `linkedin_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'linkedin_search_exa');
+      const requestId = `people_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const logger = createRequestLogger(requestId, 'people_search_exa');
       
       logger.start(`${query}`);
       
@@ -28,13 +28,13 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
             'accept': 'application/json',
             'content-type': 'application/json',
             'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
-            'x-exa-integration': 'linkedin-search-mcp'
+            'x-exa-integration': 'people-search-mcp'
           },
           timeout: 25000
         });
 
         let searchQuery = query;
-        searchQuery = `${query} LinkedIn profile`;
+        searchQuery = `${query} profile`;
 
         const searchRequest: ExaSearchRequest = {
           query: searchQuery,
@@ -48,8 +48,8 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
           },
         };
         
-        checkpoint('linkedin_search_request_prepared');
-        logger.log("Sending request to Exa API for LinkedIn search");
+        checkpoint('people_search_request_prepared');
+        logger.log("Sending request to Exa API for people search");
         
         const response = await axiosInstance.post<ExaSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
@@ -57,21 +57,21 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
           { timeout: 25000 }
         );
         
-        checkpoint('linkedin_search_response_received');
+        checkpoint('people_search_response_received');
         logger.log("Received response from Exa API");
 
         if (!response.data || !response.data.results) {
           logger.log("Warning: Empty or invalid response from Exa API");
-          checkpoint('linkedin_search_complete');
+          checkpoint('people_search_complete');
           return {
             content: [{
               type: "text" as const,
-              text: "No LinkedIn content found. Please try a different query."
+              text: "No content found. Please try a different query."
             }]
           };
         }
 
-        logger.log(`Found ${response.data.results.length} LinkedIn results`);
+        logger.log(`Found ${response.data.results.length} results`);
         
         const result = {
           content: [{
@@ -80,7 +80,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
           }]
         };
         
-        checkpoint('linkedin_search_complete');
+        checkpoint('people_search_complete');
         logger.complete();
         return result;
       } catch (error) {
@@ -95,7 +95,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
           return {
             content: [{
               type: "text" as const,
-              text: `LinkedIn search error (${statusCode}): ${errorMessage}`
+              text: `People search error (${statusCode}): ${errorMessage}`
             }],
             isError: true,
           };
@@ -105,11 +105,11 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         return {
           content: [{
             type: "text" as const,
-            text: `LinkedIn search error: ${error instanceof Error ? error.message : String(error)}`
+            text: `People search error: ${error instanceof Error ? error.message : String(error)}`
           }],
           isError: true,
         };
       }
     }
   );
-}  
+}

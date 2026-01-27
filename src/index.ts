@@ -31,7 +31,7 @@ const availableTools = {
   'crawling_exa': { name: 'Web Crawling', description: 'Extract content from specific URLs', enabled: false },
   'deep_researcher_start': { name: 'Deep Researcher Start', description: 'Start a comprehensive AI research task', enabled: false },
   'deep_researcher_check': { name: 'Deep Researcher Check', description: 'Check status and retrieve results of research task', enabled: false },
-  'linkedin_search_exa': { name: 'LinkedIn Search', description: 'Search LinkedIn profiles and companies', enabled: false },
+  'people_search_exa': { name: 'People Search', description: 'Search for people and professional profiles', enabled: false },
 };  
 
 /**
@@ -45,7 +45,7 @@ const availableTools = {
  * - Real-time web searching with configurable parameters
  * - Company research and analysis
  * - Web content crawling
- * - LinkedIn search capabilities
+ * - People search capabilities
  * - Deep research workflows
  * - And more!
  * 
