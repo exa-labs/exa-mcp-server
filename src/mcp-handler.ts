@@ -7,6 +7,7 @@ import { registerDeepSearchTool } from "./tools/deepSearch.js";
 import { registerCompanyResearchTool } from "./tools/companyResearch.js";
 import { registerCrawlingTool } from "./tools/crawling.js";
 import { registerPeopleSearchTool } from "./tools/peopleSearch.js";
+import { registerLinkedInSearchTool } from "./tools/linkedInSearch.js";
 import { registerDeepResearchStartTool } from "./tools/deepResearchStart.js";
 import { registerDeepResearchCheckTool } from "./tools/deepResearchCheck.js";
 import { registerExaCodeTool } from "./tools/exaCode.js";
@@ -24,6 +25,7 @@ const availableTools = {
   'deep_researcher_start': { name: 'Deep Researcher Start', description: 'Start a comprehensive AI research task', enabled: false },
   'deep_researcher_check': { name: 'Deep Researcher Check', description: 'Check status and retrieve results of research task', enabled: false },
   'people_search_exa': { name: 'People Search', description: 'Search for people and professional profiles', enabled: false },
+  'linkedin_search_exa': { name: 'LinkedIn Search (Deprecated)', description: 'Deprecated: Use people_search_exa instead', enabled: false },
 };
 
 export interface McpConfig {
@@ -87,6 +89,12 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     if (shouldRegisterTool('people_search_exa')) {
       registerPeopleSearchTool(server, config);
       registeredTools.push('people_search_exa');
+    }
+    
+    // Deprecated: linkedin_search_exa - kept for backwards compatibility
+    if (shouldRegisterTool('linkedin_search_exa')) {
+      registerLinkedInSearchTool(server, config);
+      registeredTools.push('linkedin_search_exa');
     }
     
     if (shouldRegisterTool('deep_researcher_start')) {

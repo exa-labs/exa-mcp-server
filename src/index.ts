@@ -32,6 +32,7 @@ const availableTools = {
   'deep_researcher_start': { name: 'Deep Researcher Start', description: 'Start a comprehensive AI research task', enabled: false },
   'deep_researcher_check': { name: 'Deep Researcher Check', description: 'Check status and retrieve results of research task', enabled: false },
   'people_search_exa': { name: 'People Search', description: 'Search for people and professional profiles', enabled: false },
+  'linkedin_search_exa': { name: 'LinkedIn Search (Deprecated)', description: 'Deprecated: Use people_search_exa instead', enabled: false },
 };  
 
 /**

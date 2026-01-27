@@ -145,6 +145,7 @@ https://your-project.vercel.app/api/mcp?tools=web_search_exa&exaApiKey=KEY&debug
 - `crawling_exa` (default: OFF)
 - `company_research_exa` (default: OFF)
 - `people_search_exa` (default: OFF)
+- `linkedin_search_exa` (default: OFF, **deprecated** - use `people_search_exa`)
 - `deep_researcher_start` (default: OFF)
 - `deep_researcher_check` (default: OFF)
 
