@@ -1,5 +1,5 @@
 ---
-name: company-research
+name: company-research-exa
 description: Company research using Exa search. Finds companies with rich metadata (headcount, location, funding, revenue, industry) for competitor analysis, market research, and building company lists.
 triggers:
   - company research
@@ -12,13 +12,11 @@ requires_mcp: exa
 context: fork
 ---
 
-# Company Research
+# Company Research (Exa)
 
 ## Tool Restriction (Critical)
 
-ONLY use `company_search_exa`. Do NOT use other Exa tools.
-
-Note: If the user asks for `web_search_advanced` for company research, use `company_search_exa` instead—it returns rich company metadata (headcount, location, funding, revenue, industry).
+ONLY use `company_research_exa`. Do NOT use other Exa tools.
 
 ## Token Isolation (Critical)
 
@@ -27,6 +25,12 @@ Never run Exa searches in main context. Always spawn Task agents:
 - Agent processes results using LLM intelligence
 - Agent returns only distilled output (compact JSON or brief markdown)
 - Main context stays clean regardless of search volume
+
+## Inputs (Supported)
+
+`company_research_exa` supports:
+- `query` (string, required)
+- `numResults` (number, optional)
 
 ## Dynamic Tuning
 
@@ -45,12 +49,22 @@ Exa returns different results for different phrasings. For coverage:
 
 ## Rich Metadata
 
-`company_search_exa` returns rich company metadata including:
+`company_research_exa` returns rich company metadata including:
 - Company name and description
 - Headcount and location
 - Funding and revenue
 - Industry classification
 - Website URL
+
+## Output Format (Recommended)
+
+Return:
+1) Results (structured list; one company per row)
+2) Sources (URLs; 1-line relevance each)
+3) Notes (uncertainty/conflicts)
+
+Before presenting:
+- Deduplicate similar results and keep the best representative source per company.
 
 ## Browser Fallback
 
@@ -59,7 +73,15 @@ Auto-fallback to Claude in Chrome when:
 - Content is auth-gated
 - Dynamic pages need JavaScript
 
-## Models
+## MCP Configuration
 
-- haiku: fast extraction (listing, discovery)
-- opus: synthesis, analysis, browser automation
+```json
+{
+  "servers": {
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp?tools=company_research_exa"
+    }
+  }
+}
+```

@@ -19,7 +19,7 @@ context: fork
 
 ONLY use `web_search_exa`. Do NOT use other Exa tools.
 
-## Token Isolation
+## Token Isolation (Critical)
 
 Use Task agents for multi-query research; run single queries directly for quick lookups.
 
@@ -27,6 +27,7 @@ For multi-query research, spawn Task agents:
 - Agent calls `web_search_exa`
 - Agent deduplicates and extracts URLs + key facts
 - Agent returns only distilled output (brief markdown or compact JSON)
+- Main context stays clean regardless of search volume
 
 ## Inputs (Supported)
 
@@ -58,3 +59,16 @@ Return:
 1) Answer (short, structured)
 2) Sources (URLs, 1-line relevance each)
 3) "What's uncertain / conflicting" if needed
+
+## MCP Configuration
+
+```json
+{
+  "servers": {
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp?tools=web_search_exa"
+    }
+  }
+}
+```

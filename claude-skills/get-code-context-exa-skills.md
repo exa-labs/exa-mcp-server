@@ -1,5 +1,5 @@
 ---
-name: exa-code-context
+name: get-code-context-exa
 description: Code context using Exa. Finds real snippets and docs from GitHub, StackOverflow, and technical docs.
 triggers:
   - code search
@@ -14,7 +14,7 @@ requires_mcp: exa
 context: fork
 ---
 
-# Exa Code Context (get_code_context_exa)
+# Code Context (Exa)
 
 ## Tool Restriction (Critical)
 
@@ -27,8 +27,9 @@ Never run Exa in main context. Always spawn Task agents:
 - Agent extracts the minimum viable snippet(s) + constraints
 - Agent deduplicates near-identical results (mirrors, forks, repeated StackOverflow answers) before presenting
 - Agent returns copyable snippets + brief explanation
+- Main context stays clean regardless of search volume
 
-## When to Use (Hard Rule)
+## When to Use
 
 Use this tool for ANY programming-related request:
 - API usage and syntax
@@ -51,8 +52,9 @@ To reduce irrelevant results and cross-language noise:
 - When applicable, also include **framework + version** (e.g., "Next.js 14", "React 19", "Python 3.12").
 - Include exact identifiers (function/class names, config keys, error messages) when you have them.
 
-## Token Strategy
+## Dynamic Tuning
 
+Token strategy:
 - Focused snippet needed → tokensNum 1000–3000
 - Most tasks → tokensNum 5000
 - Complex integration → tokensNum 10000–20000
@@ -67,3 +69,16 @@ Return:
 
 Before presenting:
 - Deduplicate similar results and keep only the best representative snippet per approach.
+
+## MCP Configuration
+
+```json
+{
+  "servers": {
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp?tools=get_code_context_exa"
+    }
+  }
+}
+```

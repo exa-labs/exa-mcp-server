@@ -25,7 +25,6 @@ Note: If the user asks for `linkedin_search_exa`, use `people_search_exa` instea
 ## Token Isolation (Critical)
 
 Never run Exa searches in main context. Always spawn Task agents:
-
 - Agent calls `people_search_exa`
 - Agent merges + deduplicates results (by URL AND near-duplicates) before presenting
 - Agent extracts only what's needed (name, role, company, location, profile URLs, key evidence)
@@ -93,3 +92,16 @@ Auto-fallback to browser automation when:
 - Exa results are insufficient for identification
 - A target page is auth-gated / dynamic
 - User needs verification from a specific page that Exa can't surface cleanly
+
+## MCP Configuration
+
+```json
+{
+  "servers": {
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp?tools=people_search_exa"
+    }
+  }
+}
+```

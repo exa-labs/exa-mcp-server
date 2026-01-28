@@ -23,17 +23,15 @@ ONLY use `web_search_advanced_exa`. Do NOT use `web_search_exa` or other Exa too
 ## Token Isolation (Critical)
 
 Never run Exa searches in main context. Always spawn Task agents:
-
 - Agent calls `web_search_advanced_exa`
 - Agent merges + deduplicates results (by URL AND near-duplicates like syndicated/mirrored content) before presenting
-- Agent extracts only what’s needed for the user’s request (facts, quotes, code snippets, dates)
+- Agent extracts only what's needed for the user's request (facts, quotes, code snippets, dates)
 - Agent returns distilled output (brief markdown or compact JSON)
 - Main context stays clean regardless of search volume
 
 ## When to Use
 
 Use `web_search_advanced_exa` when you need **control**:
-
 - Restrict to specific domains (docs sites, arXiv, GitHub, etc.)
 - Filter by published date or crawl date
 - Force a category (news / research paper / github / pdf / etc.)
@@ -41,7 +39,7 @@ Use `web_search_advanced_exa` when you need **control**:
 - Generate summaries or highlights for retrieval workflows
 - Crawl subpages (e.g., pricing/docs/careers linked from a homepage)
 
-If you just want a simple “search + clean context”, prefer the basic tool (outside this skill).
+If you just want a simple "search + clean context", prefer the basic tool (outside this skill).
 
 ## Inputs (Supported)
 
@@ -94,11 +92,10 @@ Important: the Exa Search API notes that the `company` and `people` categories s
 ## Dynamic Tuning
 
 Avoid hardcoding. Tune parameters to intent:
-
 - Quick factual lookup → `type: "fast"`, `numResults: 3–8`
-- High recall / “don’t miss anything” → `type: "deep"`, `numResults: 20–50`, plus `additionalQueries`
+- High recall / "don't miss anything" → `type: "deep"`, `numResults: 20–50`, plus `additionalQueries`
 - Best semantic match → `type: "neural"` or `"auto"`
-- “Latest/current/today” → set `livecrawl: "preferred"` (or `"always"` if freshness is critical)
+- "Latest/current/today" → set `livecrawl: "preferred"` (or `"always"` if freshness is critical)
 
 Use `contextMaxCharacters` to control how much aggregated context comes back.
 Use `textMaxCharacters` to control per-result payload size.
@@ -106,7 +103,6 @@ Use `textMaxCharacters` to control per-result payload size.
 ## Query Variation
 
 You have two options:
-
 1) Multiple calls (2–3 query rewrites), then merge + dedupe
 2) Single call using `additionalQueries` to expand coverage
 
@@ -188,3 +184,16 @@ Return:
 
 Before presenting:
 - Deduplicate similar results (mirrors/syndication/reposts) and keep the best representative source per claim.
+
+## MCP Configuration
+
+```json
+{
+  "servers": {
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+    }
+  }
+}
+```
