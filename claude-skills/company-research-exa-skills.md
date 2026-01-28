@@ -1,6 +1,6 @@
 ---
-name: company-research
-description: Company research using Exa search. Finds company info, competitors, news, tweets, financials, people profiles, builds company lists.
+name: company-research-exa
+description: Company research using Exa search. Finds companies with rich metadata (headcount, location, funding, revenue, industry) for competitor analysis, market research, and building company lists.
 triggers:
   - company research
   - competitor analysis
@@ -12,11 +12,11 @@ requires_mcp: exa
 context: fork
 ---
 
-# Company Research
+# Company Research (Exa)
 
 ## Tool Restriction (Critical)
 
-ONLY use `web_search_advanced` from Exa. Do NOT use `web_search_exa` or any other Exa tools.
+ONLY use `company_research_exa`. Do NOT use other Exa tools.
 
 ## Token Isolation (Critical)
 
@@ -25,6 +25,12 @@ Never run Exa searches in main context. Always spawn Task agents:
 - Agent processes results using LLM intelligence
 - Agent returns only distilled output (compact JSON or brief markdown)
 - Main context stays clean regardless of search volume
+
+## Inputs (Supported)
+
+`company_research_exa` supports:
+- `query` (string, required)
+- `numResults` (number, optional)
 
 ## Dynamic Tuning
 
@@ -41,7 +47,14 @@ Exa returns different results for different phrasings. For coverage:
 - Run in parallel
 - Merge and deduplicate
 
-## Categories
+## Rich Metadata
+
+`company_research_exa` returns rich company metadata including:
+- Company name and description
+- Headcount and location
+- Funding and revenue
+- Industry classification
+- Website URL
 
 Use appropriate Exa category:
 - company → homepages, gargantuan amount of metadata such as headcount,
@@ -55,6 +68,16 @@ Use appropriate Exa category:
 Public people profiles via Exa: category "people", no other filters
 Auth-required profiles → use Claude in Chrome browser fallback
 
+## Output Format (Recommended)
+
+Return:
+1) Results (structured list; one company per row)
+2) Sources (URLs; 1-line relevance each)
+3) Notes (uncertainty/conflicts)
+
+Before presenting:
+- Deduplicate similar results and keep the best representative source per company.
+
 ## Browser Fallback
 
 Auto-fallback to Claude in Chrome when:
@@ -62,7 +85,15 @@ Auto-fallback to Claude in Chrome when:
 - Content is auth-gated
 - Dynamic pages need JavaScript
 
-## Models
+## MCP Configuration
 
-- haiku: fast extraction (listing, discovery)
-- opus: synthesis, analysis, browser automation
+```json
+{
+  "servers": {
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp?tools=company_research_exa"
+    }
+  }
+}
+```
