@@ -14,7 +14,11 @@ function delay(ms: number): Promise<void> {
 export function registerDeepResearchCheckTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "deep_researcher_check",
-    "Check the status and retrieve results of a deep research task. This tool monitors the progress of an AI agent that performs comprehensive web searches, analyzes multiple sources, and synthesizes findings into detailed research reports. The tool includes a built-in 5-second delay before checking to allow processing time. IMPORTANT: You must call this tool repeatedly (poll) until the status becomes 'completed' to get the final research results. When status is 'running', wait a few seconds and call this tool again with the same task ID.",
+    `Check status and get results from a deep research task.
+
+Best for: Getting the research report after calling deep_researcher_start.
+Returns: Research report when complete, or status update if still running.
+Important: Keep calling with the same task ID until status is 'completed'.`,
     {
       taskId: z.string().describe("The task ID returned from deep_researcher_start tool")
     },
@@ -168,4 +172,4 @@ export function registerDeepResearchCheckTool(server: McpServer, config?: { exaA
       }
     }
   );
-}  
+}    

@@ -9,7 +9,10 @@ import { checkpoint } from "agnost";
 export function registerCompanyResearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "company_research_exa",
-    "Research companies using Exa AI - finds comprehensive information about businesses, organizations, and corporations. Provides insights into company operations, news, financial information, and industry analysis.",
+    `Research any company to get business information, news, and insights.
+
+Best for: Learning about a company's products, services, recent news, or industry position.
+Returns: Company information from trusted business sources.`,
     {
       companyName: z.string().describe("Name of the company to research"),
       numResults: z.number().optional().describe("Number of search results to return (default: 5)")
@@ -107,4 +110,4 @@ export function registerCompanyResearchTool(server: McpServer, config?: { exaApi
       }
     }
   );
-}  
+}    

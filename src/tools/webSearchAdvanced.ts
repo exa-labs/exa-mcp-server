@@ -9,7 +9,11 @@ import { checkpoint } from "agnost";
 export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaApiKey?: string }): void {
   server.tool(
     "web_search_advanced_exa",
-    "Advanced web search with full Exa API control - use this when you need precise control over search parameters like category filters, domain restrictions, date ranges, content extraction options, highlights, summaries, and subpage crawling. For simple searches, use web_search_exa instead.",
+    `Advanced web search with full control over filters, domains, dates, and content options.
+
+Best for: When you need specific filters like date ranges, domain restrictions, or category filters.
+Not recommended for: Simple searches - use web_search_exa instead.
+Returns: Search results with optional highlights, summaries, and subpage content.`,
     {
       query: z.string().describe("Search query - can be a question, statement, or keywords"),
       numResults: z.number().optional().describe("Number of results (1-100, default: 10)"),
