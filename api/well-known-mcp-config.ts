@@ -14,7 +14,8 @@ const AVAILABLE_TOOLS = [
   'crawling_exa',
   'deep_researcher_start',
   'deep_researcher_check',
-  'linkedin_search_exa',
+  'people_search_exa',
+  'linkedin_search_exa', // Deprecated: use people_search_exa
   'company_research_exa',
 ];
 

@@ -2,18 +2,18 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
   "name": "io.github.exa-labs/exa-mcp-server",
   "description": "MCP server with Exa for web search and web crawling. Exa is the search engine for AI Applications.",
-  "version": "3.1.5",
+  "version": "3.1.7",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "exa-mcp-server",
-      "version": "3.1.5"
+      "version": "3.1.7"
     }
   ],
   "remotes": [
     {
       "type": "sse",
-      "url": "https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check",
+      "url": "https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,crawling_exa,company_research_exa,people_search_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check",
       "description": "Hosted Exa MCP server with web search and web crawling capabilities. Get the API key from https://dashboard.exa.ai/api-keys. Customize the tools parameter to enable only specific tools (comma-separated list)."
     }
   ]

@@ -56,6 +56,18 @@ Exa returns different results for different phrasings. For coverage:
 - Industry classification
 - Website URL
 
+Use appropriate Exa category:
+- company → homepages, gargantuan amount of metadata such as headcount,
+  location, funding, revenue
+- news → press coverage
+- tweet → social presence
+- people → People profiles (public data)
+
+## People Search
+
+Public people profiles via Exa: category "people", no other filters
+Auth-required profiles → use Claude in Chrome browser fallback
+
 ## Output Format (Recommended)
 
 Return:
