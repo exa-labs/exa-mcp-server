@@ -2,6 +2,7 @@ import { z } from "zod";
 import axios from "axios";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
+import { ExaCrawlRequest } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { checkpoint } from "agnost";
 
@@ -35,14 +36,12 @@ Returns: Full text content and metadata from the page.`,
           timeout: 25000
         });
 
-        const crawlRequest = {
+        const crawlRequest: ExaCrawlRequest = {
           ids: [url],
-          contents: {
-            text: {
-              maxCharacters: maxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS
-            },
-            livecrawl: 'preferred'
-          }
+          text: {
+            maxCharacters: maxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS
+          },
+          livecrawl: 'preferred'
         };
         
         checkpoint('crawl_request_prepared');

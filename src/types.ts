@@ -65,7 +65,9 @@ export interface ExaAdvancedSearchRequest {
 
 export interface ExaCrawlRequest {
   ids: string[];
-  text: boolean;
+  text?: {
+    maxCharacters?: number;
+  } | boolean;
   livecrawl?: 'always' | 'fallback' | 'preferred';
 }
 
