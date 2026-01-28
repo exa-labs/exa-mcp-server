@@ -1,6 +1,6 @@
 ---
 name: company-research
-description: Company research using Exa search. Finds company info, competitors, news, tweets, financials, LinkedIn profiles, builds company lists.
+description: Company research using Exa search. Finds companies with rich metadata (headcount, location, funding, revenue, industry) for competitor analysis, market research, and building company lists.
 triggers:
   - company research
   - competitor analysis
@@ -16,7 +16,9 @@ context: fork
 
 ## Tool Restriction (Critical)
 
-ONLY use `web_search_advanced` from Exa. Do NOT use `web_search_exa` or any other Exa tools.
+ONLY use `company_search_exa`. Do NOT use other Exa tools.
+
+Note: If the user asks for `web_search_advanced` for company research, use `company_search_exa` instead—it returns rich company metadata (headcount, location, funding, revenue, industry).
 
 ## Token Isolation (Critical)
 
@@ -41,19 +43,14 @@ Exa returns different results for different phrasings. For coverage:
 - Run in parallel
 - Merge and deduplicate
 
-## Categories
+## Rich Metadata
 
-Use appropriate Exa category:
-- company → homepages, gargantuan amount of metadata such as headcount,
-  location, funding, revenue
-- news → press coverage
-- tweet → social presence
-- people → LinkedIn profiles (public data)
-
-## LinkedIn
-
-Public LinkedIn via Exa: category "people", no other filters
-Auth-required LinkedIn → use Claude in Chrome browser fallback
+`company_search_exa` returns rich company metadata including:
+- Company name and description
+- Headcount and location
+- Funding and revenue
+- Industry classification
+- Website URL
 
 ## Browser Fallback
 
