@@ -1,7 +1,15 @@
 ---
 name: web-search-advanced-exa
 description: Advanced web search using Exa. Full control over filtering (domains, dates, category, text) plus highlights/summaries and subpage crawling.
-triggers: advanced web search, filtered web search, domain filter, date filter, site filter, search with highlights, search with summary, crawl subpages.
+triggers:
+  - advanced web search
+  - filtered web search
+  - domain filter
+  - date filter
+  - site filter
+  - search with highlights
+  - search with summary
+  - crawl subpages
 requires_mcp: exa
 context: fork
 ---
@@ -176,34 +184,7 @@ web_search_advanced_exa {
 Return:
 1) Answer (short, structured)
 2) Sources (URLs, 1-line relevance each; include dates if relevant)
-3) “What’s uncertain / conflicting” if needed
+3) "What's uncertain / conflicting" if needed
 
 Before presenting:
 - Deduplicate similar results (mirrors/syndication/reposts) and keep the best representative source per claim.
-
-Step 3: Ask User to Restart Claude Code
-
-Ask the user to restart Claude Code to have the config changes take effect.
-```
-
----
-
-## Optional: VS Code MCP config
-
-```json
-{
-  "servers": {
-    "exa": {
-      "type": "http",
-      "url": "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
-    }
-  }
-}
-```
-
----
-
-## References
-
-- Exa MCP: https://exa.ai/docs/reference/exa-mcp
-- Exa Search API: https://exa.ai/docs/reference/search

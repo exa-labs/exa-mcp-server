@@ -1,7 +1,14 @@
 ---
 name: web-search-exa
 description: Web search using Exa. Retrieves a clean context string and summarizes with sources.
-triggers: web search, browse web, find sources, research online, summarize articles, fact check, latest updates.
+triggers:
+  - web search
+  - browse web
+  - find sources
+  - research online
+  - summarize articles
+  - fact check
+  - latest updates
 requires_mcp: exa
 context: fork
 ---
@@ -39,7 +46,7 @@ No hardcoded result counts. Tune dynamically:
 
 Live crawl:
 - default: "fallback"
-- if user asks “latest/current” → set "preferred"
+- if user asks "latest/current" → set "preferred"
 
 ## Query Variation
 
@@ -50,25 +57,4 @@ Generate 2–3 query variations for coverage, run in parallel, then merge + dedu
 Return:
 1) Answer (short, structured)
 2) Sources (URLs, 1-line relevance each)
-3) “What’s uncertain / conflicting” if needed
-
-
-Step 3: Ask User to Restart Claude Code
-
-Ask the user to restart Claude Code to have the MCP config changes take effect.
-```
-
----
-
-## Optional: VS Code MCP config
-
-```json
-{
-  "servers": {
-    "exa": {
-      "type": "http",
-      "url": "https://mcp.exa.ai/mcp?tools=web_search_exa"
-    }
-  }
-}
-```
+3) "What's uncertain / conflicting" if needed

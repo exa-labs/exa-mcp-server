@@ -1,7 +1,15 @@
 ---
 name: exa-code-context
 description: Code context using Exa. Finds real snippets and docs from GitHub, StackOverflow, and technical docs.
-triggers: code search, code snippet, api syntax, library docs, stackoverflow, github example, fix my code, exa-code.
+triggers:
+  - code search
+  - code snippet
+  - api syntax
+  - library docs
+  - stackoverflow
+  - github example
+  - fix my code
+  - exa-code
 requires_mcp: exa
 context: fork
 ---
@@ -26,7 +34,7 @@ Use this tool for ANY programming-related request:
 - API usage and syntax
 - SDK/library examples
 - config and setup patterns
-- framework “how to” questions
+- framework "how to" questions
 - debugging when you need authoritative snippets
 
 ## Inputs (Supported)
@@ -40,7 +48,7 @@ Use this tool for ANY programming-related request:
 To reduce irrelevant results and cross-language noise:
 - Always include the **programming language** in the query.
   - Example: use **"Go generics"** instead of just **"generics"**.
-- When applicable, also include **framework + version** (e.g., “Next.js 14”, “React 19”, “Python 3.12”).
+- When applicable, also include **framework + version** (e.g., "Next.js 14", "React 19", "Python 3.12").
 - Include exact identifiers (function/class names, config keys, error messages) when you have them.
 
 ## Token Strategy
@@ -59,23 +67,3 @@ Return:
 
 Before presenting:
 - Deduplicate similar results and keep only the best representative snippet per approach.
-
-Step 3: Ask User to Restart Claude Code
-
-Ask the user to restart Claude Code to have the MCP config changes take effect.
-```
-
----
-
-## Optional: VS Code MCP config
-
-```json
-{
-  "servers": {
-    "exa": {
-      "type": "http",
-      "url": "https://mcp.exa.ai/mcp?tools=get_code_context_exa"
-    }
-  }
-}
-```
