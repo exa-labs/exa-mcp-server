@@ -175,6 +175,19 @@ web_search_advanced_exa {
 }
 ```
 
+## Error Handling (Critical)
+
+If you receive a **400 error** from the API, it usually means incompatible filter combinations. Retry with a simpler configuration:
+1. Remove `category` if combined with `includeDomains`/`excludeDomains`
+2. Remove text filters (`includeText`/`excludeText`) if combined with category
+3. Simplify to just `query`, `numResults`, and `type`
+4. If still failing, fall back to basic `web_search_exa`
+
+Common incompatible combinations:
+- `category: "people"` only works with `includeDomains: ["linkedin.com"]`
+- `category: "company"` has limited filter support
+- Some categories don't support date filters
+
 ## Output Format (Recommended)
 
 Return:
