@@ -272,19 +272,19 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 **Enabled by Default:**
 | Tool | Description |
 | ---- | ----------- |
-| `web_search_exa` | Search the web and get clean content |
-| `get_code_context_exa` | Find code snippets and docs from GitHub and StackOverflow |
-| `company_research_exa` | Research companies by crawling their websites |
+| `web_search_exa` | Search the web for any topic and get clean, ready-to-use content |
+| `get_code_context_exa` | Find code examples, documentation, and programming solutions from GitHub, Stack Overflow, and docs |
+| `company_research_exa` | Research any company to get business information, news, and insights |
 
 **Off by Default:**
 | Tool | Description |
 | ---- | ----------- |
-| `web_search_advanced_exa` | Advanced search with filters |
-| `deep_search_exa` | Deep search with query expansion |
-| `crawling_exa` | Get content from a specific URL |
-| `people_search_exa` | Search for people and professional profiles |
-| `deep_researcher_start` | Start an AI researcher |
-| `deep_researcher_check` | Check research status and get report |
+| `web_search_advanced_exa` | Advanced web search with full control over filters, domains, dates, and content options |
+| `deep_search_exa` | Deep search with automatic query expansion for thorough research |
+| `crawling_exa` | Get the full content of a specific webpage from a known URL |
+| `people_search_exa` | Find people and their professional profiles |
+| `deep_researcher_start` | Start an AI research agent that searches, reads, and writes a detailed report |
+| `deep_researcher_check` | Check status and get results from a deep research task |
 
 Enable all tools with the `tools` parameter:
 
