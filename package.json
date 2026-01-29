@@ -33,7 +33,7 @@
     "build": "npm run build:shttp && npm run build:stdio",
     "build:stdio": "smithery build src/index.ts --transport stdio -o .smithery/stdio/index.cjs && echo '#!/usr/bin/env node' | cat - .smithery/stdio/index.cjs > temp && mv temp .smithery/stdio/index.cjs && chmod +x .smithery/stdio/index.cjs",
     "build:shttp": "smithery build src/index.ts --transport shttp -o .smithery/shttp/index.cjs",
-    "build:vercel": "./node_modules/.bin/tsc",
+    "build:vercel": "npm install typescript && ./node_modules/.bin/tsc",
     "prepare": "npm run build:stdio",
     "watch": "./node_modules/.bin/tsc --watch",
     "dev": "npx @smithery/cli@latest dev",
