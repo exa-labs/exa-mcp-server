@@ -40,7 +40,7 @@ The `financial report` category has one known restriction:
 - `startCrawlDate` / `endCrawlDate`
 
 ### Text filtering
-- `includeText` (must contain ALL)
+- `includeText` (must contain ALL) - **single-item arrays only**; multi-item causes 400
 - ~~`excludeText`~~ - NOT SUPPORTED
 
 ### Content extraction
@@ -110,7 +110,7 @@ Risk factors analysis:
 web_search_advanced_exa {
   "query": "risk factors cybersecurity",
   "category": "financial report",
-  "includeText": ["risk factors", "cybersecurity"],
+  "includeText": ["cybersecurity"],
   "numResults": 10,
   "enableHighlights": true,
   "highlightsQuery": "What are the main cybersecurity risks?"

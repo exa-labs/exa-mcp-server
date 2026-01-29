@@ -30,8 +30,8 @@ The `company` category has LIMITED filter support. The following parameters are 
 - `query` (required)
 - `numResults`
 - `type` ("auto", "fast", "deep", "neural")
-- `includeText` (must contain ALL) - works for filtering company results
-- `excludeText` (exclude if ANY match) - works for filtering company results
+- `includeText` (must contain ALL) - works for filtering company results (**single-item arrays only**; multi-item causes 400)
+- `excludeText` (exclude if ANY match) - works for filtering company results (**single-item arrays only**; multi-item causes 400)
 - `userLocation`
 - `moderation`
 - `additionalQueries`

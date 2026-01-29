@@ -39,6 +39,8 @@ The `pdf` category supports ALL available parameters:
 - `includeText` (must contain ALL)
 - `excludeText` (exclude if ANY match)
 
+**Array size restriction:** `includeText` and `excludeText` only support **single-item arrays**. Multi-item arrays (2+ items) cause 400 errors. To match multiple terms, put them in the `query` string or run separate searches.
+
 ### Content extraction
 - `textMaxCharacters` / `contextMaxCharacters`
 - `enableSummary` / `summaryQuery`
@@ -96,7 +98,7 @@ Technical documentation:
 web_search_advanced_exa {
   "query": "kubernetes security hardening guide",
   "category": "pdf",
-  "includeText": ["security", "hardening"],
+  "includeText": ["hardening"],
   "numResults": 10,
   "type": "auto"
 }

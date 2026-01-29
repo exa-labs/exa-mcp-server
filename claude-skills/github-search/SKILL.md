@@ -1,6 +1,6 @@
 ---
 name: web-search-advanced-github
-description: Search GitHub repositories and code using Exa advanced search. Full filter support for finding repos, code examples, and open source projects.
+description: Search GitHub repositories and code using Exa advanced search. Domain filters not supported. Text filters support single-item arrays only.
 triggers:
   - search github
   - find repos
@@ -18,9 +18,9 @@ context: fork
 
 ONLY use `web_search_advanced_exa` with `category: "github"`. Do NOT use other categories or tools.
 
-## Full Filter Support
+## Filter Support
 
-The `github` category supports ALL available parameters:
+The `github` category supports most parameters with some restrictions:
 
 ### Core
 - `query` (required)
@@ -28,8 +28,8 @@ The `github` category supports ALL available parameters:
 - `type` ("auto", "fast", "deep", "neural")
 
 ### Domain filtering
-- `includeDomains` (typically not needed - already filtered to GitHub)
-- `excludeDomains`
+- `includeDomains` - NOT SUPPORTED (causes 400 error; already filtered to GitHub)
+- `excludeDomains` - NOT SUPPORTED (causes 400 error)
 
 ### Date filtering (ISO 8601)
 - `startPublishedDate` / `endPublishedDate`
@@ -38,6 +38,8 @@ The `github` category supports ALL available parameters:
 ### Text filtering
 - `includeText` (must contain ALL)
 - `excludeText` (exclude if ANY match)
+
+**Array size restriction:** `includeText` and `excludeText` only support **single-item arrays**. Multi-item arrays (2+ items) cause 400 errors. To match multiple terms, put them in the `query` string or run separate searches.
 
 ### Content extraction
 - `textMaxCharacters` / `contextMaxCharacters`
@@ -107,12 +109,12 @@ web_search_advanced_exa {
 }
 ```
 
-Exclude certain frameworks:
+Exclude a framework:
 ```
 web_search_advanced_exa {
   "query": "JavaScript state management library",
   "category": "github",
-  "excludeText": ["redux", "mobx"],
+  "excludeText": ["redux"],
   "numResults": 15,
   "type": "auto"
 }

@@ -28,8 +28,8 @@ The `news` category supports ALL available parameters:
 - `type` ("auto", "fast", "deep", "neural")
 
 ### Domain filtering
-- `includeDomains` (e.g., ["techcrunch.com", "reuters.com"])
-- `excludeDomains`
+- `includeDomains` (e.g., ["techcrunch.com", "reuters.com"]) - multi-item arrays work
+- `excludeDomains` - multi-item arrays work
 
 ### Date filtering (ISO 8601) - Especially useful for news!
 - `startPublishedDate` / `endPublishedDate`
@@ -38,6 +38,8 @@ The `news` category supports ALL available parameters:
 ### Text filtering
 - `includeText` (must contain ALL)
 - `excludeText` (exclude if ANY match)
+
+**Array size restriction:** `includeText` and `excludeText` only support **single-item arrays**. Multi-item arrays (2+ items) cause 400 errors. To match multiple terms, put them in the `query` string or run separate searches.
 
 ### Content extraction
 - `textMaxCharacters` / `contextMaxCharacters`
@@ -93,12 +95,12 @@ web_search_advanced_exa {
 }
 ```
 
-Exclude certain topics:
+Exclude a topic:
 ```
 web_search_advanced_exa {
   "query": "startup funding rounds",
   "category": "news",
-  "excludeText": ["crypto", "blockchain", "NFT"],
+  "excludeText": ["crypto"],
   "numResults": 15,
   "type": "auto"
 }
