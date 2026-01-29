@@ -51,8 +51,6 @@ const availableTools = {
  * - And more!
  * 
  * This is the Smithery CLI entry point. For Vercel deployment, see api/mcp.ts
- * 
- * test
  */
 
 export default function ({ config }: { config: z.infer<typeof configSchema> }) {
