@@ -37,7 +37,7 @@
     "prepare": "npm run build:stdio",
     "watch": "tsc --watch",
     "dev": "npx @smithery/cli@latest dev",
-    "dev:vercel": "vercel dev",
+    "dev:vercel": "vercel dev --yes",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
     "prepublishOnly": "npm run build:stdio"
   },
@@ -53,7 +53,7 @@
     "@types/node": "^20.11.24",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
-    "vercel": "^37.0.0"
+    "vercel": "^50.9.3"
   },
   "engines": {
     "node": ">=18.0.0"
