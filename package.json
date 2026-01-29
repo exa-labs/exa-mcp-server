@@ -36,7 +36,7 @@
     "build:vercel": "tsc",
     "prepare": "npm run build:stdio",
     "watch": "tsc --watch",
-    "dev": "npx @smithery/cli@latest dev",
+    "dev": "npx @smithery/cli@1.4.4 dev",
     "dev:vercel": "vercel dev",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
     "prepublishOnly": "npm run build:stdio"
@@ -49,7 +49,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@smithery/cli": "^1.4.4",
+    "@smithery/cli": "1.4.4",
     "@types/node": "^20.11.24",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
