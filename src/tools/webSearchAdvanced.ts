@@ -221,7 +221,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
         logger.error(error);
 
         // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.exaApiKey, 'web_search_advanced_exa');
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'web_search_advanced_exa');
         if (rateLimitResult) {
           return rateLimitResult;
         }

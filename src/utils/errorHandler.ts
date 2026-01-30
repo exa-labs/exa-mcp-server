@@ -9,10 +9,14 @@ const FREE_MCP_RATE_LIMIT_MESSAGE = `You are using the free MCP which has rate l
 /**
  * Checks if an Axios error is a rate limit error (HTTP 429) and if the user is using the free MCP.
  * Returns a user-friendly error message if both conditions are met.
+ * 
+ * @param error - The error to check
+ * @param userProvidedApiKey - Whether the user provided their own API key via URL parameter
+ * @param toolName - The name of the tool that encountered the error (for logging)
  */
 export function handleRateLimitError(
   error: unknown,
-  exaApiKey: string | undefined,
+  userProvidedApiKey: boolean | undefined,
   toolName: string
 ): { content: Array<{ type: "text"; text: string }>; isError: true } | null {
   if (!axios.isAxiosError(error)) {
@@ -21,7 +25,7 @@ export function handleRateLimitError(
 
   const statusCode = error.response?.status;
   const isRateLimited = statusCode === 429;
-  const isUsingFreeMcp = !exaApiKey && !process.env.EXA_API_KEY;
+  const isUsingFreeMcp = !userProvidedApiKey;
 
   if (isRateLimited && isUsingFreeMcp) {
     return {

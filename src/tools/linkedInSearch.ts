@@ -91,7 +91,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         logger.error(error);
         
         // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.exaApiKey, 'linkedin_search_exa');
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'linkedin_search_exa');
         if (rateLimitResult) {
           return rateLimitResult;
         }

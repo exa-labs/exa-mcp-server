@@ -97,7 +97,7 @@ Returns: Synthesized content from expanded searches.`,
         logger.error(error);
         
         // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.exaApiKey, 'deep_search_exa');
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'deep_search_exa');
         if (rateLimitResult) {
           return rateLimitResult;
         }

@@ -149,7 +149,7 @@ Important: Keep calling with the same task ID until status is 'completed'.`,
           }
           
           // Check for rate limit error on free MCP
-          const rateLimitResult = handleRateLimitError(error, config?.exaApiKey, 'deep_researcher_check');
+          const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'deep_researcher_check');
           if (rateLimitResult) {
             return rateLimitResult;
           }
@@ -179,4 +179,4 @@ Important: Keep calling with the same task ID until status is 'completed'.`,
       }
     }
   );
-}                    
+}                                        

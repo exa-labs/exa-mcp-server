@@ -94,7 +94,7 @@ Important: Call deep_researcher_check with the returned task ID to get the repor
         logger.error(error);
         
         // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.exaApiKey, 'deep_researcher_start');
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'deep_researcher_start');
         if (rateLimitResult) {
           return rateLimitResult;
         }
@@ -125,4 +125,4 @@ Important: Call deep_researcher_check with the returned task ID to get the repor
       }
     }
   );
-}                    
+}                                        

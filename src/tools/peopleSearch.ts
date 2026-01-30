@@ -91,7 +91,7 @@ Returns: Profile information and links.`,
         logger.error(error);
         
         // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.exaApiKey, 'people_search_exa');
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'people_search_exa');
         if (rateLimitResult) {
           return rateLimitResult;
         }

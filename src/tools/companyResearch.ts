@@ -86,7 +86,7 @@ Returns: Company information from trusted business sources.`,
         logger.error(error);
         
         // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.exaApiKey, 'company_research_exa');
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'company_research_exa');
         if (rateLimitResult) {
           return rateLimitResult;
         }
@@ -117,4 +117,4 @@ Returns: Company information from trusted business sources.`,
       }
     }
   );
-}                    
+}                                        

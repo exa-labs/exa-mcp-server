@@ -97,7 +97,7 @@ Returns: Clean text content from top search results, ready for LLM use.`,
         logger.error(error);
         
         // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.exaApiKey, 'web_search_exa');
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'web_search_exa');
         if (rateLimitResult) {
           return rateLimitResult;
         }
@@ -128,4 +128,4 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       }
     }
   );
-}                    
+}                                        

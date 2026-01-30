@@ -85,7 +85,7 @@ Returns: Full text content and metadata from the page.`,
         logger.error(error);
         
         // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.exaApiKey, 'crawling_exa');
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'crawling_exa');
         if (rateLimitResult) {
           return rateLimitResult;
         }
@@ -116,4 +116,4 @@ Returns: Full text content and metadata from the page.`,
       }
     }
   );
-}                    
+}                                        

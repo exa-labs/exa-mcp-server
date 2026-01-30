@@ -91,7 +91,7 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
         logger.error(error);
         
         // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.exaApiKey, 'get_code_context_exa');
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'get_code_context_exa');
         if (rateLimitResult) {
           return rateLimitResult;
         }
