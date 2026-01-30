@@ -7,7 +7,7 @@ import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
-export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "web_search_advanced_exa",
     `Advanced web search with full control over filters, domains, dates, and content options.
