@@ -43,8 +43,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "@upstash/ratelimit": "^2.0.8",
-    "@upstash/redis": "^1.36.1",
     "agnost": "^0.1.7",
     "axios": "^1.7.8",
     "mcp-handler": "^1.0.4",
@@ -53,6 +51,8 @@
   "devDependencies": {
     "@smithery/cli": "^1.4.4",
     "@types/node": "^20.11.24",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.36.1",
     "tsx": "^4.7.0",
     "typescript": "^5.9.3",
     "vercel": "^37.0.0"
