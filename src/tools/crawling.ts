@@ -3,9 +3,10 @@ import axios from "axios";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { createRequestLogger } from "../utils/logger.js";
+import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
-export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "crawling_exa",
     `Get the full content of a specific webpage. Use when you have an exact URL.
@@ -83,6 +84,12 @@ Returns: Full text content and metadata from the page.`,
       } catch (error) {
         logger.error(error);
         
+        // Check for rate limit error on free MCP
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'crawling_exa');
+        if (rateLimitResult) {
+          return rateLimitResult;
+        }
+        
         if (axios.isAxiosError(error)) {
           // Handle Axios errors specifically
           const statusCode = error.response?.status || 'unknown';
@@ -109,4 +116,4 @@ Returns: Full text content and metadata from the page.`,
       }
     }
   );
-}    
+}                                                

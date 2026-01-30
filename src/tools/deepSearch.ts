@@ -4,9 +4,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
+import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
-export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "deep_search_exa",
     `Deep search with automatic query expansion for thorough research. Generates multiple search variations to find comprehensive results.
@@ -94,6 +95,12 @@ Returns: Synthesized content from expanded searches.`,
         return result;
       } catch (error) {
         logger.error(error);
+        
+        // Check for rate limit error on free MCP
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'deep_search_exa');
+        if (rateLimitResult) {
+          return rateLimitResult;
+        }
         
         if (axios.isAxiosError(error)) {
           // Handle Axios errors specifically

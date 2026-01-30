@@ -37,6 +37,7 @@ function getConfigFromUrl(url: string) {
   let exaApiKey = process.env.EXA_API_KEY;
   let enabledTools: string[] | undefined;
   let debug = process.env.DEBUG === 'true';
+  let userProvidedApiKey = false;
 
   try {
     const parsedUrl = new URL(url);
@@ -47,6 +48,7 @@ function getConfigFromUrl(url: string) {
       const keyFromUrl = params.get('exaApiKey');
       if (keyFromUrl) {
         exaApiKey = keyFromUrl;
+        userProvidedApiKey = true;
       }
     }
 
@@ -80,7 +82,7 @@ function getConfigFromUrl(url: string) {
       .filter(t => t.length > 0);
   }
 
-  return { exaApiKey, enabledTools, debug };
+  return { exaApiKey, enabledTools, debug, userProvidedApiKey };
 }
 
 /**
@@ -89,7 +91,7 @@ function getConfigFromUrl(url: string) {
  * configuration (tools and API key). This prevents API key leakage between
  * different users who might pass different keys via URL.
  */
-function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean }) {
+function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean }) {
   return createMcpHandler(
     (server: any) => {
       initializeMcpServer(server, config);

@@ -32,6 +32,7 @@ export interface McpConfig {
   exaApiKey?: string;
   enabledTools?: string[];
   debug?: boolean;
+  userProvidedApiKey?: boolean;
 }
 
 /**

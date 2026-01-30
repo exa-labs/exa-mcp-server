@@ -4,9 +4,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaAdvancedSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
+import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
-export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "web_search_advanced_exa",
     `Advanced web search with full control over filters, domains, dates, and content options.
@@ -218,6 +219,12 @@ Returns: Search results with optional highlights, summaries, and subpage content
         return result;
       } catch (error) {
         logger.error(error);
+
+        // Check for rate limit error on free MCP
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'web_search_advanced_exa');
+        if (rateLimitResult) {
+          return rateLimitResult;
+        }
 
         if (axios.isAxiosError(error)) {
           const statusCode = error.response?.status || 'unknown';

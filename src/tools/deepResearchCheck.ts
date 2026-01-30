@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { DeepResearchCheckResponse, DeepResearchErrorResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
+import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
 // Helper function to create a delay
@@ -11,7 +12,7 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function registerDeepResearchCheckTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerDeepResearchCheckTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "deep_researcher_check",
     `Check status and get results from a deep research task.
@@ -147,6 +148,12 @@ Important: Keep calling with the same task ID until status is 'completed'.`,
             };
           }
           
+          // Check for rate limit error on free MCP
+          const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'deep_researcher_check');
+          if (rateLimitResult) {
+            return rateLimitResult;
+          }
+          
           // Handle other Axios errors
           const statusCode = error.response?.status || 'unknown';
           const errorMessage = error.response?.data?.message || error.message;
@@ -172,4 +179,4 @@ Important: Keep calling with the same task ID until status is 'completed'.`,
       }
     }
   );
-}    
+}                                                

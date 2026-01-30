@@ -4,9 +4,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
+import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
-export function registerCompanyResearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerCompanyResearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "company_research_exa",
     `Research any company to get business information, news, and insights.
@@ -84,6 +85,12 @@ Returns: Company information from trusted business sources.`,
       } catch (error) {
         logger.error(error);
         
+        // Check for rate limit error on free MCP
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'company_research_exa');
+        if (rateLimitResult) {
+          return rateLimitResult;
+        }
+        
         if (axios.isAxiosError(error)) {
           // Handle Axios errors specifically
           const statusCode = error.response?.status || 'unknown';
@@ -110,4 +117,4 @@ Returns: Company information from trusted business sources.`,
       }
     }
   );
-}    
+}                                                
