@@ -7,9 +7,9 @@ import { Redis } from '@upstash/redis';
  * IP-based rate limiting configuration for free MCP users.
  * Users who provide their own API key via ?exaApiKey= bypass rate limiting.
  * 
- * Environment variables:
- * - UPSTASH_REDIS_REST_URL: Redis connection URL
- * - UPSTASH_REDIS_REST_TOKEN: Redis auth token
+ * Environment variables (supports both Vercel KV and Upstash naming):
+ * - KV_REST_API_URL or UPSTASH_REDIS_REST_URL: Redis connection URL
+ * - KV_REST_API_TOKEN or UPSTASH_REDIS_REST_TOKEN: Redis auth token
  * - RATE_LIMIT_QPS: Queries per second limit (default: 5)
  * - RATE_LIMIT_DAILY: Daily request quota (default: 500)
  */
@@ -26,11 +26,12 @@ function initializeRateLimiters(): boolean {
   
   rateLimitersInitialized = true;
   
-  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Support both Vercel KV naming (KV_REST_API_*) and Upstash naming (UPSTASH_REDIS_REST_*)
+  const redisUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   
   if (!redisUrl || !redisToken) {
-    console.log('[EXA-MCP] Rate limiting disabled: UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not configured');
+    console.log('[EXA-MCP] Rate limiting disabled: KV_REST_API_URL/UPSTASH_REDIS_REST_URL or KV_REST_API_TOKEN/UPSTASH_REDIS_REST_TOKEN not configured');
     return false;
   }
   
