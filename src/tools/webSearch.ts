@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
+import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost"
 
 export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
@@ -95,6 +96,12 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       } catch (error) {
         logger.error(error);
         
+        // Check for rate limit error on free MCP
+        const rateLimitResult = handleRateLimitError(error, config?.exaApiKey, 'web_search_exa');
+        if (rateLimitResult) {
+          return rateLimitResult;
+        }
+        
         if (axios.isAxiosError(error)) {
           // Handle Axios errors specifically
           const statusCode = error.response?.status || 'unknown';
@@ -121,4 +128,4 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       }
     }
   );
-}    
+}                    
