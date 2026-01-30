@@ -7,7 +7,7 @@ import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
-export function registerDeepResearchStartTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerDeepResearchStartTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "deep_researcher_start",
     `Start an AI research agent that searches, reads, and writes a detailed report. Takes 15 seconds to 2 minutes.
@@ -125,4 +125,4 @@ Important: Call deep_researcher_check with the returned task ID to get the repor
       }
     }
   );
-}                                        
+}                                                                                

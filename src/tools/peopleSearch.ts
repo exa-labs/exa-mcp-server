@@ -7,7 +7,7 @@ import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
-export function registerPeopleSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerPeopleSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "people_search_exa",
     `Find people and their professional profiles.

@@ -12,7 +12,7 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function registerDeepResearchCheckTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerDeepResearchCheckTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "deep_researcher_check",
     `Check status and get results from a deep research task.
@@ -179,4 +179,4 @@ Important: Keep calling with the same task ID until status is 'completed'.`,
       }
     }
   );
-}                                        
+}                                                                                

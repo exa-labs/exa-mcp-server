@@ -7,7 +7,7 @@ import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
-export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "get_code_context_exa",
     `Find code examples, documentation, and programming solutions. Searches GitHub, Stack Overflow, and official docs.

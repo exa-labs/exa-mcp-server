@@ -7,7 +7,7 @@ import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost"
 
-export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string }): void {
+export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "web_search_exa",
     `Search the web for any topic and get clean, ready-to-use content.
@@ -128,4 +128,4 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       }
     }
   );
-}                                        
+}                                                                                
