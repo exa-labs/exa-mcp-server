@@ -17,6 +17,8 @@ Connect to Exa's hosted MCP server:
 https://mcp.exa.ai/mcp
 ```
 
+[Get your API key](https://dashboard.exa.ai/api-keys)
+
 <details>
 <summary><b>Cursor</b></summary>
 
