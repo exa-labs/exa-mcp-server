@@ -1,5 +1,150 @@
 import { createMcpHandler } from 'mcp-handler';
 import { initializeMcpServer } from '../src/mcp-handler.js';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+/**
+ * IP-based rate limiting configuration for free MCP users.
+ * Users who provide their own API key via ?exaApiKey= bypass rate limiting.
+ * 
+ * Environment variables:
+ * - UPSTASH_REDIS_REST_URL: Redis connection URL
+ * - UPSTASH_REDIS_REST_TOKEN: Redis auth token
+ * - RATE_LIMIT_QPS: Queries per second limit (default: 5)
+ * - RATE_LIMIT_DAILY: Daily request quota (default: 500)
+ */
+
+// Lazy-initialize rate limiters only when Upstash is configured
+let qpsLimiter: Ratelimit | null = null;
+let dailyLimiter: Ratelimit | null = null;
+let rateLimitersInitialized = false;
+
+function initializeRateLimiters(): boolean {
+  if (rateLimitersInitialized) {
+    return qpsLimiter !== null;
+  }
+  
+  rateLimitersInitialized = true;
+  
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  
+  if (!redisUrl || !redisToken) {
+    console.log('[EXA-MCP] Rate limiting disabled: UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not configured');
+    return false;
+  }
+  
+  try {
+    const redis = new Redis({
+      url: redisUrl,
+      token: redisToken,
+    });
+    
+    const qpsLimit = parseInt(process.env.RATE_LIMIT_QPS || '5', 10);
+    const dailyLimit = parseInt(process.env.RATE_LIMIT_DAILY || '500', 10);
+    
+    // QPS limiter: sliding window for smooth rate limiting
+    qpsLimiter = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(qpsLimit, '1 s'),
+      prefix: 'exa-mcp:qps',
+    });
+    
+    // Daily limiter: fixed window that resets daily
+    dailyLimiter = new Ratelimit({
+      redis,
+      limiter: Ratelimit.fixedWindow(dailyLimit, '1 d'),
+      prefix: 'exa-mcp:daily',
+    });
+    
+    console.log(`[EXA-MCP] Rate limiting enabled: ${qpsLimit} QPS, ${dailyLimit}/day`);
+    return true;
+  } catch (error) {
+    console.error('[EXA-MCP] Failed to initialize rate limiters:', error);
+    return false;
+  }
+}
+
+/**
+ * Extract client IP from request headers.
+ * Vercel provides the client IP in x-forwarded-for header.
+ */
+function getClientIp(request: Request): string {
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    // x-forwarded-for can contain multiple IPs, take the first one (client IP)
+    return forwardedFor.split(',')[0].trim();
+  }
+  return 'unknown';
+}
+
+/**
+ * Check rate limits for a given IP.
+ * Returns null if within limits, or a Response if rate limited.
+ */
+async function checkRateLimits(ip: string, debug: boolean): Promise<Response | null> {
+  if (!qpsLimiter || !dailyLimiter) {
+    return null; // Rate limiting not configured
+  }
+  
+  try {
+    // Check QPS limit first (more likely to be hit)
+    const qpsResult = await qpsLimiter.limit(ip);
+    if (!qpsResult.success) {
+      if (debug) {
+        console.log(`[EXA-MCP] QPS rate limit exceeded for IP: ${ip}`);
+      }
+      return new Response(
+        JSON.stringify({
+          error: 'Rate limit exceeded',
+          message: 'Too many requests per second. Get your own API key at https://dashboard.exa.ai/api-keys and add ?exaApiKey=YOUR_KEY to the URL.',
+          retryAfter: Math.ceil((qpsResult.reset - Date.now()) / 1000),
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': String(Math.ceil((qpsResult.reset - Date.now()) / 1000)),
+            'X-RateLimit-Limit': String(qpsResult.limit),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(qpsResult.reset),
+          },
+        }
+      );
+    }
+    
+    // Check daily limit
+    const dailyResult = await dailyLimiter.limit(ip);
+    if (!dailyResult.success) {
+      if (debug) {
+        console.log(`[EXA-MCP] Daily rate limit exceeded for IP: ${ip}`);
+      }
+      return new Response(
+        JSON.stringify({
+          error: 'Daily quota exceeded',
+          message: 'You have exceeded your daily request quota. Get your own API key at https://dashboard.exa.ai/api-keys and add ?exaApiKey=YOUR_KEY to the URL.',
+          retryAfter: Math.ceil((dailyResult.reset - Date.now()) / 1000),
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': String(Math.ceil((dailyResult.reset - Date.now()) / 1000)),
+            'X-RateLimit-Limit': String(dailyResult.limit),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(dailyResult.reset),
+          },
+        }
+      );
+    }
+    
+    return null; // Within limits
+  } catch (error) {
+    // If rate limiting fails, allow the request through (fail open)
+    console.error('[EXA-MCP] Rate limit check failed:', error);
+    return null;
+  }
+}
 
 /**
  * Vercel Function entry point for MCP server
@@ -112,7 +257,24 @@ async function handleRequest(request: Request): Promise<Response> {
   if (config.debug) {
     console.log(`[EXA-MCP] Request URL: ${request.url}`);
     console.log(`[EXA-MCP] Enabled tools: ${config.enabledTools?.join(', ') || 'default'}`);
-    console.log(`[EXA-MCP] API key provided: ${config.exaApiKey ? 'yes' : 'no (using env var)'}`);
+    console.log(`[EXA-MCP] API key provided: ${config.userProvidedApiKey ? 'yes (user provided)' : 'no (using env var)'}`);
+  }
+  
+  // Rate limit only free MCP users (those who didn't provide their own API key)
+  if (!config.userProvidedApiKey) {
+    // Initialize rate limiters on first request (lazy init)
+    initializeRateLimiters();
+    
+    const clientIp = getClientIp(request);
+    
+    if (config.debug) {
+      console.log(`[EXA-MCP] Client IP: ${clientIp}`);
+    }
+    
+    const rateLimitResponse = await checkRateLimits(clientIp, config.debug);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
   }
   
   // Create a fresh handler for this request's configuration
