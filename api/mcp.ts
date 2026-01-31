@@ -262,6 +262,11 @@ async function handleRequest(request: Request): Promise<Response> {
   const bypassPrefix = process.env.RATE_LIMIT_BYPASS;
   const bypassRateLimit = bypassPrefix && userAgent.startsWith(bypassPrefix);
   
+  // Use separate API key for bypass users if configured
+  if (bypassRateLimit && process.env.EXA_API_KEY_BYPASS) {
+    config.exaApiKey = process.env.EXA_API_KEY_BYPASS;
+  }
+  
   // Rate limit only free MCP users (those who didn't provide their own API key)
   if (!config.userProvidedApiKey && !bypassRateLimit) {
     // Initialize rate limiters on first request (lazy init)
