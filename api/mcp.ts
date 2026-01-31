@@ -10,8 +10,8 @@ import { Redis } from '@upstash/redis';
  * Environment variables (supports both Vercel KV and Upstash naming):
  * - KV_REST_API_URL or UPSTASH_REDIS_REST_URL: Redis connection URL
  * - KV_REST_API_TOKEN or UPSTASH_REDIS_REST_TOKEN: Redis auth token
- * - RATE_LIMIT_QPS: Queries per second limit (default: 5)
- * - RATE_LIMIT_DAILY: Daily request quota (default: 500)
+ * - RATE_LIMIT_QPS: Queries per second limit (default: 2)
+ * - RATE_LIMIT_DAILY: Daily request quota (default: 50)
  */
 
 // Lazy-initialize rate limiters only when Upstash is configured
@@ -41,8 +41,8 @@ function initializeRateLimiters(): boolean {
       token: redisToken,
     });
     
-    const qpsLimit = parseInt(process.env.RATE_LIMIT_QPS || '5', 10);
-    const dailyLimit = parseInt(process.env.RATE_LIMIT_DAILY || '500', 10);
+    const qpsLimit = parseInt(process.env.RATE_LIMIT_QPS || '2', 10);
+    const dailyLimit = parseInt(process.env.RATE_LIMIT_DAILY || '50', 10);
     
     // QPS limiter: sliding window for smooth rate limiting
     qpsLimiter = new Ratelimit({
