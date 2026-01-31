@@ -66,17 +66,13 @@ function initializeRateLimiters(): boolean {
   }
 }
 
-/**
- * Extract client IP from request headers.
- * Vercel provides the client IP in x-forwarded-for header.
- */
 function getClientIp(request: Request): string {
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  if (forwardedFor) {
-    // x-forwarded-for can contain multiple IPs, take the first one (client IP)
-    return forwardedFor.split(',')[0].trim();
-  }
-  return 'unknown';
+  const cfConnectingIp = request.headers.get('cf-connecting-ip');
+  const xRealIp = request.headers.get('x-real-ip');
+  const xForwardedFor = request.headers.get('x-forwarded-for');
+  const xForwardedForFirst = xForwardedFor?.split(',')[0]?.trim();
+
+  return cfConnectingIp ?? xRealIp ?? xForwardedForFirst ?? 'unknown';
 }
 
 /**
@@ -261,8 +257,12 @@ async function handleRequest(request: Request): Promise<Response> {
     console.log(`[EXA-MCP] API key provided: ${config.userProvidedApiKey ? 'yes (user provided)' : 'no (using env var)'}`);
   }
   
+  const userAgent = request.headers.get('user-agent') || '';
+  const bypassPrefix = process.env.RATE_LIMIT_BYPASS;
+  const bypassRateLimit = bypassPrefix && userAgent.startsWith(bypassPrefix);
+  
   // Rate limit only free MCP users (those who didn't provide their own API key)
-  if (!config.userProvidedApiKey) {
+  if (!config.userProvidedApiKey && !bypassRateLimit) {
     // Initialize rate limiters on first request (lazy init)
     initializeRateLimiters();
     
