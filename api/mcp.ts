@@ -82,8 +82,10 @@ Fix: Create API key at https://dashboard.exa.ai/api-keys , and then update Exa M
 /**
  * Create a JSON-RPC 2.0 error response for rate limiting.
  * MCP uses JSON-RPC 2.0, so we need to return errors in the proper format.
+ * Note: We intentionally hide rate limit dimension info (limit set to 0) to prevent
+ * users from inferring which limit they hit (QPS vs daily).
  */
-function createRateLimitResponse(retryAfterSeconds: number, limit: number, reset: number): Response {
+function createRateLimitResponse(retryAfterSeconds: number, reset: number): Response {
   return new Response(
     JSON.stringify({
       jsonrpc: '2.0',
@@ -98,7 +100,7 @@ function createRateLimitResponse(retryAfterSeconds: number, limit: number, reset
       headers: {
         'Content-Type': 'application/json',
         'Retry-After': String(retryAfterSeconds),
-        'X-RateLimit-Limit': String(limit),
+        'X-RateLimit-Limit': '0',
         'X-RateLimit-Remaining': '0',
         'X-RateLimit-Reset': String(reset),
       },
@@ -123,7 +125,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
         console.log(`[EXA-MCP] QPS rate limit exceeded for IP: ${ip}`);
       }
       const retryAfter = Math.ceil((qpsResult.reset - Date.now()) / 1000);
-      return createRateLimitResponse(retryAfter, qpsResult.limit, qpsResult.reset);
+      return createRateLimitResponse(retryAfter, qpsResult.reset);
     }
     
     // Check daily limit
@@ -133,7 +135,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
         console.log(`[EXA-MCP] Daily rate limit exceeded for IP: ${ip}`);
       }
       const retryAfter = Math.ceil((dailyResult.reset - Date.now()) / 1000);
-      return createRateLimitResponse(retryAfter, dailyResult.limit, dailyResult.reset);
+      return createRateLimitResponse(retryAfter, dailyResult.reset);
     }
     
     return null; // Within limits
@@ -260,11 +262,14 @@ async function handleRequest(request: Request): Promise<Response> {
   
   const userAgent = request.headers.get('user-agent') || '';
   const bypassPrefix = process.env.RATE_LIMIT_BYPASS;
-  const bypassRateLimit = bypassPrefix && userAgent.startsWith(bypassPrefix);
+  const bypassApiKey = process.env.EXA_API_KEY_BYPASS;
+  // Only allow bypass if BOTH prefix matches AND bypass API key is configured
+  // This ensures bypass users always use a dedicated key for tracking/billing
+  const bypassRateLimit = bypassPrefix && bypassApiKey && userAgent.startsWith(bypassPrefix);
   
-  // Use separate API key for bypass users if configured
-  if (bypassRateLimit && process.env.EXA_API_KEY_BYPASS) {
-    config.exaApiKey = process.env.EXA_API_KEY_BYPASS;
+  // Use separate API key for bypass users
+  if (bypassRateLimit) {
+    config.exaApiKey = bypassApiKey;
   }
   
   // Rate limit only free MCP users (those who didn't provide their own API key)
