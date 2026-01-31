@@ -75,6 +75,37 @@ function getClientIp(request: Request): string {
   return cfConnectingIp ?? xRealIp ?? xForwardedForFirst ?? 'unknown';
 }
 
+const RATE_LIMIT_ERROR_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
+
+Fix: Create API key at https://dashboard.exa.ai/api-keys , and then update Exa MCP URL to this https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
+
+/**
+ * Create a JSON-RPC 2.0 error response for rate limiting.
+ * MCP uses JSON-RPC 2.0, so we need to return errors in the proper format.
+ */
+function createRateLimitResponse(retryAfterSeconds: number, limit: number, reset: number): Response {
+  return new Response(
+    JSON.stringify({
+      jsonrpc: '2.0',
+      error: {
+        code: -32000,
+        message: RATE_LIMIT_ERROR_MESSAGE,
+      },
+      id: null,
+    }),
+    {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(retryAfterSeconds),
+        'X-RateLimit-Limit': String(limit),
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': String(reset),
+      },
+    }
+  );
+}
+
 /**
  * Check rate limits for a given IP.
  * Returns null if within limits, or a Response if rate limited.
@@ -91,23 +122,8 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
       if (debug) {
         console.log(`[EXA-MCP] QPS rate limit exceeded for IP: ${ip}`);
       }
-      return new Response(
-        JSON.stringify({
-          error: 'Rate limit exceeded',
-          message: 'Too many requests per second. Get your own API key at https://dashboard.exa.ai/api-keys and add ?exaApiKey=YOUR_KEY to the URL.',
-          retryAfter: Math.ceil((qpsResult.reset - Date.now()) / 1000),
-        }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'Retry-After': String(Math.ceil((qpsResult.reset - Date.now()) / 1000)),
-            'X-RateLimit-Limit': String(qpsResult.limit),
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': String(qpsResult.reset),
-          },
-        }
-      );
+      const retryAfter = Math.ceil((qpsResult.reset - Date.now()) / 1000);
+      return createRateLimitResponse(retryAfter, qpsResult.limit, qpsResult.reset);
     }
     
     // Check daily limit
@@ -116,23 +132,8 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
       if (debug) {
         console.log(`[EXA-MCP] Daily rate limit exceeded for IP: ${ip}`);
       }
-      return new Response(
-        JSON.stringify({
-          error: 'Daily quota exceeded',
-          message: 'You have exceeded your daily request quota. Get your own API key at https://dashboard.exa.ai/api-keys and add ?exaApiKey=YOUR_KEY to the URL.',
-          retryAfter: Math.ceil((dailyResult.reset - Date.now()) / 1000),
-        }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'Retry-After': String(Math.ceil((dailyResult.reset - Date.now()) / 1000)),
-            'X-RateLimit-Limit': String(dailyResult.limit),
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': String(dailyResult.reset),
-          },
-        }
-      );
+      const retryAfter = Math.ceil((dailyResult.reset - Date.now()) / 1000);
+      return createRateLimitResponse(retryAfter, dailyResult.limit, dailyResult.reset);
     }
     
     return null; // Within limits
