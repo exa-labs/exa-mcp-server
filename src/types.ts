@@ -1,7 +1,7 @@
 // Exa API Types
 export interface ExaSearchRequest {
   query: string;
-  type: 'auto' | 'fast' | 'deep';
+  type: 'auto' | 'neural' | 'fast' | 'deep';
   category?: string;
   includeDomains?: string[];
   excludeDomains?: string[];
