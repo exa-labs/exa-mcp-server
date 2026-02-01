@@ -27,7 +27,6 @@ const availableTools = {
   'web_search_advanced_exa': { name: 'Advanced Web Search (Exa)', description: 'Advanced web search with full control over filters, domains, dates, and content options', enabled: false },
   'get_code_context_exa': { name: 'Code Context Search', description: 'Find code examples, documentation, and programming solutions from GitHub, Stack Overflow, and docs', enabled: true },
   'company_research_exa': { name: 'Company Research', description: 'Research any company to get business information, news, and insights', enabled: true },
-  'deep_search_exa': { name: 'Deep Search (Exa)', description: 'Deep search with automatic query expansion for thorough research', enabled: false },
   'crawling_exa': { name: 'Web Crawling', description: 'Get the full content of a specific webpage from a known URL', enabled: false },
   'deep_researcher_start': { name: 'Deep Researcher Start', description: 'Start an AI research agent that searches, reads, and writes a detailed report', enabled: false },
   'deep_researcher_check': { name: 'Deep Researcher Check', description: 'Check status and get results from a deep research task', enabled: false },

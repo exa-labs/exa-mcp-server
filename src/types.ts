@@ -1,7 +1,7 @@
 // Exa API Types
 export interface ExaSearchRequest {
   query: string;
-  type: 'auto' | 'fast' | 'deep';
+  type: 'auto' | 'fast';
   category?: string;
   includeDomains?: string[];
   excludeDomains?: string[];
@@ -27,7 +27,7 @@ export interface ExaSearchRequest {
 
 export interface ExaAdvancedSearchRequest {
   query: string;
-  type: 'auto' | 'fast' | 'deep' | 'neural';
+  type: 'auto' | 'fast' | 'neural';
   numResults?: number;
   category?: 'company' | 'research paper' | 'news' | 'pdf' | 'github' | 'tweet' | 'personal site' | 'people' | 'financial report';
   includeDomains?: string[];
@@ -95,7 +95,7 @@ export interface SearchArgs {
   query: string;
   numResults?: number;
   livecrawl?: 'fallback' | 'preferred';
-  type?: 'auto' | 'fast' | 'deep';
+  type?: 'auto' | 'fast';
 }
 
 // Deep Research API Types
