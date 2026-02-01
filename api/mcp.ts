@@ -7,6 +7,9 @@ import { Redis } from '@upstash/redis';
  * IP-based rate limiting configuration for free MCP users.
  * Users who provide their own API key via ?exaApiKey= bypass rate limiting.
  * 
+ * Rate limiting only applies to actual tool calls (tools/call method), not to
+ * basic MCP protocol methods like tools/list, initialize, ping, etc.
+ * 
  * Environment variables (supports both Vercel KV and Upstash naming):
  * - KV_REST_API_URL or UPSTASH_REDIS_REST_URL: Redis connection URL
  * - KV_REST_API_TOKEN or UPSTASH_REDIS_REST_TOKEN: Redis auth token
@@ -106,6 +109,20 @@ function createRateLimitResponse(retryAfterSeconds: number, reset: number): Resp
       },
     }
   );
+}
+
+/**
+ * Check if a JSON-RPC request is a tools/call method that should be rate limited.
+ * Returns true only for actual tool invocations, not for protocol methods like
+ * tools/list, initialize, ping, resources/list, prompts/list, etc.
+ */
+function isRateLimitedMethod(body: string): boolean {
+  try {
+    const parsed = JSON.parse(body);
+    return parsed.method === 'tools/call';
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -273,19 +290,29 @@ async function handleRequest(request: Request): Promise<Response> {
   }
   
   // Rate limit only free MCP users (those who didn't provide their own API key)
-  if (!config.userProvidedApiKey && !bypassRateLimit) {
-    // Initialize rate limiters on first request (lazy init)
-    initializeRateLimiters();
+  // and only for actual tool calls (tools/call), not protocol methods like tools/list
+  if (!config.userProvidedApiKey && !bypassRateLimit && request.method === 'POST') {
+    // Clone the request to read the body without consuming it
+    const clonedRequest = request.clone();
+    const body = await clonedRequest.text();
     
-    const clientIp = getClientIp(request);
-    
-    if (config.debug) {
-      console.log(`[EXA-MCP] Client IP: ${clientIp}`);
-    }
-    
-    const rateLimitResponse = await checkRateLimits(clientIp, config.debug);
-    if (rateLimitResponse) {
-      return rateLimitResponse;
+    // Only rate limit actual tool calls, not protocol methods
+    if (isRateLimitedMethod(body)) {
+      // Initialize rate limiters on first request (lazy init)
+      initializeRateLimiters();
+      
+      const clientIp = getClientIp(request);
+      
+      if (config.debug) {
+        console.log(`[EXA-MCP] Client IP: ${clientIp}, method: tools/call`);
+      }
+      
+      const rateLimitResponse = await checkRateLimits(clientIp, config.debug);
+      if (rateLimitResponse) {
+        return rateLimitResponse;
+      }
+    } else if (config.debug) {
+      console.log(`[EXA-MCP] Skipping rate limit for non-tool-call method`);
     }
   }
   
