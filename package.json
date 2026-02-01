@@ -51,8 +51,10 @@
   "devDependencies": {
     "@smithery/cli": "^1.4.4",
     "@types/node": "^20.11.24",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.36.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3",
+    "typescript": "^5.9.3",
     "vercel": "^37.0.0"
   },
   "engines": {
