@@ -63,12 +63,6 @@ export interface ExaAdvancedSearchRequest {
   };
 }
 
-export interface ExaCrawlRequest {
-  ids: string[];
-  text: boolean;
-  livecrawl?: 'always' | 'fallback' | 'preferred';
-}
-
 export interface ExaSearchResult {
   id: string;
   title: string;
@@ -88,14 +82,6 @@ export interface ExaSearchResponse {
   resolvedSearchType: string;
   context?: string;
   results: ExaSearchResult[];
-}
-
-// Tool Types
-export interface SearchArgs {
-  query: string;
-  numResults?: number;
-  livecrawl?: 'fallback' | 'preferred';
-  type?: 'auto' | 'fast';
 }
 
 // Deep Research API Types
@@ -180,14 +166,6 @@ export interface ExaCodeRequest {
   query: string;
   tokensNum: number;
   flags?: string[];
-}
-
-export interface ExaCodeResult {
-  id: string;
-  title: string;
-  url: string;
-  text: string;
-  score?: number;
 }
 
 export interface ExaCodeResponse {
