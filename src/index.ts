@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+process.env.AGNOST_LOG_LEVEL = 'error';
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { log } from "./utils/logger.js";
