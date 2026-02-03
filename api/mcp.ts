@@ -1,3 +1,5 @@
+process.env.AGNOST_LOG_LEVEL = 'error';
+
 import { createMcpHandler } from 'mcp-handler';
 import { initializeMcpServer } from '../src/mcp-handler.js';
 import { Ratelimit } from '@upstash/ratelimit';
