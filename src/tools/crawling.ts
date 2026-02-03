@@ -15,7 +15,7 @@ Best for: Extracting content from a known URL.
 Returns: Full text content and metadata from the page.`,
     {
       url: z.string().describe("URL to crawl and extract content from"),
-      maxCharacters: z.number().optional().describe("Maximum characters to extract (default: 3000)")
+      maxCharacters: z.coerce.number().optional().describe("Maximum characters to extract (must be a number, default: 3000)")
     },
     async ({ url, maxCharacters }) => {
       const requestId = `crawling_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -116,4 +116,4 @@ Returns: Full text content and metadata from the page.`,
       }
     }
   );
-}                                                
+}                                                                                                
