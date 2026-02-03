@@ -16,10 +16,10 @@ Best for: Finding current information, news, facts, or answering questions about
 Returns: Clean text content from top search results, ready for LLM use.`,
     {
       query: z.string().describe("Websearch query"),
-      numResults: z.number().optional().describe("Number of search results to return (default: 8)"),
+      numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
       livecrawl: z.enum(['fallback', 'preferred']).optional().describe("Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')"),
       type: z.enum(['auto', 'fast']).optional().describe("Search type - 'auto': balanced search (default), 'fast': quick results"),
-      contextMaxCharacters: z.number().optional().describe("Maximum characters for context string optimized for LLMs (default: 10000)")
+      contextMaxCharacters: z.coerce.number().optional().describe("Maximum characters for context string optimized for LLMs (must be a number, default: 10000)")
     },
     {
       readOnlyHint: true,
@@ -128,4 +128,4 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       }
     }
   );
-}                                                                                                
+}                                                                                                                                                                                                

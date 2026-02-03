@@ -16,7 +16,7 @@ Best for: Learning about a company's products, services, recent news, or industr
 Returns: Company information from trusted business sources.`,
     {
       companyName: z.string().describe("Name of the company to research"),
-      numResults: z.number().optional().describe("Number of search results to return (default: 3)")
+      numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 3)")
     },
     async ({ companyName, numResults }) => {
       const requestId = `company_research_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -119,4 +119,4 @@ Returns: Company information from trusted business sources.`,
       }
     }
   );
-}                                                
+}                                                                                                
