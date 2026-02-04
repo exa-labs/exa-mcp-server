@@ -23,6 +23,7 @@ import { Redis } from '@upstash/redis';
 let qpsLimiter: Ratelimit | null = null;
 let dailyLimiter: Ratelimit | null = null;
 let rateLimitersInitialized = false;
+let redisClient: Redis | null = null;
 
 function initializeRateLimiters(): boolean {
   if (rateLimitersInitialized) {
@@ -41,7 +42,7 @@ function initializeRateLimiters(): boolean {
   }
   
   try {
-    const redis = new Redis({
+    redisClient = new Redis({
       url: redisUrl,
       token: redisToken,
     });
@@ -51,14 +52,14 @@ function initializeRateLimiters(): boolean {
     
     // QPS limiter: sliding window for smooth rate limiting
     qpsLimiter = new Ratelimit({
-      redis,
+      redis: redisClient,
       limiter: Ratelimit.slidingWindow(qpsLimit, '1 s'),
       prefix: 'exa-mcp:qps',
     });
     
     // Daily limiter: fixed window that resets daily
     dailyLimiter = new Ratelimit({
-      redis,
+      redis: redisClient,
       limiter: Ratelimit.fixedWindow(dailyLimit, '1 d'),
       prefix: 'exa-mcp:daily',
     });
@@ -124,6 +125,34 @@ function isRateLimitedMethod(body: string): boolean {
     return parsed.method === 'tools/call';
   } catch {
     return false;
+  }
+}
+
+/**
+ * Save IP and user agent for bypass requests to Redis for tracking.
+ * Uses a sorted set with timestamp as score for easy time-based queries.
+ */
+async function saveBypassRequestInfo(ip: string, userAgent: string, debug: boolean): Promise<void> {
+  initializeRateLimiters();
+  
+  if (!redisClient) {
+    if (debug) {
+      console.log('[EXA-MCP] Cannot save bypass info: Redis not configured');
+    }
+    return;
+  }
+  
+  try {
+    const timestamp = Date.now();
+    const entry = JSON.stringify({ ip, userAgent, timestamp });
+    
+    await redisClient.zadd('exa-mcp:bypass-requests', { score: timestamp, member: entry });
+    
+    if (debug) {
+      console.log(`[EXA-MCP] Saved bypass request info for IP: ${ip}`);
+    }
+  } catch (error) {
+    console.error('[EXA-MCP] Failed to save bypass request info:', error);
   }
 }
 
@@ -286,12 +315,14 @@ async function handleRequest(request: Request): Promise<Response> {
   // This ensures bypass users always use a dedicated key for tracking/billing
   const bypassRateLimit = bypassPrefix && bypassApiKey && userAgent.startsWith(bypassPrefix);
   
-  // Use separate API key for bypass users
+  // Use separate API key for bypass users and save their IP/user-agent for tracking
   if (bypassRateLimit) {
     config.exaApiKey = bypassApiKey;
+    const clientIp = getClientIp(request);
+    saveBypassRequestInfo(clientIp, userAgent, config.debug);
   }
   
-  // Rate limit only free MCP users (those who didn't provide their own API key)
+  // Rate limit only free MCP users(those who didn't provide their own API key)
   // and only for actual tool calls (tools/call), not protocol methods like tools/list
   if (!config.userProvidedApiKey && !bypassRateLimit && request.method === 'POST') {
     // Clone the request to read the body without consuming it
