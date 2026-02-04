@@ -322,9 +322,9 @@ async function handleRequest(request: Request): Promise<Response> {
     saveBypassRequestInfo(clientIp, userAgent, config.debug);
   }
   
-  // Rate limit only free MCP users(those who didn't provide their own API key)
-  // and only for actual tool calls (tools/call), not protocol methods like tools/list
-  if (!config.userProvidedApiKey && !bypassRateLimit && request.method === 'POST') {
+  // Rate limit users who didn't provide their own API key (including bypass users)
+  // Only rate limit actual tool calls (tools/call), not protocol methods like tools/list
+  if (!config.userProvidedApiKey && request.method === 'POST') {
     // Clone the request to read the body without consuming it
     const clonedRequest = request.clone();
     const body = await clonedRequest.text();
