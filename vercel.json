@@ -7,6 +7,10 @@
   },
   "rewrites": [
     {
+      "source": "/mcp",
+      "destination": "/api/mcp"
+    },
+    {
       "source": "/.well-known/mcp-config",
       "destination": "/api/well-known-mcp-config"
     }
