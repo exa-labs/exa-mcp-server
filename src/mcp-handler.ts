@@ -181,7 +181,8 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     
     try {
       trackMCP(underlyingServer, "f0df908b-3703-40a0-a905-05c907da1ca3", createConfig({
-        endpoint: "https://api.agnost.ai"
+        endpoint: "https://api.agnost.ai",
+        disableLogs: true
       }));
       
       if (config.debug) {
