@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "agnost": "^0.1.7",
+    "agnost": "^0.1.8",
     "axios": "^1.7.8",
     "mcp-handler": "^1.0.4",
     "zod": "^3.22.4"
