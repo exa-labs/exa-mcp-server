@@ -21,7 +21,7 @@ Best for: Getting the research report after calling deep_researcher_start.
 Returns: Research report when complete, or status update if still running.
 Important: Keep calling with the same task ID until status is 'completed'.`,
     {
-      taskId: z.string().describe("The task ID returned from deep_researcher_start tool")
+      taskId: z.string().min(1).describe("The task ID returned from deep_researcher_start tool")
     },
     async ({ taskId }) => {
       const requestId = `deep_researcher_check-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -50,7 +50,7 @@ Important: Keep calling with the same task ID until status is 'completed'.`,
         
         checkpoint('deep_research_check_request_prepared');
         const response = await axiosInstance.get<DeepResearchCheckResponse>(
-          `${API_CONFIG.ENDPOINTS.RESEARCH_TASKS}/${taskId}`,
+          `${API_CONFIG.ENDPOINTS.RESEARCH}/${taskId}`,
           { timeout: 25000 }
         );
         
@@ -73,45 +73,39 @@ Important: Keep calling with the same task ID until status is 'completed'.`,
         let resultText: string;
         
         if (response.data.status === 'completed') {
-          // Task completed - return only the essential research report to avoid context overflow
           resultText = JSON.stringify({
             success: true,
             status: response.data.status,
-            taskId: response.data.id,
-            report: response.data.data?.report || "No report generated",
-            timeMs: response.data.timeMs,
+            taskId: response.data.researchId,
+            report: response.data.output?.content || "No report generated",
             model: response.data.model,
-            message: "🎉 Deep research completed! Here's your comprehensive research report."
+            message: "Deep research completed! Here's your research report."
           }, null, 2);
           logger.log("Research completed successfully");
-        } else if (response.data.status === 'running') {
-          // Task still running - return minimal status to avoid filling context window
+        } else if (response.data.status === 'running' || response.data.status === 'pending') {
           resultText = JSON.stringify({
             success: true,
             status: response.data.status,
-            taskId: response.data.id,
-            message: "🔄 Research in progress. Continue polling...",
+            taskId: response.data.researchId,
+            message: "Research in progress. Continue polling...",
             nextAction: "Call deep_researcher_check again with the same task ID"
           }, null, 2);
           logger.log("Research still in progress");
         } else if (response.data.status === 'failed') {
-          // Task failed
           resultText = JSON.stringify({
             success: false,
             status: response.data.status,
-            taskId: response.data.id,
-            createdAt: new Date(response.data.createdAt).toISOString(),
-            instructions: response.data.instructions,
-            message: "❌ Deep research task failed. Please try starting a new research task with different instructions."
+            taskId: response.data.researchId,
+            error: response.data.error,
+            message: "Deep research task failed. Please try starting a new research task with different instructions."
           }, null, 2);
           logger.log("Research task failed");
         } else {
-          // Unknown status
           resultText = JSON.stringify({
             success: false,
             status: response.data.status,
-            taskId: response.data.id,
-            message: `⚠️ Unknown status: ${response.data.status}. Continue polling or restart the research task.`
+            taskId: response.data.researchId,
+            message: `Unknown status: ${response.data.status}. Continue polling or restart the research task.`
           }, null, 2);
           logger.log(`Unknown status: ${response.data.status}`);
         }
@@ -179,4 +173,4 @@ Important: Keep calling with the same task ID until status is 'completed'.`,
       }
     }
   );
-}                                                
+}                                                                                                
