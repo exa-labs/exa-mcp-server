@@ -282,7 +282,6 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | Tool | Description |
 | ---- | ----------- |
 | `web_search_advanced_exa` | Advanced web search with full control over filters, domains, dates, and content options |
-| `deep_search_exa` | Deep search with automatic query expansion for thorough research |
 | `crawling_exa` | Get the full content of a specific webpage from a known URL |
 | `people_search_exa` | Find people and their professional profiles |
 | `deep_researcher_start` | Start an AI research agent that searches, reads, and writes a detailed report |
@@ -291,7 +290,7 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 Enable all tools with the `tools` parameter:
 
 ```
-https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,deep_search_exa,crawling_exa,company_research_exa,people_search_exa,deep_researcher_start,deep_researcher_check
+https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,crawling_exa,company_research_exa,people_search_exa,deep_researcher_start,deep_researcher_check
 ```
 
 ## Links

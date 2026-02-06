@@ -299,6 +299,27 @@ function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; de
  * a fresh handler for each request
  */
 async function handleRequest(request: Request): Promise<Response> {
+  if (request.method === 'GET') {
+    const accept = request.headers.get('accept') || '';
+    if (!accept.includes('text/event-stream')) {
+      return new Response(JSON.stringify({
+        name: "Exa MCP Server",
+        version: "3.1.7",
+        status: "ok",
+        transport: "streamable-http",
+        endpoint: "https://mcp.exa.ai/mcp",
+        docs: "https://docs.exa.ai/reference/exa-mcp",
+        apiKey: "https://dashboard.exa.ai/api-keys"
+      }, null, 2), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+  }
+
   // Extract configuration from the request URL
   const config = getConfigFromUrl(request.url);
   

@@ -10,7 +10,6 @@ const AVAILABLE_TOOLS = [
   'web_search_exa',
   'web_search_advanced_exa',
   'get_code_context_exa',
-  'deep_search_exa',
   'crawling_exa',
   'deep_researcher_start',
   'deep_researcher_check',
