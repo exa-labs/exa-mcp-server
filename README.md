@@ -55,9 +55,18 @@ Add to `.vscode/mcp.json`:
 <details>
 <summary><b>Claude Code</b></summary>
 
+Hosted (recommended):
 ```bash
 claude mcp add --transport http exa https://mcp.exa.ai/mcp
 ```
+
+Via npm package:
+```bash
+claude mcp add exa -e EXA_API_KEY=your_api_key -- npx -y exa-mcp-server
+```
+
+> **Windows users:** If you get `error: unknown option '-y'`, this is a [known Claude Code CLI issue on Windows/PowerShell](https://github.com/anthropics/claude-code/issues/3825). Use CMD instead of PowerShell, or add the server via JSON config (see "Via npm Package" below).
+
 </details>
 
 <details>
