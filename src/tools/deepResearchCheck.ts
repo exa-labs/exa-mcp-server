@@ -19,15 +19,15 @@ export function registerDeepResearchCheckTool(server: McpServer, config?: { exaA
 
 Best for: Getting the research report after calling deep_researcher_start.
 Returns: Research report when complete, or status update if still running.
-Important: Keep calling with the same task ID until status is 'completed'.`,
+Important: Keep calling with the same research ID until status is 'completed'.`,
     {
-      taskId: z.string().describe("The task ID returned from deep_researcher_start tool")
+      researchId: z.string().describe("The research ID returned from deep_researcher_start tool")
     },
-    async ({ taskId }) => {
+    async ({ researchId }) => {
       const requestId = `deep_researcher_check-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'deep_researcher_check');
       
-      logger.start(taskId);
+      logger.start(researchId);
       
       try {
         // Built-in delay to allow processing time
@@ -46,11 +46,11 @@ Important: Keep calling with the same task ID until status is 'completed'.`,
           timeout: 25000
         });
 
-        logger.log(`Checking status for task: ${taskId}`);
+        logger.log(`Checking status for research: ${researchId}`);
         
         checkpoint('deep_research_check_request_prepared');
         const response = await axiosInstance.get<DeepResearchCheckResponse>(
-          `${API_CONFIG.ENDPOINTS.RESEARCH_TASKS}/${taskId}`,
+          `${API_CONFIG.ENDPOINTS.RESEARCH}/${researchId}`,
           { timeout: 25000 }
         );
         
@@ -73,45 +73,50 @@ Important: Keep calling with the same task ID until status is 'completed'.`,
         let resultText: string;
         
         if (response.data.status === 'completed') {
-          // Task completed - return only the essential research report to avoid context overflow
           resultText = JSON.stringify({
             success: true,
             status: response.data.status,
-            taskId: response.data.id,
-            report: response.data.data?.report || "No report generated",
-            timeMs: response.data.timeMs,
+            researchId: response.data.researchId,
+            report: response.data.output?.content || "No report generated",
+            parsedOutput: response.data.output?.parsed,
             model: response.data.model,
-            message: "🎉 Deep research completed! Here's your comprehensive research report."
+            costDollars: response.data.costDollars,
+            message: "Deep research completed! Here's your comprehensive research report."
           }, null, 2);
           logger.log("Research completed successfully");
-        } else if (response.data.status === 'running') {
-          // Task still running - return minimal status to avoid filling context window
+        } else if (response.data.status === 'running' || response.data.status === 'pending') {
           resultText = JSON.stringify({
             success: true,
             status: response.data.status,
-            taskId: response.data.id,
-            message: "🔄 Research in progress. Continue polling...",
-            nextAction: "Call deep_researcher_check again with the same task ID"
+            researchId: response.data.researchId,
+            message: "Research in progress. Continue polling...",
+            nextAction: "Call deep_researcher_check again with the same research ID"
           }, null, 2);
           logger.log("Research still in progress");
         } else if (response.data.status === 'failed') {
-          // Task failed
           resultText = JSON.stringify({
             success: false,
             status: response.data.status,
-            taskId: response.data.id,
+            researchId: response.data.researchId,
             createdAt: new Date(response.data.createdAt).toISOString(),
             instructions: response.data.instructions,
-            message: "❌ Deep research task failed. Please try starting a new research task with different instructions."
+            message: "Deep research task failed. Please try starting a new research task with different instructions."
           }, null, 2);
           logger.log("Research task failed");
-        } else {
-          // Unknown status
+        } else if (response.data.status === 'canceled') {
           resultText = JSON.stringify({
             success: false,
             status: response.data.status,
-            taskId: response.data.id,
-            message: `⚠️ Unknown status: ${response.data.status}. Continue polling or restart the research task.`
+            researchId: response.data.researchId,
+            message: "Research task was canceled."
+          }, null, 2);
+          logger.log("Research task canceled");
+        } else {
+          resultText = JSON.stringify({
+            success: false,
+            status: response.data.status,
+            researchId: response.data.researchId,
+            message: `Unknown status: ${response.data.status}. Continue polling or restart the research task.`
           }, null, 2);
           logger.log(`Unknown status: ${response.data.status}`);
         }
@@ -133,15 +138,15 @@ Important: Keep calling with the same task ID until status is 'completed'.`,
           // Handle specific 404 error for task not found
           if (error.response?.status === 404) {
             const errorData = error.response.data as DeepResearchErrorResponse;
-            logger.log(`Task not found: ${taskId}`);
+            logger.log(`Research not found: ${researchId}`);
             return {
               content: [{
                 type: "text" as const,
                 text: JSON.stringify({
                   success: false,
-                  error: "Task not found",
-                  taskId: taskId,
-                  message: "🚫 The specified task ID was not found. Please check the ID or start a new research task using deep_researcher_start."
+                  error: "Research not found",
+                  researchId: researchId,
+                  message: "The specified research ID was not found. Please check the ID or start a new research task using deep_researcher_start."
                 }, null, 2)
               }],
               isError: true,
@@ -179,4 +184,4 @@ Important: Keep calling with the same task ID until status is 'completed'.`,
       }
     }
   );
-}                                                
+}                                                                                                                                                                                                
