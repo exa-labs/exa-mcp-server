@@ -88,6 +88,17 @@ codex mcp add exa --url https://mcp.exa.ai/mcp
 </details>
 
 <details>
+<summary><b>ChatGPT (Developer Mode)</b></summary>
+
+In ChatGPT web, go to **Settings > Connectors > Advanced**, enable Developer Mode, and create a new custom connector with:
+
+- **URL:** `https://mcp.exa.ai/mcp`
+- **Authentication:** Bearer token with your [Exa API key](https://dashboard.exa.ai/api-keys)
+
+The API key must be passed via the `Authorization` header (not as a URL query parameter) to satisfy ChatGPT's connector safety checks.
+</details>
+
+<details>
 <summary><b>OpenCode</b></summary>
 
 Add to your `opencode.json`:
