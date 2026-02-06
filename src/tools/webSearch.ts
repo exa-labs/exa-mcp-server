@@ -19,14 +19,19 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
       livecrawl: z.enum(['fallback', 'preferred']).optional().describe("Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')"),
       type: z.enum(['auto', 'fast']).optional().describe("Search type - 'auto': balanced search (default), 'fast': quick results"),
-      contextMaxCharacters: z.coerce.number().optional().describe("Maximum characters for context string optimized for LLMs (must be a number, default: 10000)")
+      contextMaxCharacters: z.coerce.number().optional().describe("Maximum characters for context string optimized for LLMs (must be a number, default: 10000)"),
+      includeDomains: z.array(z.string()).optional().describe("Only include results from these domains (e.g. ['example.com', 'another.com'])"),
+      excludeDomains: z.array(z.string()).optional().describe("Exclude results from these domains (e.g. ['spam.com'])"),
+      startPublishedDate: z.string().optional().describe("Only return results published after this date (ISO 8601 format, e.g. '2024-01-01T00:00:00.000Z')"),
+      endPublishedDate: z.string().optional().describe("Only return results published before this date (ISO 8601 format, e.g. '2025-01-01T00:00:00.000Z')"),
+      category: z.enum(['company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'people', 'financial report']).optional().describe("Category filter for search results")
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ query, numResults, livecrawl, type, contextMaxCharacters }) => {
+    async ({ query, numResults, livecrawl, type, contextMaxCharacters, includeDomains, excludeDomains, startPublishedDate, endPublishedDate, category }) => {
       const requestId = `web_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'web_search_exa');
       
@@ -49,6 +54,11 @@ Returns: Clean text content from top search results, ready for LLM use.`,
           query,
           type: type || "auto",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
+          ...(includeDomains && { includeDomains }),
+          ...(excludeDomains && { excludeDomains }),
+          ...(startPublishedDate && { startPublishedDate }),
+          ...(endPublishedDate && { endPublishedDate }),
+          ...(category && { category }),
           contents: {
             text: true,
             context: {
@@ -128,4 +138,4 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       }
     }
   );
-}                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                
