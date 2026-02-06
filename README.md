@@ -221,6 +221,25 @@ Add to your Roo Code MCP config:
 </details>
 
 <details>
+<summary><b>Kilo Code</b></summary>
+
+Add to your Kilo Code MCP settings (`mcp_settings.json` or `.kilocode/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "exa": {
+      "type": "streamable-http",
+      "url": "https://mcp.exa.ai/mcp"
+    }
+  }
+}
+```
+
+> **Note:** Do not mix the remote URL with `npx exa-mcp-server`. Use either the hosted URL above (recommended) or the [npm package](#via-npm-package) with an API key — not both.
+</details>
+
+<details>
 <summary><b>Other Clients</b></summary>
 
 For clients that support remote MCP:
