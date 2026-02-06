@@ -294,6 +294,34 @@ Enable all tools with the `tools` parameter:
 https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,deep_search_exa,crawling_exa,company_research_exa,people_search_exa,deep_researcher_start,deep_researcher_check
 ```
 
+## Configuration via HTTP Headers
+
+Instead of passing your API key and tool list as URL query parameters, you can use HTTP headers. This keeps sensitive keys out of URLs and server logs.
+
+| Header | Description |
+| ------ | ----------- |
+| `x-exa-api-key` | Your Exa API key |
+| `x-exa-tools` | Comma-separated list of tools to enable |
+| `x-exa-debug` | Set to `true` to enable debug logging |
+
+For MCP clients that support custom headers (e.g. Cursor, VS Code):
+
+```json
+{
+  "mcpServers": {
+    "exa": {
+      "url": "https://mcp.exa.ai/mcp",
+      "headers": {
+        "x-exa-api-key": "your_api_key",
+        "x-exa-tools": "web_search_exa,get_code_context_exa,crawling_exa"
+      }
+    }
+  }
+}
+```
+
+URL query parameters still work and take precedence over headers.
+
 ## Links
 
 - [Documentation](https://docs.exa.ai/reference/exa-mcp)

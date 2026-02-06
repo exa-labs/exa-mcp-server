@@ -200,17 +200,10 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * This handler is automatically deployed as a Vercel Function and provides
  * Streamable HTTP transport for the MCP protocol.
  * 
- * Supports URL query parameters (100% compatible with production mcp.exa.ai):
- * - ?exaApiKey=YOUR_KEY - Pass API key via URL
- * - ?tools=web_search_exa,get_code_context_exa - Enable specific tools
- * - ?debug=true - Enable debug logging
- * 
- * Also supports environment variables:
- * - EXA_API_KEY: Your Exa AI API key
- * - DEBUG: Enable debug logging (true/false)
- * - ENABLED_TOOLS: Comma-separated list of tools to enable
- * 
- * URL query parameters take precedence over environment variables.
+ * Configuration is read from (highest to lowest priority):
+ *   1. URL query parameters — ?exaApiKey=KEY&tools=...&debug=true
+ *   2. HTTP headers          — x-exa-api-key, x-exa-tools, x-exa-debug
+ *   3. Environment variables — EXA_API_KEY, ENABLED_TOOLS, DEBUG
  * 
  * ARCHITECTURE NOTE:
  * The mcp-handler library creates a single server instance and doesn't pass
@@ -223,20 +216,45 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  */
 
 /**
- * Extract configuration from request URL or environment variables
- * URL parameters take precedence over environment variables
+ * Extract configuration from request URL, HTTP headers, or environment variables.
+ * Priority: URL query params > HTTP headers > environment variables.
+ *
+ * Supported headers:
+ *   x-exa-api-key  — Exa API key
+ *   x-exa-tools    — comma-separated tool list
+ *   x-exa-debug    — "true" to enable debug logging
  */
-function getConfigFromUrl(url: string) {
+function getConfigFromRequest(request: Request) {
   let exaApiKey = process.env.EXA_API_KEY;
   let enabledTools: string[] | undefined;
   let debug = process.env.DEBUG === 'true';
   let userProvidedApiKey = false;
 
+  // --- 1. Read from HTTP headers (lower priority than URL params) ---
+  const headerApiKey = request.headers.get('x-exa-api-key');
+  if (headerApiKey) {
+    exaApiKey = headerApiKey;
+    userProvidedApiKey = true;
+  }
+
+  const headerTools = request.headers.get('x-exa-tools');
+  if (headerTools) {
+    enabledTools = headerTools
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t.length > 0);
+  }
+
+  const headerDebug = request.headers.get('x-exa-debug');
+  if (headerDebug === 'true') {
+    debug = true;
+  }
+
+  // --- 2. Read from URL query params (highest priority, overrides headers) ---
   try {
-    const parsedUrl = new URL(url);
+    const parsedUrl = new URL(request.url);
     const params = parsedUrl.searchParams;
 
-    // Support ?exaApiKey=YOUR_KEY (query param takes precedence)
     if (params.has('exaApiKey')) {
       const keyFromUrl = params.get('exaApiKey');
       if (keyFromUrl) {
@@ -245,7 +263,6 @@ function getConfigFromUrl(url: string) {
       }
     }
 
-    // Support ?tools=tool1,tool2 (query param takes precedence)
     if (params.has('tools')) {
       const toolsParam = params.get('tools');
       if (toolsParam) {
@@ -256,18 +273,16 @@ function getConfigFromUrl(url: string) {
       }
     }
 
-    // Support ?debug=true
     if (params.has('debug')) {
       debug = params.get('debug') === 'true';
     }
   } catch (error) {
-    // URL parsing failed, will use env vars
     if (debug) {
       console.error('Failed to parse request URL:', error);
     }
   }
 
-  // Fall back to env vars if no query params were found
+  // --- 3. Fall back to env vars for tools if nothing else was set ---
   if (!enabledTools && process.env.ENABLED_TOOLS) {
     enabledTools = process.env.ENABLED_TOOLS
       .split(',')
@@ -299,8 +314,7 @@ function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; de
  * a fresh handler for each request
  */
 async function handleRequest(request: Request): Promise<Response> {
-  // Extract configuration from the request URL
-  const config = getConfigFromUrl(request.url);
+  const config = getConfigFromRequest(request);
   
   if (config.debug) {
     console.log(`[EXA-MCP] Request URL: ${request.url}`);
