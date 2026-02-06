@@ -10,10 +10,10 @@
     "url": "git+https://github.com/exa-labs/exa-mcp-server.git"
   },
   "bin": {
-    "exa-mcp-server": ".smithery/stdio/index.cjs"
+    "exa-mcp-server": "dist/stdio/index.cjs"
   },
   "files": [
-    ".smithery"
+    "dist"
   ],
   "keywords": [
     "mcp",
@@ -31,8 +31,8 @@
   "author": "Exa Labs",
   "scripts": {
     "build": "npm run build:shttp && npm run build:stdio",
-    "build:stdio": "smithery build src/index.ts --transport stdio -o .smithery/stdio/index.cjs && echo '#!/usr/bin/env node' | cat - .smithery/stdio/index.cjs > temp && mv temp .smithery/stdio/index.cjs && chmod +x .smithery/stdio/index.cjs",
-    "build:shttp": "smithery build src/index.ts --transport shttp -o .smithery/shttp/index.cjs",
+    "build:stdio": "smithery build src/index.ts --transport stdio -o dist/stdio/index.cjs && echo '#!/usr/bin/env node' | cat - dist/stdio/index.cjs > temp && mv temp dist/stdio/index.cjs && chmod +x dist/stdio/index.cjs",
+    "build:shttp": "smithery build src/index.ts --transport shttp -o dist/shttp/index.cjs",
     "build:vercel": "npm install typescript && ./node_modules/.bin/tsc",
     "prepare": "npm run build:stdio",
     "watch": "./node_modules/.bin/tsc --watch",
