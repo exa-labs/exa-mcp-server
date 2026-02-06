@@ -15,5 +15,5 @@
     "allowJs": true
   },
   "include": ["src/**/*", "api/**/*"],
-  "exclude": ["node_modules", ".smithery", "build", "dist"]
+  "exclude": ["node_modules", "smithery", "build", "dist"]
 }

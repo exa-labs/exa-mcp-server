@@ -23,7 +23,7 @@ FROM node:18-alpine AS runner
 WORKDIR /app
 
 # Copy compiled code from the builder stage
-COPY --from=builder /app/.smithery ./.smithery
+COPY --from=builder /app/smithery ./smithery
 COPY package.json package-lock.json ./
 
 # Install only production dependencies
@@ -36,4 +36,4 @@ ENV EXA_API_KEY=your-api-key-here
 EXPOSE 3000
 
 # Run the application
-ENTRYPOINT ["node", ".smithery/index.cjs"]
+ENTRYPOINT ["node", "smithery/index.cjs"]
