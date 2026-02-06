@@ -1,7 +1,6 @@
 ---
 name: web-search-advanced-personal-site
 description: Search personal websites and blogs using Exa advanced search. Full filter support for finding individual perspectives, portfolios, and personal blogs. Use when searching for personal sites, blog posts, or portfolio websites.
-disable-model-invocation: false
 context: fork
 ---
 
