@@ -5,6 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { sanitizeUrlsInText } from "../utils/sanitize.js";
 import { checkpoint } from "agnost"
 
 export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -86,7 +87,7 @@ Returns: Clean text content from top search results, ready for LLM use.`,
         const result = {
           content: [{
             type: "text" as const,
-            text: response.data.context
+            text: sanitizeUrlsInText(response.data.context)
           }]
         };
         
@@ -128,4 +129,4 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       }
     }
   );
-}                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                

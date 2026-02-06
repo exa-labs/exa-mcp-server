@@ -5,6 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaAdvancedSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { sanitizeUrlsInText } from "../utils/sanitize.js";
 import { checkpoint } from "agnost";
 
 export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -190,11 +191,11 @@ Returns: Search results with optional highlights, summaries, and subpage content
         let resultText = '';
 
         if (response.data.context) {
-          resultText = response.data.context;
+          resultText = sanitizeUrlsInText(response.data.context);
         } else if (response.data.results && response.data.results.length > 0) {
           resultText = response.data.results.map((result, index) => {
             let entry = `## ${index + 1}. ${result.title || 'Untitled'}\n`;
-            entry += `URL: ${result.url}\n`;
+            entry += `URL: ${sanitizeUrlsInText(result.url)}\n`;
             if (result.publishedDate) entry += `Published: ${result.publishedDate}\n`;
             if (result.author) entry += `Author: ${result.author}\n`;
             if (result.summary) entry += `\nSummary: ${result.summary}\n`;
