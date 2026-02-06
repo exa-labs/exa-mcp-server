@@ -1,16 +1,7 @@
 ---
 name: company-research
-description: Company research using Exa search. Finds company info, competitors, news, tweets, financials, LinkedIn profiles, builds company lists.
-triggers:
-  - company research
-  - competitor analysis
-  - market research
-  - find companies
-  - research company
-  - company intel
-  - search companies
-  - company homepages
-requires_mcp: exa
+description: Company research using Exa search. Finds company info, competitors, news, tweets, financials, LinkedIn profiles, builds company lists. Use when researching companies, doing competitor analysis, market research, or building company lists.
+disable-model-invocation: false
 context: fork
 ---
 
@@ -76,11 +67,6 @@ Auto-fallback to Claude in Chrome when:
 - Exa returns insufficient results
 - Content is auth-gated
 - Dynamic pages need JavaScript
-
-## Models
-
-- haiku: fast extraction (listing, discovery)
-- opus: synthesis, analysis, browser automation
 
 ## Examples
 
