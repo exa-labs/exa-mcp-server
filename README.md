@@ -58,6 +58,18 @@ Add to `.vscode/mcp.json`:
 ```bash
 claude mcp add --transport http exa https://mcp.exa.ai/mcp
 ```
+
+To enable specific tools, append the `tools` query parameter:
+
+```bash
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_exa,get_code_context_exa,crawling_exa"
+```
+
+Or use the npm package with `ENABLED_TOOLS`:
+
+```bash
+claude mcp add exa -e EXA_API_KEY=your_api_key -e ENABLED_TOOLS=web_search_exa,get_code_context_exa -- npx -y exa-mcp-server
+```
 </details>
 
 <details>
