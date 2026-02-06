@@ -17,6 +17,8 @@ Returns: Clean text content from top search results, ready for LLM use.`,
     {
       query: z.string().describe("Websearch query"),
       numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
+      includeDomains: z.array(z.string()).optional().describe("Only include results from these domains (e.g., ['github.com', 'docs.python.org']). Use this to prioritize or restrict results to specific websites."),
+      excludeDomains: z.array(z.string()).optional().describe("Exclude results from these domains"),
       livecrawl: z.enum(['fallback', 'preferred']).optional().describe("Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')"),
       type: z.enum(['auto', 'fast']).optional().describe("Search type - 'auto': balanced search (default), 'fast': quick results"),
       contextMaxCharacters: z.coerce.number().optional().describe("Maximum characters for context string optimized for LLMs (must be a number, default: 10000)")
@@ -26,7 +28,7 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ query, numResults, livecrawl, type, contextMaxCharacters }) => {
+    async ({ query, numResults, includeDomains, excludeDomains, livecrawl, type, contextMaxCharacters }) => {
       const requestId = `web_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'web_search_exa');
       
@@ -49,6 +51,8 @@ Returns: Clean text content from top search results, ready for LLM use.`,
           query,
           type: type || "auto",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
+          ...(includeDomains && includeDomains.length > 0 && { includeDomains }),
+          ...(excludeDomains && excludeDomains.length > 0 && { excludeDomains }),
           contents: {
             text: true,
             context: {
@@ -128,4 +132,4 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       }
     }
   );
-}                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                
