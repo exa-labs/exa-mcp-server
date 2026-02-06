@@ -84,68 +84,44 @@ export interface ExaSearchResponse {
   results: ExaSearchResult[];
 }
 
-// Deep Research API Types
+// Deep Research API Types (v1)
 export interface DeepResearchRequest {
-  model: 'exa-research' | 'exa-research-pro';
+  model: 'exa-research-fast' | 'exa-research' | 'exa-research-pro';
   instructions: string;
-  output?: {
-    inferSchema?: boolean;
-  };
+  outputSchema?: Record<string, unknown>;
 }
 
 export interface DeepResearchStartResponse {
-  id: string;
-  outputSchema?: {
-    type: string;
-    properties: any;
-    required: string[];
-    additionalProperties: boolean;
-  };
+  researchId: string;
+  createdAt: number;
+  model: string;
+  instructions: string;
+  outputSchema?: Record<string, unknown>;
+  status: string;
 }
 
 export interface DeepResearchCheckResponse {
-  id: string;
+  researchId: string;
   createdAt: number;
-  status: 'running' | 'completed' | 'failed';
+  model: string;
   instructions: string;
-  schema?: {
-    type: string;
-    properties: any;
-    required: string[];
-    additionalProperties: boolean;
+  outputSchema?: Record<string, unknown>;
+  finishedAt?: number;
+  status: 'pending' | 'running' | 'completed' | 'canceled' | 'failed';
+  output?: {
+    content: string;
+    parsed?: Record<string, unknown>;
   };
-  data?: {
-    report?: string;
-    [key: string]: any;
-  };
-  operations?: Array<{
-    type: string;
-    stepId: string;
-    text?: string;
-    query?: string;
-    goal?: string;
-    results?: any[];
-    url?: string;
-    thought?: string;
-    data?: any;
+  citations?: Array<{
+    id: string;
+    url: string;
+    title: string;
   }>;
-  citations?: {
-    [key: string]: Array<{
-      id: string;
-      url: string;
-      title: string;
-      snippet: string;
-    }>;
-  };
-  timeMs?: number;
-  model?: string;
   costDollars?: {
     total: number;
-    research: {
-      searches: number;
-      pages: number;
-      reasoningTokens: number;
-    };
+    numSearches: number;
+    numPages: number;
+    reasoningTokens: number;
   };
 }
 
