@@ -84,69 +84,47 @@ export interface ExaSearchResponse {
   results: ExaSearchResult[];
 }
 
-// Deep Research API Types
+// Deep Research API Types (v1)
 export interface DeepResearchRequest {
   model: 'exa-research' | 'exa-research-pro';
   instructions: string;
-  output?: {
-    inferSchema?: boolean;
-  };
 }
 
 export interface DeepResearchStartResponse {
-  id: string;
-  outputSchema?: {
-    type: string;
-    properties: any;
-    required: string[];
-    additionalProperties: boolean;
-  };
+  researchId: string;
+  model: string;
+  instructions: string;
+  status: string;
 }
 
 export interface DeepResearchCheckResponse {
-  id: string;
+  researchId: string;
   createdAt: number;
-  status: 'running' | 'completed' | 'failed';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'canceled';
+  model: string;
   instructions: string;
-  schema?: {
-    type: string;
-    properties: any;
-    required: string[];
-    additionalProperties: boolean;
+  outputSchema?: Record<string, unknown>;
+  output?: {
+    content: string;
+    parsed?: Record<string, unknown>;
   };
-  data?: {
-    report?: string;
-    [key: string]: any;
-  };
-  operations?: Array<{
+  events?: Array<{
     type: string;
-    stepId: string;
-    text?: string;
-    query?: string;
-    goal?: string;
-    results?: any[];
-    url?: string;
-    thought?: string;
-    data?: any;
+    [key: string]: unknown;
   }>;
-  citations?: {
-    [key: string]: Array<{
-      id: string;
-      url: string;
-      title: string;
-      snippet: string;
-    }>;
-  };
-  timeMs?: number;
-  model?: string;
+  citations?: Array<{
+    url: string;
+    title: string;
+    id?: string;
+  }>;
   costDollars?: {
     total: number;
-    research: {
-      searches: number;
-      pages: number;
-      reasoningTokens: number;
-    };
+    numSearches: number;
+    numPages: number;
+    reasoningTokens: number;
   };
+  finishedAt?: number;
+  error?: string;
 }
 
 export interface DeepResearchErrorResponse {

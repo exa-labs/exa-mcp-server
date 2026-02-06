@@ -16,7 +16,7 @@ Best for: Complex research questions needing deep analysis and synthesis.
 Returns: Task ID - use deep_researcher_check to get results.
 Important: Call deep_researcher_check with the returned task ID to get the report.`,
     {
-      instructions: z.string().describe("Complex research question or detailed instructions for the AI researcher. Be specific about what you want to research and any particular aspects you want covered."),
+      instructions: z.string().min(1).describe("Complex research question or detailed instructions for the AI researcher. Be specific about what you want to research and any particular aspects you want covered."),
       model: z.enum(['exa-research', 'exa-research-pro']).optional().describe("Research model: 'exa-research' (faster, 15-45s, good for most queries) or 'exa-research-pro' (more comprehensive, 45s-2min, for complex topics). Default: exa-research")
     },
     async ({ instructions, model }) => {
@@ -41,9 +41,6 @@ Important: Call deep_researcher_check with the returned task ID to get the repor
         const researchRequest: DeepResearchRequest = {
           model: model || 'exa-research',
           instructions,
-          output: {
-            inferSchema: false
-          }
         };
         
         checkpoint('deep_research_start_request_prepared', {
@@ -52,15 +49,15 @@ Important: Call deep_researcher_check with the returned task ID to get the repor
         logger.log(`Starting research with model: ${researchRequest.model}`);
         
         const response = await axiosInstance.post<DeepResearchStartResponse>(
-          API_CONFIG.ENDPOINTS.RESEARCH_TASKS,
+          API_CONFIG.ENDPOINTS.RESEARCH,
           researchRequest,
           { timeout: 25000 }
         );
         
         checkpoint('deep_research_start_response_received');
-        logger.log(`Research task started with ID: ${response.data.id}`);
+        logger.log(`Research task started with ID: ${response.data.researchId}`);
 
-        if (!response.data || !response.data.id) {
+        if (!response.data || !response.data.researchId) {
           logger.log("Warning: Empty or invalid response from Exa Research API");
           checkpoint('deep_research_start_complete');
           return {
@@ -77,12 +74,11 @@ Important: Call deep_researcher_check with the returned task ID to get the repor
             type: "text" as const,
             text: JSON.stringify({
               success: true,
-              taskId: response.data.id,
+              taskId: response.data.researchId,
               model: researchRequest.model,
               instructions: instructions,
-              outputSchema: response.data.outputSchema,
-              message: `Deep research task started successfully with ${researchRequest.model} model. IMMEDIATELY use deep_researcher_check with task ID '${response.data.id}' to monitor progress. Keep checking every few seconds until status is 'completed' to get the research results.`,
-              nextStep: `Call deep_researcher_check with taskId: "${response.data.id}"`
+              message: `Deep research task started successfully with ${researchRequest.model} model. IMMEDIATELY use deep_researcher_check with task ID '${response.data.researchId}' to monitor progress. Keep checking every few seconds until status is 'completed' to get the research results.`,
+              nextStep: `Call deep_researcher_check with taskId: "${response.data.researchId}"`
             }, null, 2)
           }]
         };
@@ -125,4 +121,4 @@ Important: Call deep_researcher_check with the returned task ID to get the repor
       }
     }
   );
-}                                                
+}                                                                                                
