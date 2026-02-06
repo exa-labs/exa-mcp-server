@@ -52,6 +52,7 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
     
     if (toolsParam) {
       if (typeof toolsParam === 'string') {
+        // Parse comma-separated string into array
         parsedEnabledTools = toolsParam
           .split(',')
           .map(tool => tool.trim())
@@ -59,11 +60,6 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
       } else if (Array.isArray(toolsParam)) {
         parsedEnabledTools = toolsParam;
       }
-    } else if (process.env.ENABLED_TOOLS) {
-      parsedEnabledTools = process.env.ENABLED_TOOLS
-        .split(',')
-        .map(tool => tool.trim())
-        .filter(tool => tool.length > 0);
     }
     
     // Create normalized config with parsed tools
