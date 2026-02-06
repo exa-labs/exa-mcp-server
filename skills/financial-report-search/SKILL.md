@@ -1,14 +1,6 @@
 ---
 name: web-search-advanced-financial-report
-description: Search for financial reports using Exa advanced search. Near-full filter support for finding SEC filings, earnings reports, and financial documents.
-triggers:
-  - search financial reports
-  - find sec filings
-  - earnings reports
-  - financial documents
-  - 10k search
-  - annual report search
-requires_mcp: exa
+description: Search for financial reports using Exa advanced search. Near-full filter support for finding SEC filings, earnings reports, and financial documents. Use when searching for 10-K filings, quarterly earnings, or annual reports.
 context: fork
 ---
 

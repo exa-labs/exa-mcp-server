@@ -1,14 +1,6 @@
 ---
 name: web-search-advanced-tweet
-description: Search tweets and Twitter/X content using Exa advanced search. Limited filter support - text and domain filters are NOT supported.
-triggers:
-  - search tweets
-  - find tweets
-  - twitter search
-  - x search
-  - social media search
-  - twitter discussions
-requires_mcp: exa
+description: Search tweets and Twitter/X content using Exa advanced search. Limited filter support - text and domain filters are NOT supported. Use when searching for tweets, Twitter/X discussions, or social media sentiment.
 context: fork
 ---
 

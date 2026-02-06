@@ -1,15 +1,6 @@
 ---
 name: people-research
-description: People research using Exa search. Finds LinkedIn profiles, professional backgrounds, experts, team members, and public bios across the web.
-triggers:
-  - people research
-  - find people profiles
-  - search people
-  - profile search
-  - find experts
-  - linkedin search
-  - who works at
-requires_mcp: exa
+description: People research using Exa search. Finds LinkedIn profiles, professional backgrounds, experts, team members, and public bios across the web. Use when searching for people, finding experts, or looking up professional profiles.
 context: fork
 ---
 
@@ -74,11 +65,6 @@ Auto-fallback to Claude in Chrome when:
 - Exa returns insufficient results
 - Content is auth-gated
 - Dynamic pages need JavaScript
-
-## Models
-
-- haiku: fast extraction (listing, discovery)
-- opus: synthesis, analysis, browser automation
 
 ## Examples
 
