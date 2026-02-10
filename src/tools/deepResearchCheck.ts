@@ -79,6 +79,7 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
             researchId: response.data.researchId,
             report: response.data.output?.content || "No report generated",
             parsedOutput: response.data.output?.parsed,
+            citations: response.data.citations,
             model: response.data.model,
             costDollars: response.data.costDollars,
             message: "Deep research completed! Here's your comprehensive research report."
@@ -184,4 +185,4 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
       }
     }
   );
-}                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                
