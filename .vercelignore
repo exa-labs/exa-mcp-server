@@ -1,5 +1,5 @@
 # Smithery build artifacts
-.smithery/
+smithery/
 
 # Node modules
 node_modules/
