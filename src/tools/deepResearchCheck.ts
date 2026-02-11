@@ -5,6 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { DeepResearchCheckResponse, DeepResearchErrorResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { resolveApiKey } from "../utils/session.js";
 import { checkpoint } from "agnost";
 
 // Helper function to create a delay
@@ -21,26 +22,28 @@ Best for: Getting the research report after calling deep_researcher_start.
 Returns: Research report when complete, or status update if still running.
 Important: Keep calling with the same research ID until status is 'completed'.`,
     {
-      researchId: z.string().describe("The research ID returned from deep_researcher_start tool")
+      researchId: z.string().describe("The research ID returned from deep_researcher_start tool"),
+      session_token: z.string().optional().describe("Session token from validate_otp for authenticated access")
     },
-    async ({ researchId }) => {
+    async ({ researchId, session_token }) => {
       const requestId = `deep_researcher_check-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'deep_researcher_check');
-      
+
       logger.start(researchId);
-      
+
       try {
         // Built-in delay to allow processing time
         logger.log("Waiting 5 seconds before checking status...");
         await delay(5000);
         checkpoint('deep_research_check_delay_complete');
 
+        const apiKey = await resolveApiKey(session_token, config?.exaApiKey);
         // Create a fresh axios instance for each request
         const axiosInstance = axios.create({
           baseURL: API_CONFIG.BASE_URL,
           headers: {
             'accept': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-api-key': apiKey,
             'x-exa-integration': 'deep-research-mcp'
           },
           timeout: 25000
