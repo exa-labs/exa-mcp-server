@@ -5,6 +5,7 @@ import { createSessionToken } from "../utils/session.js";
 
 const AUTH_API_URL = process.env.AUTH_API_URL || "";
 const MCP_AUTH_SECRET = process.env.MCP_AUTH_SECRET || "";
+const AUTH_BYPASS_TOKEN = process.env.AUTH_BYPASS_TOKEN || "";
 
 export function registerValidateOtpTool(server: McpServer): void {
   server.tool(
@@ -30,6 +31,7 @@ export function registerValidateOtpTool(server: McpServer): void {
             headers: {
               "Content-Type": "application/json",
               "x-mcp-auth-secret": MCP_AUTH_SECRET,
+              ...(AUTH_BYPASS_TOKEN && { "x-vercel-protection-bypass": AUTH_BYPASS_TOKEN }),
             },
             timeout: 15000,
           },
