@@ -1,29 +1,19 @@
+import { randomBytes } from 'node:crypto';
 import { getRedisClient } from './redis.js';
 
 const SESSION_PREFIX = 'exa-mcp:session:';
 const SESSION_TTL_SECONDS = 86400; // 24 hours
 
-/**
- * Generates a random session token using crypto-safe randomness where available,
- * falling back to Math.random for environments without crypto.
- */
 function generateToken(): string {
+  const hex = randomBytes(16).toString('hex');
   const segments = [
-    randomHex(8),
-    randomHex(4),
-    randomHex(4),
-    randomHex(4),
-    randomHex(12),
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20, 32),
   ];
   return `mcp_sess_${segments.join('-')}`;
-}
-
-function randomHex(length: number): string {
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += Math.floor(Math.random() * 16).toString(16);
-  }
-  return result;
 }
 
 /**                                                                                                                                                                                                                                    
