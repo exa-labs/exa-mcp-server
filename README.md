@@ -20,7 +20,7 @@ https://mcp.exa.ai/mcp
 [Get your API key](https://dashboard.exa.ai/api-keys)
 
 <details>
-<summary><img src="https://img.shields.io/badge/Cursor-333?style=flat-square" alt="Cursor"></summary>
+<summary><b>Cursor</b></summary>
 
 Add to `~/.cursor/mcp.json`:
 ```json
@@ -29,7 +29,7 @@ Add to `~/.cursor/mcp.json`:
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/VS_Code-007ACC?style=flat-square&logo=visualstudiocode&logoColor=white" alt="VS Code"></summary>
+<summary><b>VS Code</b></summary>
 
 Add to `.vscode/mcp.json`:
 ```json
@@ -38,7 +38,7 @@ Add to `.vscode/mcp.json`:
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/Claude_Code-D4A574?style=flat-square" alt="Claude Code"></summary>
+<summary><b>Claude Code</b></summary>
 
 ```bash
 claude mcp add --transport http exa https://mcp.exa.ai/mcp
@@ -46,7 +46,7 @@ claude mcp add --transport http exa https://mcp.exa.ai/mcp
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/Claude_Desktop-D4A574?style=flat-square" alt="Claude Desktop"></summary>
+<summary><b>Claude Desktop</b></summary>
 
 **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json` · **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 ```json
@@ -55,7 +55,7 @@ claude mcp add --transport http exa https://mcp.exa.ai/mcp
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/Codex-10A37F?style=flat-square" alt="Codex"></summary>
+<summary><b>Codex</b></summary>
 
 ```bash
 codex mcp add exa --url https://mcp.exa.ai/mcp
@@ -63,7 +63,7 @@ codex mcp add exa --url https://mcp.exa.ai/mcp
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/OpenCode-555?style=flat-square" alt="OpenCode"></summary>
+<summary><b>OpenCode</b></summary>
 
 Add to `opencode.json`:
 ```json
@@ -72,13 +72,13 @@ Add to `opencode.json`:
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/Antigravity-555?style=flat-square" alt="Antigravity"></summary>
+<summary><b>Antigravity</b></summary>
 
 Open the MCP Store panel (from the "..." dropdown) → add custom server → `https://mcp.exa.ai/mcp`
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/Windsurf-0FC?style=flat-square" alt="Windsurf"></summary>
+<summary><b>Windsurf</b></summary>
 
 Add to `~/.codeium/windsurf/mcp_config.json`:
 ```json
@@ -87,7 +87,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/Zed-555?style=flat-square" alt="Zed"></summary>
+<summary><b>Zed</b></summary>
 
 Add to your Zed settings:
 ```json
@@ -96,7 +96,7 @@ Add to your Zed settings:
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/Gemini_CLI-4285F4?style=flat-square" alt="Gemini CLI"></summary>
+<summary><b>Gemini CLI</b></summary>
 
 Add to `~/.gemini/settings.json`:
 ```json
@@ -105,13 +105,13 @@ Add to `~/.gemini/settings.json`:
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/v0_by_Vercel-000?style=flat-square" alt="v0 by Vercel"></summary>
+<summary><b>v0 by Vercel</b></summary>
 
 Select **Prompt Tools** → **Add MCP** → `https://mcp.exa.ai/mcp`
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/Warp-01A4FF?style=flat-square" alt="Warp"></summary>
+<summary><b>Warp</b></summary>
 
 **Settings** → **MCP Servers** → **Add MCP Server**:
 ```json
@@ -120,7 +120,7 @@ Select **Prompt Tools** → **Add MCP** → `https://mcp.exa.ai/mcp`
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/Kiro-FF9900?style=flat-square" alt="Kiro"></summary>
+<summary><b>Kiro</b></summary>
 
 Add to `~/.kiro/settings/mcp.json`:
 ```json
@@ -129,7 +129,7 @@ Add to `~/.kiro/settings/mcp.json`:
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/Roo_Code-555?style=flat-square" alt="Roo Code"></summary>
+<summary><b>Roo Code</b></summary>
 
 Add to your Roo Code MCP config:
 ```json
@@ -138,7 +138,7 @@ Add to your Roo Code MCP config:
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/Other_Clients-888?style=flat-square" alt="Other Clients"></summary>
+<summary><b>Other Clients</b></summary>
 
 For clients that support remote MCP:
 ```json
@@ -151,7 +151,7 @@ For clients that need mcp-remote:
 </details>
 
 <details>
-<summary><img src="https://img.shields.io/badge/npm_Package-CB3837?style=flat-square&logo=npm&logoColor=white" alt="npm Package"></summary>
+<summary><b>Via npm Package</b></summary>
 
 Use the npm package with your API key. [Get your API key](https://dashboard.exa.ai/api-keys).
 ```json
