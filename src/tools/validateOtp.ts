@@ -60,6 +60,8 @@ export function registerValidateOtpTool(server: McpServer): void {
         let errorMessage = "Failed to verify code.";
         if (axios.isAxiosError(error) && error.response?.data?.error) {
           errorMessage = error.response.data.error;
+        } else if (error instanceof Error && !axios.isAxiosError(error)) {
+          errorMessage = `Verification succeeded but session creation failed: ${error.message}`;
         }
 
         return {
