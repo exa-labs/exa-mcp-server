@@ -19,53 +19,79 @@ https://mcp.exa.ai/mcp
 
 [Get your API key](https://dashboard.exa.ai/api-keys)
 
-<table>
-<tr>
-<td><details><summary><b>Cursor</b></summary><br>
-Add to <code>~/.cursor/mcp.json</code>:
-<pre lang="json">{
+<details>
+<summary><b>Cursor</b> · <b>VS Code</b> · <b>Claude Code</b> · <b>Claude Desktop</b> · <b>Codex</b> · <b>OpenCode</b> · <b>Antigravity</b> · <b>Windsurf</b> · <b>Zed</b> · <b>Gemini CLI</b> · <b>v0</b> · <b>Warp</b> · <b>Kiro</b> · <b>Roo Code</b> · <b>Other Clients</b> · <b>npm Package</b></summary>
+
+### CLI
+
+```bash
+claude mcp add --transport http exa https://mcp.exa.ai/mcp   # Claude Code
+codex mcp add exa --url https://mcp.exa.ai/mcp               # Codex
+```
+
+### UI
+
+- **Antigravity** — MCP Store panel (from "..." dropdown) → add custom server → `https://mcp.exa.ai/mcp`
+- **v0 by Vercel** — Prompt Tools → Add MCP → `https://mcp.exa.ai/mcp`
+- **Warp** — Settings → MCP Servers → Add MCP Server → `{ "exa": { "url": "https://mcp.exa.ai/mcp" } }`
+
+### JSON Config
+
+Add to your client's config file:
+
+| Client | Config File |
+| ------ | ----------- |
+| Cursor | `~/.cursor/mcp.json` |
+| Kiro | `~/.kiro/settings/mcp.json` |
+
+```json
+{
   "mcpServers": {
     "exa": {
       "url": "https://mcp.exa.ai/mcp"
     }
   }
-}</pre>
-</details></td>
-<td><details><summary><b>VS Code</b></summary><br>
-Add to <code>.vscode/mcp.json</code>:
-<pre lang="json">{
+}
+```
+
+<details>
+<summary>VS Code</summary>
+
+Add to `.vscode/mcp.json`:
+```json
+{
   "servers": {
     "exa": {
       "type": "http",
       "url": "https://mcp.exa.ai/mcp"
     }
   }
-}</pre>
-</details></td>
-<td><details><summary><b>Claude Code</b></summary><br>
-<pre>claude mcp add --transport http exa https://mcp.exa.ai/mcp</pre>
-</details></td>
-<td><details><summary><b>Claude Desktop</b></summary><br>
-Config file:<br>
-<b>macOS:</b> <code>~/Library/Application Support/Claude/claude_desktop_config.json</code><br>
-<b>Windows:</b> <code>%APPDATA%\Claude\claude_desktop_config.json</code>
-<pre lang="json">{
+}
+```
+</details>
+
+<details>
+<summary>Claude Desktop</summary>
+
+Config file — **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json` · **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+```json
+{
   "mcpServers": {
     "exa": {
       "command": "npx",
       "args": ["-y", "mcp-remote", "https://mcp.exa.ai/mcp"]
     }
   }
-}</pre>
-</details></td>
-</tr>
-<tr>
-<td><details><summary><b>Codex</b></summary><br>
-<pre>codex mcp add exa --url https://mcp.exa.ai/mcp</pre>
-</details></td>
-<td><details><summary><b>OpenCode</b></summary><br>
-Add to <code>opencode.json</code>:
-<pre lang="json">{
+}
+```
+</details>
+
+<details>
+<summary>OpenCode</summary>
+
+Add to `opencode.json`:
+```json
+{
   "mcp": {
     "exa": {
       "type": "remote",
@@ -73,101 +99,103 @@ Add to <code>opencode.json</code>:
       "enabled": true
     }
   }
-}</pre>
-</details></td>
-<td><details><summary><b>Antigravity</b></summary><br>
-Open the MCP Store panel (from the "..." dropdown in the side panel), then add a custom server with:
-<pre>https://mcp.exa.ai/mcp</pre>
-</details></td>
-<td><details><summary><b>Windsurf</b></summary><br>
-Add to <code>~/.codeium/windsurf/mcp_config.json</code>:
-<pre lang="json">{
+}
+```
+</details>
+
+<details>
+<summary>Windsurf</summary>
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+```json
+{
   "mcpServers": {
     "exa": {
       "serverUrl": "https://mcp.exa.ai/mcp"
     }
   }
-}</pre>
-</details></td>
-</tr>
-<tr>
-<td><details><summary><b>Zed</b></summary><br>
+}
+```
+</details>
+
+<details>
+<summary>Zed</summary>
+
 Add to your Zed settings:
-<pre lang="json">{
+```json
+{
   "context_servers": {
     "exa": {
       "url": "https://mcp.exa.ai/mcp"
     }
   }
-}</pre>
-</details></td>
-<td><details><summary><b>Gemini CLI</b></summary><br>
-Add to <code>~/.gemini/settings.json</code>:
-<pre lang="json">{
+}
+```
+</details>
+
+<details>
+<summary>Gemini CLI</summary>
+
+Add to `~/.gemini/settings.json`:
+```json
+{
   "mcpServers": {
     "exa": {
       "httpUrl": "https://mcp.exa.ai/mcp"
     }
   }
-}</pre>
-</details></td>
-<td><details><summary><b>v0 by Vercel</b></summary><br>
-In v0, select <b>Prompt Tools</b> &gt; <b>Add MCP</b> and enter:
-<pre>https://mcp.exa.ai/mcp</pre>
-</details></td>
-<td><details><summary><b>Warp</b></summary><br>
-Go to <b>Settings</b> &gt; <b>MCP Servers</b> &gt; <b>Add MCP Server</b> and add:
-<pre lang="json">{
-  "exa": {
-    "url": "https://mcp.exa.ai/mcp"
-  }
-}</pre>
-</details></td>
-</tr>
-<tr>
-<td><details><summary><b>Kiro</b></summary><br>
-Add to <code>~/.kiro/settings/mcp.json</code>:
-<pre lang="json">{
-  "mcpServers": {
-    "exa": {
-      "url": "https://mcp.exa.ai/mcp"
-    }
-  }
-}</pre>
-</details></td>
-<td><details><summary><b>Roo Code</b></summary><br>
+}
+```
+</details>
+
+<details>
+<summary>Roo Code</summary>
+
 Add to your Roo Code MCP config:
-<pre lang="json">{
+```json
+{
   "mcpServers": {
     "exa": {
       "type": "streamable-http",
       "url": "https://mcp.exa.ai/mcp"
     }
   }
-}</pre>
-</details></td>
-<td><details><summary><b>Other Clients</b></summary><br>
+}
+```
+</details>
+
+<details>
+<summary>Other Clients</summary>
+
 For clients that support remote MCP:
-<pre lang="json">{
+```json
+{
   "mcpServers": {
     "exa": {
       "url": "https://mcp.exa.ai/mcp"
     }
   }
-}</pre>
+}
+```
 For clients that need mcp-remote:
-<pre lang="json">{
+```json
+{
   "mcpServers": {
     "exa": {
       "command": "npx",
       "args": ["-y", "mcp-remote", "https://mcp.exa.ai/mcp"]
     }
   }
-}</pre>
-</details></td>
-<td><details><summary><b>Via npm Package</b></summary><br>
-Use the npm package with your API key. <a href="https://dashboard.exa.ai/api-keys">Get your API key</a>.
-<pre lang="json">{
+}
+```
+</details>
+
+<details>
+<summary>Via npm Package</summary>
+
+Use the npm package with your API key. [Get your API key](https://dashboard.exa.ai/api-keys).
+```json
+{
   "mcpServers": {
     "exa": {
       "command": "npx",
@@ -177,10 +205,11 @@ Use the npm package with your API key. <a href="https://dashboard.exa.ai/api-key
       }
     }
   }
-}</pre>
-</details></td>
-</tr>
-</table>
+}
+```
+</details>
+
+</details>
 
 ## Available Tools
 
