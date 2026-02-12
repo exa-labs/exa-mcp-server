@@ -293,23 +293,25 @@ Enable all tools with the `tools` parameter:
 https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,crawling_exa,company_research_exa,people_search_exa,deep_researcher_start,deep_researcher_check
 ```
 
-## Agent Skills
+## Agent Skills (Claude Skills)
 
-Pre-built [agent skills](https://docs.exa.ai/docs/reference/company-research-claude-skill) that combine MCP tools with specialized search instructions. Copy the skill content and paste it into Claude Code — it will set up both the MCP connection and the skill automatically.
+Ready-to-use skills for Claude Code. Each skill teaches Claude how to use Exa search for a specific task. Copy the content inside a dropdown and paste it into Claude Code — it handles the rest.
 
 <details>
 <summary><b>Company Research</b></summary>
 
-Copy the content below and paste it into Claude Code. It will set up both the MCP connection and the skill automatically.
-
-**1. Install Exa MCP:**
-```bash
-claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
-```
-
-**2. Add this as a Claude skill:**
+Copy the content below and paste it into Claude Code. It will set up the MCP connection and skill for you.
 
 ````
+Step 1: Install or update Exa MCP
+
+If Exa MCP already exists in your MCP configuration, either uninstall it first and install the new one, or update your existing MCP config with this endpoint. Run this command in your terminal:
+
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+
+
+Step 2: Add this Claude skill
+
 ---
 name: company-research
 description: Company research using Exa search. Finds company info, competitors, news, tweets, financials, LinkedIn profiles, builds company lists. Use when researching companies, doing competitor analysis, market research, or building company lists.
@@ -427,6 +429,11 @@ Return:
 1) Results (structured list; one company per row)
 2) Sources (URLs; 1-line relevance each)
 3) Notes (uncertainty/conflicts)
+
+
+Step 3: Ask User to Restart Claude Code
+
+You should ask the user to restart Claude Code to have the config changes take effect.
 ````
 
 </details>
@@ -434,16 +441,18 @@ Return:
 <details>
 <summary><b>Code Search</b></summary>
 
-Copy the content below and paste it into Claude Code. It will set up both the MCP connection and the skill automatically.
-
-**1. Install Exa MCP:**
-```bash
-claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=get_code_context_exa"
-```
-
-**2. Add this as a Claude skill:**
+Copy the content below and paste it into Claude Code. It will set up the MCP connection and skill for you.
 
 ````
+Step 1: Install or update Exa MCP
+
+If Exa MCP already exists in your MCP configuration, either uninstall it first and install the new one, or update your existing MCP config with this endpoint. Run this command in your terminal:
+
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=get_code_context_exa"
+
+
+Step 2: Add this Claude skill
+
 ---
 name: get-code-context-exa
 description: Code context using Exa. Finds real snippets and docs from GitHub, StackOverflow, and technical docs. Use when searching for code examples, API syntax, library documentation, or debugging help.
@@ -518,6 +527,11 @@ Before presenting:
   }
 }
 ```
+
+
+Step 3: Ask User to Restart Claude Code
+
+You should ask the user to restart Claude Code to have the config changes take effect.
 ````
 
 </details>
@@ -525,16 +539,18 @@ Before presenting:
 <details>
 <summary><b>People Search</b></summary>
 
-Copy the content below and paste it into Claude Code. It will set up both the MCP connection and the skill automatically.
-
-**1. Install Exa MCP:**
-```bash
-claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
-```
-
-**2. Add this as a Claude skill:**
+Copy the content below and paste it into Claude Code. It will set up the MCP connection and skill for you.
 
 ````
+Step 1: Install or update Exa MCP
+
+If Exa MCP already exists in your MCP configuration, either uninstall it first and install the new one, or update your existing MCP config with this endpoint. Run this command in your terminal:
+
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+
+
+Step 2: Add this Claude skill
+
 ---
 name: people-research
 description: People research using Exa search. Finds LinkedIn profiles, professional backgrounds, experts, team members, and public bios across the web. Use when searching for people, finding experts, or looking up professional profiles.
@@ -652,6 +668,11 @@ Return:
 1) Results (name, title, company, location if available)
 2) Sources (Profile URLs)
 3) Notes (profile completeness, verification status)
+
+
+Step 3: Ask User to Restart Claude Code
+
+You should ask the user to restart Claude Code to have the config changes take effect.
 ````
 
 </details>
@@ -659,16 +680,18 @@ Return:
 <details>
 <summary><b>Financial Report Search</b></summary>
 
-Copy the content below and paste it into Claude Code. It will set up both the MCP connection and the skill automatically.
-
-**1. Install Exa MCP:**
-```bash
-claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
-```
-
-**2. Add this as a Claude skill:**
+Copy the content below and paste it into Claude Code. It will set up the MCP connection and skill for you.
 
 ````
+Step 1: Install or update Exa MCP
+
+If Exa MCP already exists in your MCP configuration, either uninstall it first and install the new one, or update your existing MCP config with this endpoint. Run this command in your terminal:
+
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+
+
+Step 2: Add this Claude skill
+
 ---
 name: web-search-advanced-financial-report
 description: Search for financial reports using Exa advanced search. Near-full filter support for finding SEC filings, earnings reports, and financial documents. Use when searching for 10-K filings, quarterly earnings, or annual reports.
@@ -786,6 +809,11 @@ Return:
 1) Results (company name, filing type, date, key figures/highlights)
 2) Sources (Filing URLs)
 3) Notes (reporting period, any restatements, auditor notes)
+
+
+Step 3: Ask User to Restart Claude Code
+
+You should ask the user to restart Claude Code to have the config changes take effect.
 ````
 
 </details>
@@ -793,16 +821,18 @@ Return:
 <details>
 <summary><b>Research Paper Search</b></summary>
 
-Copy the content below and paste it into Claude Code. It will set up both the MCP connection and the skill automatically.
-
-**1. Install Exa MCP:**
-```bash
-claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
-```
-
-**2. Add this as a Claude skill:**
+Copy the content below and paste it into Claude Code. It will set up the MCP connection and skill for you.
 
 ````
+Step 1: Install or update Exa MCP
+
+If Exa MCP already exists in your MCP configuration, either uninstall it first and install the new one, or update your existing MCP config with this endpoint. Run this command in your terminal:
+
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+
+
+Step 2: Add this Claude skill
+
 ---
 name: web-search-advanced-research-paper
 description: Search for research papers and academic content using Exa advanced search. Full filter support including date ranges and text filtering. Use when searching for academic papers, arXiv preprints, or scientific research.
@@ -897,6 +927,11 @@ Return:
 1) Results (structured list with title, authors, date, abstract summary)
 2) Sources (URLs with publication venue)
 3) Notes (methodology differences, conflicting findings)
+
+
+Step 3: Ask User to Restart Claude Code
+
+You should ask the user to restart Claude Code to have the config changes take effect.
 ````
 
 </details>
@@ -904,16 +939,18 @@ Return:
 <details>
 <summary><b>Personal Site Search</b></summary>
 
-Copy the content below and paste it into Claude Code. It will set up both the MCP connection and the skill automatically.
-
-**1. Install Exa MCP:**
-```bash
-claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
-```
-
-**2. Add this as a Claude skill:**
+Copy the content below and paste it into Claude Code. It will set up the MCP connection and skill for you.
 
 ````
+Step 1: Install or update Exa MCP
+
+If Exa MCP already exists in your MCP configuration, either uninstall it first and install the new one, or update your existing MCP config with this endpoint. Run this command in your terminal:
+
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+
+
+Step 2: Add this Claude skill
+
 ---
 name: web-search-advanced-personal-site
 description: Search personal websites and blogs using Exa advanced search. Full filter support for finding individual perspectives, portfolios, and personal blogs. Use when searching for personal sites, blog posts, or portfolio websites.
@@ -1017,6 +1054,11 @@ Return:
 1) Results (title, author/site name, date, key insights)
 2) Sources (URLs)
 3) Notes (author expertise, potential biases, depth of coverage)
+
+
+Step 3: Ask User to Restart Claude Code
+
+You should ask the user to restart Claude Code to have the config changes take effect.
 ````
 
 </details>
@@ -1024,16 +1066,18 @@ Return:
 <details>
 <summary><b>X/Twitter Search</b></summary>
 
-Copy the content below and paste it into Claude Code. It will set up both the MCP connection and the skill automatically.
-
-**1. Install Exa MCP:**
-```bash
-claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
-```
-
-**2. Add this as a Claude skill:**
+Copy the content below and paste it into Claude Code. It will set up the MCP connection and skill for you.
 
 ````
+Step 1: Install or update Exa MCP
+
+If Exa MCP already exists in your MCP configuration, either uninstall it first and install the new one, or update your existing MCP config with this endpoint. Run this command in your terminal:
+
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+
+
+Step 2: Add this Claude skill
+
 ---
 name: web-search-advanced-tweet
 description: Search tweets and Twitter/X content using Exa advanced search. Limited filter support - text and domain filters are NOT supported. Use when searching for tweets, Twitter/X discussions, or social media sentiment.
@@ -1137,6 +1181,11 @@ Return:
 3) Notes (sentiment summary, notable accounts, threads vs single tweets)
 
 Important: Be aware that tweet content can be informal, sarcastic, or context-dependent.
+
+
+Step 3: Ask User to Restart Claude Code
+
+You should ask the user to restart Claude Code to have the config changes take effect.
 ````
 
 </details>
