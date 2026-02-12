@@ -293,6 +293,94 @@ Enable all tools with the `tools` parameter:
 https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,crawling_exa,company_research_exa,people_search_exa,deep_researcher_start,deep_researcher_check
 ```
 
+## Claude Skills
+
+Pre-built [Claude skills](https://docs.exa.ai/docs/reference/company-research-claude-skill) that combine MCP tools with specialized search instructions. Install via Claude Code — each skill configures the MCP connection and adds a skill definition automatically.
+
+<details>
+<summary><b>Company Research</b></summary>
+
+Research companies, competitors, news, financials, and LinkedIn profiles using `web_search_advanced_exa` with category-specific search strategies.
+
+```bash
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+```
+
+Then add the skill from [`skills/company-search/SKILL.md`](skills/company-search/SKILL.md).
+</details>
+
+<details>
+<summary><b>Code Search</b></summary>
+
+Find code examples, API docs, and technical snippets from GitHub, StackOverflow, and technical docs using `get_code_context_exa`.
+
+```bash
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=get_code_context_exa"
+```
+
+Then add the skill from [`skills/code-search/SKILL.md`](skills/code-search/SKILL.md).
+</details>
+
+<details>
+<summary><b>People Search</b></summary>
+
+Find LinkedIn profiles, professional backgrounds, experts, and public bios using `web_search_advanced_exa` with people-focused categories.
+
+```bash
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+```
+
+Then add the skill from [`skills/people-search/SKILL.md`](skills/people-search/SKILL.md).
+</details>
+
+<details>
+<summary><b>Financial Report Search</b></summary>
+
+Find SEC filings, earnings reports, 10-K/10-Q filings, and financial documents using `web_search_advanced_exa` with `category: "financial report"`.
+
+```bash
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+```
+
+Then add the skill from [`skills/financial-report-search/SKILL.md`](skills/financial-report-search/SKILL.md).
+</details>
+
+<details>
+<summary><b>Research Paper Search</b></summary>
+
+Find academic papers, arXiv preprints, and scientific research using `web_search_advanced_exa` with `category: "research paper"`.
+
+```bash
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+```
+
+Then add the skill from [`skills/research-paper-search/SKILL.md`](skills/research-paper-search/SKILL.md).
+</details>
+
+<details>
+<summary><b>Personal Site Search</b></summary>
+
+Find personal blogs, portfolios, and independent content using `web_search_advanced_exa` with `category: "personal site"`.
+
+```bash
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+```
+
+Then add the skill from [`skills/personal-site-search/SKILL.md`](skills/personal-site-search/SKILL.md).
+</details>
+
+<details>
+<summary><b>X/Twitter Search</b></summary>
+
+Search tweets and Twitter/X discussions using `web_search_advanced_exa` with `category: "tweet"`. Note: text and domain filters are not supported for tweets.
+
+```bash
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
+```
+
+Then add the skill from [`skills/x-search/SKILL.md`](skills/x-search/SKILL.md).
+</details>
+
 ## Links
 
 - [Documentation](https://docs.exa.ai/reference/exa-mcp)
