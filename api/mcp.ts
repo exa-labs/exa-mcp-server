@@ -116,7 +116,10 @@ function createRateLimitResponse(retryAfterSeconds: number, reset: number): Resp
 function isRateLimitedMethod(body: string): boolean {
   try {
     const parsed = JSON.parse(body);
-    return parsed.method === 'tools/call';
+    if (parsed.method !== 'tools/call') return false;
+    const toolName = parsed.params?.name;
+    if (toolName === 'get_otp' || toolName === 'validate_otp') return false;
+    return true;
   } catch {
     return false;
   }
