@@ -293,9 +293,9 @@ Enable all tools with the `tools` parameter:
 https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,crawling_exa,company_research_exa,people_search_exa,deep_researcher_start,deep_researcher_check
 ```
 
-## Claude Skills
+## Agent Skills
 
-Pre-built [Claude skills](https://docs.exa.ai/docs/reference/company-research-claude-skill) that combine MCP tools with specialized search instructions. Install via Claude Code — each skill configures the MCP connection and adds a skill definition automatically.
+Pre-built [agent skills](https://docs.exa.ai/docs/reference/company-research-claude-skill) that combine MCP tools with specialized search instructions. Install via Claude Code — each skill configures the MCP connection and adds a skill definition automatically.
 
 <details>
 <summary><b>Company Research</b></summary>
