@@ -11,6 +11,8 @@ import { registerDeepResearchStartTool } from "./tools/deepResearchStart.js";
 import { registerDeepResearchCheckTool } from "./tools/deepResearchCheck.js";
 import { registerExaCodeTool } from "./tools/exaCode.js";
 import { registerWebSearchAdvancedTool } from "./tools/webSearchAdvanced.js";
+import { registerGetOtpTool } from "./tools/getOtp.js";
+import { registerValidateOtpTool } from "./tools/validateOtp.js";
 import { log } from "./utils/logger.js";
 
 // Tool registry for managing available tools
@@ -105,7 +107,13 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
       registerExaCodeTool(server, config);
       registeredTools.push('get_code_context_exa');
     }
-    
+
+    // Auth tools are always registered (not gated by shouldRegisterTool)
+    registerGetOtpTool(server);
+    registeredTools.push('get_otp');
+    registerValidateOtpTool(server);
+    registeredTools.push('validate_otp');
+
     if (config.debug) {
       log(`Registered ${registeredTools.length} tools: ${registeredTools.join(', ')}`);
     }

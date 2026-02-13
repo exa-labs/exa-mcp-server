@@ -3,7 +3,8 @@ process.env.AGNOST_LOG_LEVEL = 'error';
 import { createMcpHandler } from 'mcp-handler';
 import { initializeMcpServer } from '../src/mcp-handler.js';
 import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
+import { getRedisClient } from '../src/utils/redis.js';
+import { resolveSessionToken } from '../src/utils/session.js';
 
 /**
  * IP-based rate limiting configuration for free MCP users.
@@ -23,47 +24,38 @@ import { Redis } from '@upstash/redis';
 let qpsLimiter: Ratelimit | null = null;
 let dailyLimiter: Ratelimit | null = null;
 let rateLimitersInitialized = false;
-let redisClient: Redis | null = null;
 
 function initializeRateLimiters(): boolean {
   if (rateLimitersInitialized) {
     return qpsLimiter !== null;
   }
-  
+
   rateLimitersInitialized = true;
-  
-  // Support both Vercel KV naming (KV_REST_API_*) and Upstash naming (UPSTASH_REDIS_REST_*)
-  const redisUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const redisToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  
-  if (!redisUrl || !redisToken) {
-    console.log('[EXA-MCP] Rate limiting disabled: KV_REST_API_URL/UPSTASH_REDIS_REST_URL or KV_REST_API_TOKEN/UPSTASH_REDIS_REST_TOKEN not configured');
+
+  const redisClient = getRedisClient();
+  if (!redisClient) {
+    console.log('[EXA-MCP] Rate limiting disabled: Redis not configured');
     return false;
   }
-  
+
   try {
-    redisClient = new Redis({
-      url: redisUrl,
-      token: redisToken,
-    });
-    
     const qpsLimit = parseInt(process.env.RATE_LIMIT_QPS || '2', 10);
     const dailyLimit = parseInt(process.env.RATE_LIMIT_DAILY || '50', 10);
-    
+
     // QPS limiter: sliding window for smooth rate limiting
     qpsLimiter = new Ratelimit({
       redis: redisClient,
       limiter: Ratelimit.slidingWindow(qpsLimit, '1 s'),
       prefix: 'exa-mcp:qps',
     });
-    
+
     // Daily limiter: fixed window that resets daily
     dailyLimiter = new Ratelimit({
       redis: redisClient,
       limiter: Ratelimit.fixedWindow(dailyLimit, '1 d'),
       prefix: 'exa-mcp:daily',
     });
-    
+
     console.log(`[EXA-MCP] Rate limiting enabled: ${qpsLimit} QPS, ${dailyLimit}/day`);
     return true;
   } catch (error) {
@@ -83,7 +75,9 @@ function getClientIp(request: Request): string {
 
 const RATE_LIMIT_ERROR_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
 
-Fix: Create API key at https://dashboard.exa.ai/api-keys , and then update Exa MCP URL to this https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
+To continue within this session, use the get_otp tool with your email to get a session access token.
+
+Otherwise, create your own API key at https://dashboard.exa.ai/api-keys , and then update Exa MCP URL to this https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
 
 /**
  * Create a JSON-RPC 2.0 error response for rate limiting.
@@ -122,9 +116,25 @@ function createRateLimitResponse(retryAfterSeconds: number, reset: number): Resp
 function isRateLimitedMethod(body: string): boolean {
   try {
     const parsed = JSON.parse(body);
-    return parsed.method === 'tools/call';
+    if (parsed.method !== 'tools/call') return false;
+    const toolName = parsed.params?.name;
+    if (toolName === 'get_otp' || toolName === 'validate_otp') return false;
+    return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Extract session_token from a JSON-RPC tools/call request body.
+ * The token lives at params.arguments.session_token in the JSON-RPC envelope.
+ */
+function extractSessionToken(body: string): string | undefined {
+  try {
+    const parsed = JSON.parse(body);
+    return parsed?.params?.arguments?.session_token;
+  } catch {
+    return undefined;
   }
 }
 
@@ -133,19 +143,19 @@ function isRateLimitedMethod(body: string): boolean {
  * Uses a sorted set with timestamp as score for easy time-based queries.
  */
 async function saveBypassRequestInfo(ip: string, userAgent: string, debug: boolean): Promise<void> {
-  initializeRateLimiters();
-  
+  const redisClient = getRedisClient();
+
   if (!redisClient) {
     if (debug) {
       console.log('[EXA-MCP] Cannot save bypass info: Redis not configured');
     }
     return;
   }
-  
+
   try {
     const timestamp = Date.now();
     const entry = JSON.stringify({ ip, userAgent, timestamp });
-    
+
     await redisClient.zadd('exa-mcp:bypass-requests', { score: timestamp, member: entry });
     
     if (debug) {
@@ -331,18 +341,28 @@ async function handleRequest(request: Request): Promise<Response> {
     
     // Only rate limit actual tool calls, not protocol methods
     if (isRateLimitedMethod(body)) {
-      // Initialize rate limiters on first request (lazy init)
-      initializeRateLimiters();
-      
-      const clientIp = getClientIp(request);
-      
-      if (config.debug) {
-        console.log(`[EXA-MCP] Client IP: ${clientIp}, method: tools/call`);
-      }
-      
-      const rateLimitResponse = await checkRateLimits(clientIp, config.debug);
-      if (rateLimitResponse) {
-        return rateLimitResponse;
+      // Check for a valid session token — authenticated sessions skip rate limits
+      const sessionToken = extractSessionToken(body);
+      const hasValidSession = sessionToken ? await resolveSessionToken(sessionToken) !== null : false;
+
+      if (hasValidSession) {
+        if (config.debug) {
+          console.log('[EXA-MCP] Valid session token — skipping rate limits');
+        }
+      } else {
+        // Initialize rate limiters on first request (lazy init)
+        initializeRateLimiters();
+
+        const clientIp = getClientIp(request);
+
+        if (config.debug) {
+          console.log(`[EXA-MCP] Client IP: ${clientIp}, method: tools/call`);
+        }
+
+        const rateLimitResponse = await checkRateLimits(clientIp, config.debug);
+        if (rateLimitResponse) {
+          return rateLimitResponse;
+        }
       }
     } else if (config.debug) {
       console.log(`[EXA-MCP] Skipping rate limit for non-tool-call method`);

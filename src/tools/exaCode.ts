@@ -5,6 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaCodeRequest, ExaCodeResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { resolveApiKey } from "../utils/session.js";
 import { checkpoint } from "agnost";
 
 export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -16,6 +17,7 @@ Best for: Any programming question - API usage, library examples, code snippets,
 Returns: Relevant code and documentation, formatted for easy reading.`,
     {
       query: z.string().describe("Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"),
+      session_token: z.string().optional().describe("Session token from validate_otp for authenticated access"),
       tokensNum: z.coerce.number().min(1000).max(50000).default(5000).describe("Number of tokens to return (must be a number, 1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation.")
     },
     {
@@ -23,20 +25,21 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ query, tokensNum }) => {
+    async ({ query, session_token, tokensNum }) => {
       const requestId = `get_code_context_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'get_code_context_exa');
-      
+
       logger.start(`Searching for code context: ${query}`);
-      
+
       try {
+        const apiKey = await resolveApiKey(session_token, config?.exaApiKey);
         // Create a fresh axios instance for each request
         const axiosInstance = axios.create({
           baseURL: API_CONFIG.BASE_URL,
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-api-key': apiKey,
             'x-exa-integration': 'exa-code-mcp'
           },
           timeout: 30000

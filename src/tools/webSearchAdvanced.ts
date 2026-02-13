@@ -5,6 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaAdvancedSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { resolveApiKey } from "../utils/session.js";
 import { checkpoint } from "agnost";
 
 export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -17,6 +18,7 @@ Not recommended for: Simple searches - use web_search_exa instead.
 Returns: Search results with optional highlights, summaries, and subpage content.`,
     {
       query: z.string().describe("Search query - can be a question, statement, or keywords"),
+      session_token: z.string().optional().describe("Session token from validate_otp for authenticated access"),
       numResults: z.coerce.number().optional().describe("Number of results (must be a number, 1-100, default: 10)"),
       type: z.enum(['auto', 'fast', 'neural']).optional().describe("Search type - 'auto': balanced (default), 'fast': quick results, 'neural': semantic search"),
 
@@ -68,12 +70,13 @@ Returns: Search results with optional highlights, summaries, and subpage content
       logger.start(params.query);
 
       try {
+        const apiKey = await resolveApiKey(params.session_token, config?.exaApiKey);
         const axiosInstance = axios.create({
           baseURL: API_CONFIG.BASE_URL,
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-api-key': apiKey,
             'x-exa-integration': 'web-search-advanced-mcp'
           },
           timeout: params.livecrawlTimeout || 30000
