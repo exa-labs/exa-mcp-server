@@ -71,6 +71,8 @@ export interface ExaSearchResult {
   author: string;
   text: string;
   summary?: string;
+  highlights?: string[];
+  highlightScores?: number[];
   image?: string;
   favicon?: string;
   score?: number;

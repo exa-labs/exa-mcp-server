@@ -189,15 +189,21 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
         let resultText = '';
 
-        if (response.data.context) {
-          resultText = response.data.context;
-        } else if (response.data.results && response.data.results.length > 0) {
+        if (response.data.results && response.data.results.length > 0) {
           resultText = response.data.results.map((result, index) => {
             let entry = `## ${index + 1}. ${result.title || 'Untitled'}\n`;
             entry += `URL: ${result.url}\n`;
             if (result.publishedDate) entry += `Published: ${result.publishedDate}\n`;
             if (result.author) entry += `Author: ${result.author}\n`;
+            if (result.score != null) entry += `Score: ${result.score}\n`;
             if (result.summary) entry += `\nSummary: ${result.summary}\n`;
+            if (result.highlights && result.highlights.length > 0) {
+              entry += `\nHighlights:\n`;
+              result.highlights.forEach((h, i) => {
+                const score = result.highlightScores?.[i];
+                entry += score != null ? `- [${score}] ${h}\n` : `- ${h}\n`;
+              });
+            }
             if (result.text) entry += `\n${result.text}\n`;
             return entry;
           }).join('\n---\n');
