@@ -40,7 +40,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
       additionalQueries: z.array(z.string()).optional().describe("Additional query variations to expand search coverage"),
 
       textMaxCharacters: z.coerce.number().optional().describe("Max characters for text extraction per result (must be a number)"),
-      contextMaxCharacters: z.coerce.number().optional().describe("Max characters for context string (must be a number, default: 10000)"),
+      contextMaxCharacters: z.coerce.number().optional().describe("Max characters for context string (must be a number, not included by default)"),
 
       enableSummary: z.boolean().optional().describe("Enable summary generation for results"),
       summaryQuery: z.string().optional().describe("Focus query for summary generation"),
@@ -81,9 +81,12 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
         const contents: ExaAdvancedSearchRequest['contents'] = {
           text: params.textMaxCharacters ? { maxCharacters: params.textMaxCharacters } : true,
-          context: { maxCharacters: params.contextMaxCharacters || 10000 },
           livecrawl: params.livecrawl || 'fallback',
         };
+
+        if (params.contextMaxCharacters) {
+          contents.context = { maxCharacters: params.contextMaxCharacters };
+        }
 
         if (params.livecrawlTimeout) {
           contents.livecrawlTimeout = params.livecrawlTimeout;
@@ -187,24 +190,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
           };
         }
 
-        let resultText = '';
-
-        if (response.data.context) {
-          resultText = response.data.context;
-        } else if (response.data.results && response.data.results.length > 0) {
-          resultText = response.data.results.map((result, index) => {
-            let entry = `## ${index + 1}. ${result.title || 'Untitled'}\n`;
-            entry += `URL: ${result.url}\n`;
-            if (result.publishedDate) entry += `Published: ${result.publishedDate}\n`;
-            if (result.author) entry += `Author: ${result.author}\n`;
-            if (result.summary) entry += `\nSummary: ${result.summary}\n`;
-            if (result.text) entry += `\n${result.text}\n`;
-            return entry;
-          }).join('\n---\n');
-        } else {
-          resultText = "No results found for the given query and filters.";
-        }
-
+        const resultText = JSON.stringify(response.data);
         logger.log(`Response prepared with ${resultText.length} characters`);
 
         const result = {
