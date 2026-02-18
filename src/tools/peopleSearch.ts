@@ -5,6 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { resolveApiKey } from "../utils/session.js";
 import { checkpoint } from "agnost";
 
 export function registerPeopleSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -16,22 +17,24 @@ Best for: Finding professionals, executives, or anyone with a public profile.
 Returns: Profile information and links.`,
     {
       query: z.string().describe("Search query for finding people"),
+      session_token: z.string().optional().describe("Session token from validate_otp for authenticated access"),
       numResults: z.coerce.number().optional().describe("Number of profile results to return (must be a number, default: 5)")
     },
-    async ({ query, numResults }) => {
+    async ({ query, session_token, numResults }) => {
       const requestId = `people_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'people_search_exa');
-      
+
       logger.start(`${query}`);
-      
+
       try {
+        const apiKey = await resolveApiKey(session_token, config?.exaApiKey);
         // Create a fresh axios instance for each request
         const axiosInstance = axios.create({
           baseURL: API_CONFIG.BASE_URL,
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-api-key': apiKey,
             'x-exa-integration': 'people-search-mcp'
           },
           timeout: 25000

@@ -5,6 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { resolveApiKey } from "../utils/session.js";
 import { checkpoint } from "agnost"
 
 export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -16,6 +17,7 @@ Best for: Finding current information, news, facts, or answering questions about
 Returns: Clean text content from top search results, ready for LLM use.`,
     {
       query: z.string().describe("Websearch query"),
+      session_token: z.string().optional().describe("Session token from validate_otp for authenticated access"),
       numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
       livecrawl: z.enum(['fallback', 'preferred']).optional().describe("Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')"),
       type: z.enum(['auto', 'fast']).optional().describe("Search type - 'auto': balanced search (default), 'fast': quick results"),
@@ -26,20 +28,21 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ query, numResults, livecrawl, type, contextMaxCharacters }) => {
+    async ({ query, session_token, numResults, livecrawl, type, contextMaxCharacters }) => {
       const requestId = `web_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'web_search_exa');
-      
+
       logger.start(query);
-      
+
       try {
+        const apiKey = await resolveApiKey(session_token, config?.exaApiKey);
         // Create a fresh axios instance for each request
         const axiosInstance = axios.create({
           baseURL: API_CONFIG.BASE_URL,
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-api-key': apiKey,
             'x-exa-integration': 'web-search-mcp'
           },
           timeout: 25000

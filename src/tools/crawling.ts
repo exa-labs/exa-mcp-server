@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { resolveApiKey } from "../utils/session.js";
 import { checkpoint } from "agnost";
 
 export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -15,22 +16,24 @@ Best for: Extracting content from a known URL.
 Returns: Full text content and metadata from the page.`,
     {
       url: z.string().describe("URL to crawl and extract content from"),
+      session_token: z.string().optional().describe("Session token from validate_otp for authenticated access"),
       maxCharacters: z.coerce.number().optional().describe("Maximum characters to extract (must be a number, default: 3000)")
     },
-    async ({ url, maxCharacters }) => {
+    async ({ url, session_token, maxCharacters }) => {
       const requestId = `crawling_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'crawling_exa');
-      
+
       logger.start(url);
-      
+
       try {
+        const apiKey = await resolveApiKey(session_token, config?.exaApiKey);
         // Create a fresh axios instance for each request
         const axiosInstance = axios.create({
           baseURL: API_CONFIG.BASE_URL,
           headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-api-key': apiKey,
             'x-exa-integration': 'crawling-mcp'
           },
           timeout: 25000
