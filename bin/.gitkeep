@@ -1,0 +1,2 @@
+# Placeholder to ensure bin directory is tracked by git
+# The actual index.cjs file is generated during build

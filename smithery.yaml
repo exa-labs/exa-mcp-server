@@ -1,1 +1,6 @@
-runtime: typescript 
+runtime: typescript
+startCommand:
+  stdio:
+    command: node
+    args:
+      - ./bin/index.cjs 
