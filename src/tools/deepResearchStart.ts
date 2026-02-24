@@ -20,6 +20,11 @@ Important: Call deep_researcher_check with the returned research ID to get the r
       model: z.enum(['exa-research-fast', 'exa-research', 'exa-research-pro']).optional().describe("Research model: 'exa-research-fast' (fastest, ~15s, good for simple queries), 'exa-research' (balanced, 15-45s, good for most queries), or 'exa-research-pro' (most comprehensive, 45s-3min, for complex topics). Default: exa-research-fast"),
       outputSchema: z.record(z.unknown()).optional().describe("Optional JSON Schema for structured output. When provided, the research report will include a 'parsed' field with data matching this schema.")
     },
+    {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false
+    },
     async ({ instructions, model, outputSchema }) => {
       const requestId = `deep_researcher_start-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'deep_researcher_start');

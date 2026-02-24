@@ -17,6 +17,11 @@ Returns: Full text content and metadata from the page.`,
       url: z.string().describe("URL to crawl and extract content from"),
       maxCharacters: z.coerce.number().optional().describe("Maximum characters to extract (must be a number, default: 3000)")
     },
+    {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true
+    },
     async ({ url, maxCharacters }) => {
       const requestId = `crawling_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'crawling_exa');

@@ -18,6 +18,11 @@ Returns: Company information from trusted business sources.`,
       companyName: z.string().describe("Name of the company to research"),
       numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 3)")
     },
+    {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true
+    },
     async ({ companyName, numResults }) => {
       const requestId = `company_research_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'company_research_exa');

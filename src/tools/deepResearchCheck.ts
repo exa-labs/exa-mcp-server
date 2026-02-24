@@ -23,6 +23,11 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
     {
       researchId: z.string().describe("The research ID returned from deep_researcher_start tool")
     },
+    {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true
+    },
     async ({ researchId }) => {
       const requestId = `deep_researcher_check-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'deep_researcher_check');

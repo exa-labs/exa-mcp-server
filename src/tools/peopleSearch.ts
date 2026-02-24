@@ -18,6 +18,11 @@ Returns: Profile information and links.`,
       query: z.string().describe("Search query for finding people"),
       numResults: z.coerce.number().optional().describe("Number of profile results to return (must be a number, default: 5)")
     },
+    {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true
+    },
     async ({ query, numResults }) => {
       const requestId = `people_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'people_search_exa');
