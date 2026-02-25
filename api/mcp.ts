@@ -349,6 +349,10 @@ async function handleRequest(request: Request): Promise<Response> {
     }
   }
   
+  if (request.method === 'GET') {
+    return handleGetSseRequest(request, config);
+  }
+
   // Create a fresh handler for this request's configuration
   const handler = createHandler(config);
   
@@ -362,6 +366,79 @@ async function handleRequest(request: Request): Promise<Response> {
   
   // Delegate to the handler
   return handler(request);
+}
+
+/**
+ * Handle GET requests per the MCP Streamable HTTP spec (2025-03-26).
+ *
+ * The mcp-handler library rejects GET with 405, but the spec says servers
+ * SHOULD accept GET with Accept: text/event-stream to open an SSE stream
+ * for server-to-client notifications. Clients like Gemini CLI require this.
+ *
+ * In stateless mode there are no server-initiated messages, so the stream
+ * stays open with periodic keep-alive comments until the client disconnects
+ * or the Vercel function reaches its max duration.
+ */
+function handleGetSseRequest(
+  request: Request,
+  config: { debug: boolean },
+): Response {
+  const acceptHeader = request.headers.get('accept') || '';
+  if (
+    !acceptHeader.includes('text/event-stream') &&
+    !acceptHeader.includes('*/*') &&
+    !acceptHeader.includes('text/*')
+  ) {
+    return new Response(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        error: {
+          code: -32000,
+          message: 'Not Acceptable: Client must accept text/event-stream',
+        },
+        id: null,
+      }),
+      {
+        status: 406,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+  }
+
+  if (config.debug) {
+    console.log('[EXA-MCP] Accepting GET SSE stream');
+  }
+
+  const stream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder();
+      controller.enqueue(encoder.encode(': ok\n\n'));
+
+      const keepAlive = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(': ping\n\n'));
+        } catch {
+          clearInterval(keepAlive);
+        }
+      }, 15_000);
+
+      request.signal.addEventListener('abort', () => {
+        clearInterval(keepAlive);
+        try {
+          controller.close();
+        } catch { /* already closed */ }
+      });
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
+  });
 }
 
 // Export handlers for Vercel Functions
