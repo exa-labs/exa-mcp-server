@@ -216,7 +216,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * - DEBUG: Enable debug logging (true/false)
  * - ENABLED_TOOLS: Comma-separated list of tools to enable
  * 
- * Priority: Header > URL query parameter > environment variable.
+ * Priority: URL query parameter > header > environment variable.
  * 
  * ARCHITECTURE NOTE:
  * The mcp-handler library creates a single server instance and doesn't pass
@@ -253,7 +253,7 @@ function getApiKeyFromHeaders(request: Request): string | undefined {
 
 /**
  * Extract configuration from request headers, URL, or environment variables.
- * Priority: header > query parameter > environment variable.
+ * Priority: query parameter > header > environment variable.
  */
 function getConfigFromRequest(request: Request) {
   let exaApiKey = process.env.EXA_API_KEY;
