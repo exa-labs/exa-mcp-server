@@ -203,8 +203,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * Streamable HTTP transport for the MCP protocol.
  * 
  * Supports API key via header (recommended) or URL query parameter:
- * - Authorization: Bearer YOUR_KEY - Pass API key via header
- * - x-api-key: YOUR_KEY - Pass API key via header (alternative)
+ * - Authorization: Bearer YOUR_KEY - Pass API key via header (recommended)
  * - ?exaApiKey=YOUR_KEY - Pass API key via URL (backwards compatible)
  * 
  * Other URL query parameters:
@@ -216,7 +215,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * - DEBUG: Enable debug logging (true/false)
  * - ENABLED_TOOLS: Comma-separated list of tools to enable
  * 
- * Priority: URL query parameter > header > environment variable.
+ * Priority: header > URL query parameter > environment variable.
  * 
  * ARCHITECTURE NOTE:
  * The mcp-handler library creates a single server instance and doesn't pass
@@ -228,12 +227,8 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * 3. Users can specify different tools and API keys per request
  */
 
-/**
- * Extract API key from request headers.
- * Supports Authorization: Bearer <key> and x-api-key: <key>.
- */
-function getApiKeyFromHeaders(request: Request): string | undefined {
-  // Check Authorization: Bearer <key>
+/** Extract API key from Authorization: Bearer header. */
+function getApiKeyFromHeader(request: Request): string | undefined {
   const authHeader = request.headers.get('authorization');
   if (authHeader) {
     const match = authHeader.match(/^Bearer\s+(.+)$/i);
@@ -241,19 +236,12 @@ function getApiKeyFromHeaders(request: Request): string | undefined {
       return match[1];
     }
   }
-
-  // Check x-api-key header
-  const xApiKey = request.headers.get('x-api-key');
-  if (xApiKey) {
-    return xApiKey;
-  }
-
   return undefined;
 }
 
 /**
  * Extract configuration from request headers, URL, or environment variables.
- * Priority: query parameter > header > environment variable.
+ * Priority: header > query parameter > environment variable.
  */
 function getConfigFromRequest(request: Request) {
   let exaApiKey = process.env.EXA_API_KEY;
@@ -261,8 +249,8 @@ function getConfigFromRequest(request: Request) {
   let debug = process.env.DEBUG === 'true';
   let userProvidedApiKey = false;
 
-  // 1. Check headers for API key (highest priority)
-  const headerApiKey = getApiKeyFromHeaders(request);
+  // 1. Check Authorization: Bearer header (highest priority)
+  const headerApiKey = getApiKeyFromHeader(request);
   if (headerApiKey) {
     exaApiKey = headerApiKey;
     userProvidedApiKey = true;
@@ -272,8 +260,8 @@ function getConfigFromRequest(request: Request) {
     const parsedUrl = new URL(request.url);
     const params = parsedUrl.searchParams;
 
-    // 2. Check ?exaApiKey=YOUR_KEY (overrides header if both present, for backwards compat)
-    if (params.has('exaApiKey')) {
+    // 2. Check ?exaApiKey=YOUR_KEY (fallback for backwards compat, only if no header)
+    if (!headerApiKey && params.has('exaApiKey')) {
       const keyFromUrl = params.get('exaApiKey');
       if (keyFromUrl) {
         exaApiKey = keyFromUrl;
