@@ -83,7 +83,9 @@ function getClientIp(request: Request): string {
 
 const RATE_LIMIT_ERROR_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
 
-Fix: Create API key at https://dashboard.exa.ai/api-keys , and then update Exa MCP URL to this https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
+Fix: Create API key at https://dashboard.exa.ai/api-keys , then either:
+- Set the header: Authorization: Bearer YOUR_EXA_API_KEY
+- Or use the URL: https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
 
 /**
  * Create a JSON-RPC 2.0 error response for rate limiting.
@@ -200,8 +202,12 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * This handler is automatically deployed as a Vercel Function and provides
  * Streamable HTTP transport for the MCP protocol.
  * 
- * Supports URL query parameters (100% compatible with production mcp.exa.ai):
- * - ?exaApiKey=YOUR_KEY - Pass API key via URL
+ * Supports API key via header (recommended) or URL query parameter:
+ * - Authorization: Bearer YOUR_KEY - Pass API key via header
+ * - x-api-key: YOUR_KEY - Pass API key via header (alternative)
+ * - ?exaApiKey=YOUR_KEY - Pass API key via URL (backwards compatible)
+ * 
+ * Other URL query parameters:
  * - ?tools=web_search_exa,get_code_context_exa - Enable specific tools
  * - ?debug=true - Enable debug logging
  * 
@@ -210,7 +216,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * - DEBUG: Enable debug logging (true/false)
  * - ENABLED_TOOLS: Comma-separated list of tools to enable
  * 
- * URL query parameters take precedence over environment variables.
+ * Priority: Header > URL query parameter > environment variable.
  * 
  * ARCHITECTURE NOTE:
  * The mcp-handler library creates a single server instance and doesn't pass
@@ -223,20 +229,50 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  */
 
 /**
- * Extract configuration from request URL or environment variables
- * URL parameters take precedence over environment variables
+ * Extract API key from request headers.
+ * Supports Authorization: Bearer <key> and x-api-key: <key>.
  */
-function getConfigFromUrl(url: string) {
+function getApiKeyFromHeaders(request: Request): string | undefined {
+  // Check Authorization: Bearer <key>
+  const authHeader = request.headers.get('authorization');
+  if (authHeader) {
+    const match = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  // Check x-api-key header
+  const xApiKey = request.headers.get('x-api-key');
+  if (xApiKey) {
+    return xApiKey;
+  }
+
+  return undefined;
+}
+
+/**
+ * Extract configuration from request headers, URL, or environment variables.
+ * Priority: header > query parameter > environment variable.
+ */
+function getConfigFromRequest(request: Request) {
   let exaApiKey = process.env.EXA_API_KEY;
   let enabledTools: string[] | undefined;
   let debug = process.env.DEBUG === 'true';
   let userProvidedApiKey = false;
 
+  // 1. Check headers for API key (highest priority)
+  const headerApiKey = getApiKeyFromHeaders(request);
+  if (headerApiKey) {
+    exaApiKey = headerApiKey;
+    userProvidedApiKey = true;
+  }
+
   try {
-    const parsedUrl = new URL(url);
+    const parsedUrl = new URL(request.url);
     const params = parsedUrl.searchParams;
 
-    // Support ?exaApiKey=YOUR_KEY (query param takes precedence)
+    // 2. Check ?exaApiKey=YOUR_KEY (overrides header if both present, for backwards compat)
     if (params.has('exaApiKey')) {
       const keyFromUrl = params.get('exaApiKey');
       if (keyFromUrl) {
@@ -245,7 +281,7 @@ function getConfigFromUrl(url: string) {
       }
     }
 
-    // Support ?tools=tool1,tool2 (query param takes precedence)
+    // Support ?tools=tool1,tool2
     if (params.has('tools')) {
       const toolsParam = params.get('tools');
       if (toolsParam) {
@@ -299,13 +335,13 @@ function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; de
  * a fresh handler for each request
  */
 async function handleRequest(request: Request): Promise<Response> {
-  // Extract configuration from the request URL
-  const config = getConfigFromUrl(request.url);
+  // Extract configuration from request headers, URL, and env vars
+  const config = getConfigFromRequest(request);
   
   if (config.debug) {
     console.log(`[EXA-MCP] Request URL: ${request.url}`);
     console.log(`[EXA-MCP] Enabled tools: ${config.enabledTools?.join(', ') || 'default'}`);
-    console.log(`[EXA-MCP] API key provided: ${config.userProvidedApiKey ? 'yes (user provided)' : 'no (using env var)'}`);
+    console.log(`[EXA-MCP] API key provided: ${config.userProvidedApiKey ? 'yes (user provided via header or query param)' : 'no (using env var)'}`);
   }
   
   const userAgent = request.headers.get('user-agent') || '';
