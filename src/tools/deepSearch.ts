@@ -1,0 +1,175 @@
+import { z } from "zod";
+import axios from "axios";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { API_CONFIG } from "./config.js";
+import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
+import { createRequestLogger } from "../utils/logger.js";
+import { handleRateLimitError } from "../utils/errorHandler.js";
+import { checkpoint } from "agnost";
+
+export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+  server.tool(
+    "deep_search_exa",
+    `Deep search with automatic query expansion for thorough research. Generates multiple search variations to find results from multiple angles, then synthesizes a short answer with citations.
+
+Best for: Complex questions needing information from multiple angles.
+Returns: A synthesized answer with citations, plus individual search results with highlights.
+Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 12-50s.`,
+    {
+      objective: z.string().describe("Natural language description of what the web search is looking for. Try to make the search query atomic - looking for a specific piece of information."),
+      search_queries: z.array(z.string()).optional().describe("Optional list of keyword search queries related to the objective. Limited to 5 entries of up to 5 words each (~200 characters)."),
+      type: z.enum(['deep', 'deep-reasoning']).optional().describe("Search depth - 'deep': fast deep search (4-12s, default), 'deep-reasoning': thorough with reasoning (12-50s)"),
+      numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
+      highlightMaxCharacters: z.coerce.number().optional().describe("Maximum characters for highlights per result (must be a number, default: 4000)"),
+    },
+    {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true
+    },
+    async ({ objective, search_queries, type, numResults, highlightMaxCharacters }) => {
+      const requestId = `deep_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const logger = createRequestLogger(requestId, 'deep_search_exa');
+
+      logger.start(objective);
+
+      try {
+        const axiosInstance = axios.create({
+          baseURL: API_CONFIG.BASE_URL,
+          headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
+            'x-exa-integration': 'deep-search-mcp'
+          },
+          timeout: 55000
+        });
+
+        const searchRequest: ExaSearchRequest = {
+          query: objective,
+          type: type || "deep",
+          numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
+          contents: {
+            highlights: {
+              maxCharacters: highlightMaxCharacters || 4000
+            }
+          }
+        };
+
+        if (search_queries && search_queries.length > 0) {
+          searchRequest.additionalQueries = search_queries;
+          logger.log(`Using ${search_queries.length} additional queries`);
+        } else {
+          logger.log("Using automatic query expansion");
+        }
+
+        checkpoint('deep_search_request_prepared');
+        logger.log("Sending deep search request to Exa API");
+
+        const response = await axiosInstance.post<ExaSearchResponse>(
+          API_CONFIG.ENDPOINTS.SEARCH,
+          searchRequest,
+          { timeout: 55000 }
+        );
+
+        checkpoint('deep_search_response_received');
+        logger.log("Received response from Exa API");
+
+        if (!response.data) {
+          logger.log("Warning: Empty response from Exa API");
+          checkpoint('deep_search_complete');
+          return {
+            content: [{
+              type: "text" as const,
+              text: "No search results found. Please try a different query."
+            }]
+          };
+        }
+
+        const data = response.data;
+        const parts: string[] = [];
+
+        // Synthesized answer
+        if (data.output?.content) {
+          parts.push(`## Answer\n\n${data.output.content}`);
+        }
+
+        // Citations from grounding
+        if (data.output?.grounding) {
+          for (const g of data.output.grounding) {
+            if (g.citations.length > 0) {
+              const citationLines = g.citations.map(c => `- [${c.title}](${c.url})`);
+              parts.push(`## Citations\n\n${citationLines.join('\n')}`);
+            }
+          }
+        }
+
+        // Individual results as markdown
+        if (data.results && data.results.length > 0) {
+          const resultLines = data.results.map((r, i) => {
+            const lines: string[] = [];
+            lines.push(`### ${i + 1}. ${r.title || 'Untitled'}`);
+            lines.push(`**URL:** ${r.url}`);
+            if (r.publishedDate) {
+              lines.push(`**Published:** ${r.publishedDate}`);
+            }
+            if (r.image) {
+              lines.push(`**Image:** ${r.image}`);
+            }
+            if (r.highlights && r.highlights.length > 0) {
+              lines.push(`\n${r.highlights.join('\n\n')}`);
+            }
+            return lines.join('\n');
+          });
+          parts.push(`## Results\n\n${resultLines.join('\n\n---\n\n')}`);
+        }
+
+        const text = parts.length > 0
+          ? parts.join('\n\n---\n\n')
+          : "No results found. Please try a different query.";
+
+        logger.log(`Response prepared with ${text.length} characters`);
+
+        const result = {
+          content: [{
+            type: "text" as const,
+            text
+          }]
+        };
+
+        checkpoint('deep_search_complete');
+        logger.complete();
+        return result;
+      } catch (error) {
+        logger.error(error);
+
+        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'deep_search_exa');
+        if (rateLimitResult) {
+          return rateLimitResult;
+        }
+
+        if (axios.isAxiosError(error)) {
+          const statusCode = error.response?.status || 'unknown';
+          const errorMessage = error.response?.data?.message || error.message;
+
+          logger.log(`Axios error (${statusCode}): ${errorMessage}`);
+          return {
+            content: [{
+              type: "text" as const,
+              text: `Deep search error (${statusCode}): ${errorMessage}`
+            }],
+            isError: true,
+          };
+        }
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Deep search error: ${error instanceof Error ? error.message : String(error)}`
+          }],
+          isError: true,
+        };
+      }
+    }
+  );
+}
