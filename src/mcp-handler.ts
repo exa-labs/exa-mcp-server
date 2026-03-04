@@ -11,6 +11,7 @@ import { registerDeepResearchStartTool } from "./tools/deepResearchStart.js";
 import { registerDeepResearchCheckTool } from "./tools/deepResearchCheck.js";
 import { registerExaCodeTool } from "./tools/exaCode.js";
 import { registerWebSearchAdvancedTool } from "./tools/webSearchAdvanced.js";
+import { registerDeepSearchTool } from "./tools/deepSearch.js";
 import { log } from "./utils/logger.js";
 
 // Tool registry for managing available tools
@@ -24,6 +25,7 @@ const availableTools = {
   'deep_researcher_check': { name: 'Deep Researcher Check', description: 'Check status and retrieve results of research task', enabled: false },
   'people_search_exa': { name: 'People Search', description: 'Search for people and professional profiles', enabled: false },
   'linkedin_search_exa': { name: 'LinkedIn Search (Deprecated)', description: 'Deprecated: Use people_search_exa instead', enabled: false },
+  'deep_search_exa': { name: 'Deep Search', description: 'Deep search with query expansion and synthesized answers (requires API key)', enabled: false },
 };
 
 export interface McpConfig {
@@ -104,6 +106,12 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     if (shouldRegisterTool('get_code_context_exa')) {
       registerExaCodeTool(server, config);
       registeredTools.push('get_code_context_exa');
+    }
+    
+    // deep_search_exa requires the user to have provided their own API key
+    if (shouldRegisterTool('deep_search_exa') && config.userProvidedApiKey) {
+      registerDeepSearchTool(server, config);
+      registeredTools.push('deep_search_exa');
     }
     
     if (config.debug) {
