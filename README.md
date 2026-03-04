@@ -286,9 +286,7 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | `people_search_exa` | Find people and their professional profiles |
 | `deep_researcher_start` | Start an AI research agent that searches, reads, and writes a detailed report |
 | `deep_researcher_check` | Check status and get results from a deep research task |
-| `deep_search_exa` | Deep search with query expansion and synthesized answers. Requires your own API key. |
-
-> **Note:** `deep_search_exa` requires your own Exa API key (`?exaApiKey=YOUR_KEY`). It will not appear in the tools list without one.
+| `deep_search_exa` | Deep search with query expansion and synthesized answers. Requires your own API key — it will not appear in the tools list without one. |
 
 Enable all tools with the `tools` parameter:
 
