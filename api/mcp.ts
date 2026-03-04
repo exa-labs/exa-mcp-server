@@ -83,7 +83,9 @@ function getClientIp(request: Request): string {
 
 const RATE_LIMIT_ERROR_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
 
-Fix: Create API key at https://dashboard.exa.ai/api-keys , and then update Exa MCP URL to this https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
+Fix: Create API key at https://dashboard.exa.ai/api-keys and pass it via:
+- URL parameter: https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY
+- Authorization header: Authorization: Bearer YOUR_EXA_API_KEY`;
 
 /**
  * Create a JSON-RPC 2.0 error response for rate limiting.
@@ -223,20 +225,35 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  */
 
 /**
- * Extract configuration from request URL or environment variables
- * URL parameters take precedence over environment variables
+ * Extract configuration from request URL/headers or environment variables.
+ * Priority: Authorization header > URL query params > environment variables.
+ * 
+ * Supports:
+ * - Authorization: Bearer YOUR_KEY (header)
+ * - ?exaApiKey=YOUR_KEY (URL query param)
+ * - EXA_API_KEY env var (fallback)
  */
-function getConfigFromUrl(url: string) {
+function getConfigFromRequest(request: Request) {
   let exaApiKey = process.env.EXA_API_KEY;
   let enabledTools: string[] | undefined;
   let debug = process.env.DEBUG === 'true';
   let userProvidedApiKey = false;
 
+  // Check Authorization header first (Bearer token)
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7).trim();
+    if (token) {
+      exaApiKey = token;
+      userProvidedApiKey = true;
+    }
+  }
+
   try {
-    const parsedUrl = new URL(url);
+    const parsedUrl = new URL(request.url);
     const params = parsedUrl.searchParams;
 
-    // Support ?exaApiKey=YOUR_KEY (query param takes precedence)
+    // Support ?exaApiKey=YOUR_KEY (query param overrides header if both present)
     if (params.has('exaApiKey')) {
       const keyFromUrl = params.get('exaApiKey');
       if (keyFromUrl) {
@@ -299,13 +316,13 @@ function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; de
  * a fresh handler for each request
  */
 async function handleRequest(request: Request): Promise<Response> {
-  // Extract configuration from the request URL
-  const config = getConfigFromUrl(request.url);
+  // Extract configuration from request headers and URL
+  const config = getConfigFromRequest(request);
   
   if (config.debug) {
     console.log(`[EXA-MCP] Request URL: ${request.url}`);
     console.log(`[EXA-MCP] Enabled tools: ${config.enabledTools?.join(', ') || 'default'}`);
-    console.log(`[EXA-MCP] API key provided: ${config.userProvidedApiKey ? 'yes (user provided)' : 'no (using env var)'}`);
+    console.log(`[EXA-MCP] API key provided: ${config.userProvidedApiKey ? 'yes (user provided via header or query param)' : 'no (using env var)'}`);
   }
   
   const userAgent = request.headers.get('user-agent') || '';

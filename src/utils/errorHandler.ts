@@ -6,7 +6,9 @@ import axios from "axios";
 
 const FREE_MCP_RATE_LIMIT_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
 
-Fix: Create API key at https://dashboard.exa.ai/api-keys , and then update Exa MCP URL to this https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
+Fix: Create API key at https://dashboard.exa.ai/api-keys and pass it via:
+- URL parameter: https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY
+- Authorization header: Authorization: Bearer YOUR_EXA_API_KEY`;
 
 /**
  * Checks if an Axios error is a rate limit error (HTTP 429) and if the user is using the free MCP.
