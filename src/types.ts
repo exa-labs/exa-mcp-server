@@ -9,6 +9,7 @@ export interface ExaSearchRequest {
   endPublishedDate?: string;
   numResults?: number;
   additionalQueries?: string[];
+  outputSchema?: Record<string, unknown>;
   contents: {
     text?: {
       maxCharacters?: number;
@@ -90,7 +91,7 @@ export interface ExaSearchResponse {
   resolvedSearchType: string;
   context?: string;
   output?: {
-    content: string;
+    content: string | Record<string, unknown>;
     grounding?: Array<{
       field: string;
       citations: Array<{
