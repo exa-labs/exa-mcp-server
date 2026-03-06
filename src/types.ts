@@ -2,7 +2,7 @@
 export interface ExaSearchRequest {
   query: string;
   type: 'auto' | 'fast' | 'deep' | 'deep-reasoning';
-  category?: string;
+  category?: 'company' | 'research paper' | 'news' | 'pdf' | 'github' | 'tweet' | 'personal site' | 'people' | 'financial report';
   includeDomains?: string[];
   excludeDomains?: string[];
   startPublishedDate?: string;
