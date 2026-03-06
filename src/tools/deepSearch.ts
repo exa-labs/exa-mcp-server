@@ -2,7 +2,7 @@ import { z } from "zod";
 import axios from "axios";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
-import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
+import { ExaDeepSearchRequest, ExaDeepSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
@@ -26,7 +26,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
     {
       readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: true
+      idempotentHint: false
     },
     async ({ objective, search_queries, type, numResults, highlightMaxCharacters, outputSchema }) => {
       const requestId = `deep_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -46,7 +46,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           timeout: 55000
         });
 
-        const searchRequest: ExaSearchRequest = {
+        const searchRequest: ExaDeepSearchRequest = {
           query: objective,
           type: type || "deep",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
@@ -72,7 +72,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         checkpoint('deep_search_request_prepared');
         logger.log("Sending deep search request to Exa API");
 
-        const response = await axiosInstance.post<ExaSearchResponse>(
+        const response = await axiosInstance.post<ExaDeepSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
           searchRequest,
           { timeout: 55000 }
@@ -125,13 +125,16 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           parts.push(`## Answer\n\n${data.output.content}`);
         }
 
-        // Citations from grounding
+        // Citations from grounding (aggregated into a single section)
         if (data.output?.grounding) {
+          const allCitations: string[] = [];
           for (const g of data.output.grounding) {
-            if (g.citations.length > 0) {
-              const citationLines = g.citations.map(c => `- [${c.title}](${c.url})`);
-              parts.push(`## Citations\n\n${citationLines.join('\n')}`);
+            if (g.citations && g.citations.length > 0) {
+              allCitations.push(...g.citations.map(c => `- [${c.title}](${c.url})`));
             }
+          }
+          if (allCitations.length > 0) {
+            parts.push(`## Citations\n\n${allCitations.join('\n')}`);
           }
         }
 
@@ -172,6 +175,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         logger.complete();
         return result;
       } catch (error) {
+        checkpoint('deep_search_complete');
         logger.error(error);
 
         const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'deep_search_exa');

@@ -2,7 +2,7 @@
 export interface ExaSearchRequest {
   query: string;
   type: 'auto' | 'fast' | 'deep' | 'deep-reasoning';
-  category?: string;
+  category?: 'company' | 'research paper' | 'news' | 'pdf' | 'github' | 'tweet' | 'personal site' | 'people' | 'financial report';
   includeDomains?: string[];
   excludeDomains?: string[];
   startPublishedDate?: string;
@@ -20,12 +20,6 @@ export interface ExaSearchRequest {
     summary?: {
       query?: string;
     } | boolean;
-    highlights?: {
-      maxCharacters?: number;
-      numSentences?: number;
-      highlightsPerUrl?: number;
-      query?: string;
-    };
     livecrawl?: 'fallback' | 'preferred';
     subpages?: number;
     subpageTarget?: string[];
@@ -90,6 +84,47 @@ export interface ExaSearchResponse {
   autopromptString?: string;
   resolvedSearchType: string;
   context?: string;
+  output?: {
+    content: string | Record<string, unknown>;
+    grounding?: Array<{
+      field: string;
+      citations: Array<{
+        url: string;
+        title: string;
+      }>;
+      confidence: string;
+    }>;
+  };
+  results: ExaSearchResult[];
+  searchTime?: number;
+  costDollars?: {
+    total: number;
+    search?: Record<string, number>;
+    contents?: Record<string, number>;
+  };
+}
+
+// Deep Search API Types
+export interface ExaDeepSearchRequest {
+  query: string;
+  type: 'deep' | 'deep-reasoning';
+  numResults?: number;
+  additionalQueries?: string[];
+  outputSchema?: Record<string, unknown>;
+  contents: {
+    highlights?: {
+      maxCharacters?: number;
+      numSentences?: number;
+      highlightsPerUrl?: number;
+      query?: string;
+    };
+  };
+}
+
+export interface ExaDeepSearchResponse {
+  requestId: string;
+  autopromptString?: string;
+  resolvedSearchType: string;
   output?: {
     content: string | Record<string, unknown>;
     grounding?: Array<{
