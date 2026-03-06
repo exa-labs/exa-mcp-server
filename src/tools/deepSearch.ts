@@ -2,7 +2,7 @@ import { z } from "zod";
 import axios from "axios";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
-import { ExaDeepSearchRequest, ExaSearchResponse } from "../types.js";
+import { ExaDeepSearchRequest, ExaDeepSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
@@ -72,7 +72,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         checkpoint('deep_search_request_prepared');
         logger.log("Sending deep search request to Exa API");
 
-        const response = await axiosInstance.post<ExaSearchResponse>(
+        const response = await axiosInstance.post<ExaDeepSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
           searchRequest,
           { timeout: 55000 }

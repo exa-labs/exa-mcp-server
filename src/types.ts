@@ -9,7 +9,6 @@ export interface ExaSearchRequest {
   endPublishedDate?: string;
   numResults?: number;
   additionalQueries?: string[];
-  outputSchema?: Record<string, unknown>;
   contents: {
     text?: {
       maxCharacters?: number;
@@ -85,7 +84,7 @@ export interface ExaSearchResponse {
   resolvedSearchType: string;
   context?: string;
   output?: {
-    content: string | Record<string, unknown>;
+    content: string;
     grounding?: Array<{
       field: string;
       citations: Array<{
@@ -110,6 +109,7 @@ export interface ExaDeepSearchRequest {
   type: 'deep' | 'deep-reasoning';
   numResults?: number;
   additionalQueries?: string[];
+  outputSchema?: Record<string, unknown>;
   contents: {
     highlights?: {
       maxCharacters?: number;
@@ -117,6 +117,30 @@ export interface ExaDeepSearchRequest {
       highlightsPerUrl?: number;
       query?: string;
     };
+  };
+}
+
+export interface ExaDeepSearchResponse {
+  requestId: string;
+  autopromptString?: string;
+  resolvedSearchType: string;
+  output?: {
+    content: string | Record<string, unknown>;
+    grounding?: Array<{
+      field: string;
+      citations: Array<{
+        url: string;
+        title: string;
+      }>;
+      confidence: string;
+    }>;
+  };
+  results: ExaSearchResult[];
+  searchTime?: number;
+  costDollars?: {
+    total: number;
+    search?: Record<string, number>;
+    contents?: Record<string, number>;
   };
 }
 
