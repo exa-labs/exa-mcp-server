@@ -19,6 +19,7 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
       livecrawl: z.enum(['fallback', 'preferred']).optional().describe("Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')"),
       type: z.enum(['auto', 'fast']).optional().describe("Search type - 'auto': balanced search (default), 'fast': quick results"),
+      category: z.enum(['company', 'research paper', 'people']).optional().describe("Filter results to a specific category - 'company': company websites and profiles, 'research paper': academic papers and research, 'people': LinkedIn profiles and personal bios"),
       contextMaxCharacters: z.coerce.number().optional().describe("Maximum characters for context string optimized for LLMs (must be a number, default: 10000)")
     },
     {
@@ -26,7 +27,7 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ query, numResults, livecrawl, type, contextMaxCharacters }) => {
+    async ({ query, numResults, livecrawl, type, category, contextMaxCharacters }) => {
       const requestId = `web_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'web_search_exa');
       
@@ -49,6 +50,7 @@ Returns: Clean text content from top search results, ready for LLM use.`,
           query,
           type: type || "auto",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
+          ...(category && { category }),
           contents: {
             text: true,
             context: {
@@ -128,4 +130,4 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       }
     }
   );
-}                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

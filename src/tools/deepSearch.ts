@@ -2,7 +2,7 @@ import { z } from "zod";
 import axios from "axios";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
-import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
+import { ExaDeepSearchRequest, ExaDeepSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
@@ -13,7 +13,7 @@ export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?:
     `Deep search with automatic query expansion for thorough research. Generates multiple search variations to find results from multiple angles, then synthesizes a short answer with citations.
 
 Best for: Complex questions needing information from multiple angles.
-Returns: A synthesized answer with citations, plus individual search results with highlights. When output_schema is provided, returns structured JSON matching the schema instead of markdown.
+Returns: A synthesized answer with citations, plus individual search results with highlights. When structuredOutput is enabled, returns structured JSON instead of markdown.
 Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 12-50s.`,
     {
       objective: z.string().describe("Natural language description of what the web search is looking for. Try to make the search query atomic - looking for a specific piece of information."),
@@ -21,14 +21,14 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
       type: z.enum(['deep', 'deep-reasoning']).optional().describe("Search depth - 'deep': fast deep search (4-12s, default), 'deep-reasoning': thorough with reasoning (12-50s)"),
       numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
       highlightMaxCharacters: z.coerce.number().optional().describe("Maximum characters for highlights per result (must be a number, default: 4000)"),
-      outputSchema: z.record(z.unknown()).optional().describe("JSON schema for structured output. When provided, the synthesized answer will conform to this schema and be returned as JSON instead of markdown. Example: { \"type\": \"object\" }"),
+      structuredOutput: z.boolean().optional().describe("When true, returns a structured JSON response instead of markdown. The API will determine the appropriate structure based on the query."),
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: true
+      idempotentHint: false
     },
-    async ({ objective, search_queries, type, numResults, highlightMaxCharacters, outputSchema }) => {
+    async ({ objective, search_queries, type, numResults, highlightMaxCharacters, structuredOutput }) => {
       const requestId = `deep_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'deep_search_exa');
 
@@ -46,7 +46,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           timeout: 55000
         });
 
-        const searchRequest: ExaSearchRequest = {
+        const searchRequest: ExaDeepSearchRequest = {
           query: objective,
           type: type || "deep",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
@@ -57,9 +57,9 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           }
         };
 
-        if (outputSchema) {
-          searchRequest.outputSchema = outputSchema;
-          logger.log("Using structured output schema");
+        if (structuredOutput) {
+          searchRequest.outputSchema = { type: "object" };
+          logger.log("Using structured output");
         }
 
         if (search_queries && search_queries.length > 0) {
@@ -72,7 +72,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         checkpoint('deep_search_request_prepared');
         logger.log("Sending deep search request to Exa API");
 
-        const response = await axiosInstance.post<ExaSearchResponse>(
+        const response = await axiosInstance.post<ExaDeepSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
           searchRequest,
           { timeout: 55000 }
@@ -94,8 +94,8 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
 
         const data = response.data;
 
-        // When structured output schema was used, return the raw JSON response
-        if (outputSchema) {
+        // When structured output was requested, return the raw JSON response
+        if (structuredOutput) {
           const structuredResponse = {
             output: data.output,
             results: data.results,
@@ -125,13 +125,16 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           parts.push(`## Answer\n\n${data.output.content}`);
         }
 
-        // Citations from grounding
+        // Citations from grounding (aggregated into a single section)
         if (data.output?.grounding) {
+          const allCitations: string[] = [];
           for (const g of data.output.grounding) {
-            if (g.citations.length > 0) {
-              const citationLines = g.citations.map(c => `- [${c.title}](${c.url})`);
-              parts.push(`## Citations\n\n${citationLines.join('\n')}`);
+            if (g.citations && g.citations.length > 0) {
+              allCitations.push(...g.citations.map(c => `- [${c.title}](${c.url})`));
             }
+          }
+          if (allCitations.length > 0) {
+            parts.push(`## Citations\n\n${allCitations.join('\n')}`);
           }
         }
 
@@ -172,6 +175,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         logger.complete();
         return result;
       } catch (error) {
+        checkpoint('deep_search_complete');
         logger.error(error);
 
         const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'deep_search_exa');
