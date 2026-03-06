@@ -13,7 +13,7 @@ export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?:
     `Deep search with automatic query expansion for thorough research. Generates multiple search variations to find results from multiple angles, then synthesizes a short answer with citations.
 
 Best for: Complex questions needing information from multiple angles.
-Returns: A synthesized answer with citations, plus individual search results with highlights.
+Returns: A synthesized answer with citations, plus individual search results with highlights. When output_schema is provided, returns structured JSON matching the schema instead of markdown.
 Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 12-50s.`,
     {
       objective: z.string().describe("Natural language description of what the web search is looking for. Try to make the search query atomic - looking for a specific piece of information."),
@@ -21,13 +21,14 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
       type: z.enum(['deep', 'deep-reasoning']).optional().describe("Search depth - 'deep': fast deep search (4-12s, default), 'deep-reasoning': thorough with reasoning (12-50s)"),
       numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
       highlightMaxCharacters: z.coerce.number().optional().describe("Maximum characters for highlights per result (must be a number, default: 4000)"),
+      outputSchema: z.record(z.unknown()).optional().describe("JSON schema for structured output. When provided, the synthesized answer will conform to this schema and be returned as JSON instead of markdown. Example: { \"type\": \"object\" }"),
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: false
     },
-    async ({ objective, search_queries, type, numResults, highlightMaxCharacters }) => {
+    async ({ objective, search_queries, type, numResults, highlightMaxCharacters, outputSchema }) => {
       const requestId = `deep_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'deep_search_exa');
 
@@ -55,6 +56,11 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
             }
           }
         };
+
+        if (outputSchema) {
+          searchRequest.outputSchema = outputSchema;
+          logger.log("Using structured output schema");
+        }
 
         if (search_queries && search_queries.length > 0) {
           searchRequest.additionalQueries = search_queries;
@@ -87,10 +93,35 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         }
 
         const data = response.data;
+
+        // When structured output schema was used, return the raw JSON response
+        if (outputSchema) {
+          const structuredResponse = {
+            output: data.output,
+            results: data.results,
+            searchTime: data.searchTime,
+            costDollars: data.costDollars
+          };
+
+          const text = JSON.stringify(structuredResponse, null, 2);
+          logger.log(`Structured response prepared with ${text.length} characters`);
+
+          const result = {
+            content: [{
+              type: "text" as const,
+              text
+            }]
+          };
+
+          checkpoint('deep_search_complete');
+          logger.complete();
+          return result;
+        }
+
         const parts: string[] = [];
 
         // Synthesized answer
-        if (data.output?.content) {
+        if (data.output?.content && typeof data.output.content === 'string') {
           parts.push(`## Answer\n\n${data.output.content}`);
         }
 
