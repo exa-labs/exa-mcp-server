@@ -1,7 +1,7 @@
 // Exa API Types
 export interface ExaSearchRequest {
   query: string;
-  type: 'auto' | 'fast' | 'deep' | 'deep-reasoning';
+  type: 'auto' | 'fast';
   category?: string;
   includeDomains?: string[];
   excludeDomains?: string[];
@@ -19,12 +19,6 @@ export interface ExaSearchRequest {
     summary?: {
       query?: string;
     } | boolean;
-    highlights?: {
-      maxCharacters?: number;
-      numSentences?: number;
-      highlightsPerUrl?: number;
-      query?: string;
-    };
     livecrawl?: 'fallback' | 'preferred';
     subpages?: number;
     subpageTarget?: string[];
@@ -106,6 +100,22 @@ export interface ExaSearchResponse {
     total: number;
     search?: Record<string, number>;
     contents?: Record<string, number>;
+  };
+}
+
+// Deep Search API Types
+export interface ExaDeepSearchRequest {
+  query: string;
+  type: 'deep' | 'deep-reasoning';
+  numResults?: number;
+  additionalQueries?: string[];
+  contents: {
+    highlights?: {
+      maxCharacters?: number;
+      numSentences?: number;
+      highlightsPerUrl?: number;
+      query?: string;
+    };
   };
 }
 
