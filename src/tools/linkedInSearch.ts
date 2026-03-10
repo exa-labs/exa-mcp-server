@@ -12,7 +12,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
     "linkedin_search_exa",
     "⚠️ DEPRECATED: This tool is deprecated. Please use 'people_search_exa' instead. This tool will be removed in a future version. For now, it searches for people on LinkedIn using Exa AI - finds professional profiles and people.",
     {
-      query: z.string().describe("Search query for finding people on LinkedIn"),
+      query: z.coerce.string().describe("Search query for finding people on LinkedIn"),
       numResults: z.coerce.number().optional().catch(undefined).describe("Number of LinkedIn profile results to return (must be a number, default: 5)")
     },
     {

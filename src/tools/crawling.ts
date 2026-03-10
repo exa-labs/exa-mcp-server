@@ -14,7 +14,7 @@ export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: s
 Best for: Extracting content from a known URL.
 Returns: Full text content and metadata from the page.`,
     {
-      url: z.string().describe("URL to crawl and extract content from"),
+      url: z.coerce.string().describe("URL to crawl and extract content from"),
       maxCharacters: z.coerce.number().optional().catch(undefined).describe("Maximum characters to extract (must be a number, default: 3000)")
     },
     {
@@ -121,4 +121,4 @@ Returns: Full text content and metadata from the page.`,
       }
     }
   );
-}                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                

@@ -16,7 +16,7 @@ Best for: When you need specific filters like date ranges, domain restrictions, 
 Not recommended for: Simple searches - use web_search_exa instead.
 Returns: Search results with optional highlights, summaries, and subpage content.`,
     {
-      query: z.string().describe("Search query - can be a question, statement, or keywords"),
+      query: z.coerce.string().describe("Search query - can be a question, statement, or keywords"),
       numResults: z.coerce.number().optional().catch(undefined).describe("Number of results (must be a number, 1-100, default: 10)"),
       type: z.enum(['auto', 'fast', 'neural']).optional().catch(undefined).describe("Search type - 'auto': balanced (default), 'fast': quick results, 'neural': semantic search"),
 
@@ -35,17 +35,17 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
       userLocation: z.string().optional().describe("ISO country code for geo-targeted results (e.g., 'US', 'GB', 'DE')"),
 
-      moderation: z.boolean().optional().describe("Filter out unsafe/inappropriate content"),
+      moderation: z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()).catch(undefined).describe("Filter out unsafe/inappropriate content"),
 
       additionalQueries: z.array(z.string()).optional().describe("Additional query variations to expand search coverage"),
 
       textMaxCharacters: z.coerce.number().optional().catch(undefined).describe("Max characters for text extraction per result (must be a number)"),
       contextMaxCharacters: z.coerce.number().optional().catch(undefined).describe("Max characters for context string (must be a number, not included by default)"),
 
-      enableSummary: z.boolean().optional().describe("Enable summary generation for results"),
+      enableSummary: z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()).catch(undefined).describe("Enable summary generation for results"),
       summaryQuery: z.string().optional().describe("Focus query for summary generation"),
 
-      enableHighlights: z.boolean().optional().describe("Enable highlights extraction"),
+      enableHighlights: z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()).catch(undefined).describe("Enable highlights extraction"),
       highlightsNumSentences: z.coerce.number().optional().catch(undefined).describe("Number of sentences per highlight (must be a number)"),
       highlightsPerUrl: z.coerce.number().optional().catch(undefined).describe("Number of highlights per URL (must be a number)"),
       highlightsQuery: z.string().optional().describe("Query for highlight relevance"),

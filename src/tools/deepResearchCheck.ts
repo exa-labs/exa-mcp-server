@@ -21,7 +21,7 @@ Best for: Getting the research report after calling deep_researcher_start.
 Returns: Research report when complete, or status update if still running.
 Important: Keep calling with the same research ID until status is 'completed'.`,
     {
-      researchId: z.string().describe("The research ID returned from deep_researcher_start tool")
+      researchId: z.coerce.string().describe("The research ID returned from deep_researcher_start tool")
     },
     {
       readOnlyHint: true,
@@ -190,4 +190,4 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

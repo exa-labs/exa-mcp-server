@@ -15,7 +15,7 @@ export function registerPeopleSearchTool(server: McpServer, config?: { exaApiKey
 Best for: Finding professionals, executives, or anyone with a public profile.
 Returns: Profile information and links.`,
     {
-      query: z.string().describe("Search query for finding people"),
+      query: z.coerce.string().describe("Search query for finding people"),
       numResults: z.coerce.number().optional().catch(undefined).describe("Number of profile results to return (must be a number, default: 5)")
     },
     {

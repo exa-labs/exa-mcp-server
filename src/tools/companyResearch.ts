@@ -15,7 +15,7 @@ export function registerCompanyResearchTool(server: McpServer, config?: { exaApi
 Best for: Learning about a company's products, services, recent news, or industry position.
 Returns: Company information from trusted business sources.`,
     {
-      companyName: z.string().describe("Name of the company to research"),
+      companyName: z.coerce.string().describe("Name of the company to research"),
       numResults: z.coerce.number().optional().catch(undefined).describe("Number of search results to return (must be a number, default: 3)")
     },
     {
@@ -124,4 +124,4 @@ Returns: Company information from trusted business sources.`,
       }
     }
   );
-}                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                
