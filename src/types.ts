@@ -14,6 +14,12 @@ export interface ExaSearchRequest {
     text?: {
       maxCharacters?: number;
     } | boolean;
+    highlights?: {
+      maxCharacters?: number;
+      numSentences?: number;
+      highlightsPerUrl?: number;
+      query?: string;
+    };
     context?: {
       maxCharacters?: number;
     } | boolean;
@@ -53,6 +59,7 @@ export interface ExaAdvancedSearchRequest {
       query?: string;
     } | boolean;
     highlights?: {
+      maxCharacters?: number;
       numSentences?: number;
       highlightsPerUrl?: number;
       query?: string;
@@ -112,6 +119,9 @@ export interface ExaDeepSearchRequest {
   additionalQueries?: string[];
   outputSchema?: Record<string, unknown>;
   contents: {
+    text?: {
+      maxCharacters?: number;
+    } | boolean;
     highlights?: {
       maxCharacters?: number;
       numSentences?: number;

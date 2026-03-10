@@ -46,6 +46,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
       summaryQuery: z.string().optional().describe("Focus query for summary generation"),
 
       enableHighlights: z.boolean().optional().describe("Enable highlights extraction"),
+      highlightsMaxCharacters: z.coerce.number().optional().describe("Maximum characters for highlights per result (must be a number)"),
       highlightsNumSentences: z.coerce.number().optional().describe("Number of sentences per highlight (must be a number)"),
       highlightsPerUrl: z.coerce.number().optional().describe("Number of highlights per URL (must be a number)"),
       highlightsQuery: z.string().optional().describe("Query for highlight relevance"),
@@ -98,6 +99,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
         if (params.enableHighlights) {
           contents.highlights = {
+            maxCharacters: params.highlightsMaxCharacters,
             numSentences: params.highlightsNumSentences,
             highlightsPerUrl: params.highlightsPerUrl,
             query: params.highlightsQuery,
