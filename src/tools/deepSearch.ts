@@ -20,7 +20,8 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
       search_queries: z.array(z.string()).optional().describe("Optional list of keyword search queries related to the objective. Limited to 5 entries of up to 5 words each (~200 characters)."),
       type: z.enum(['deep', 'deep-reasoning']).optional().describe("Search depth - 'deep': fast deep search (4-12s, default), 'deep-reasoning': thorough with reasoning (12-50s)"),
       numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
-      highlightMaxCharacters: z.coerce.number().optional().describe("Maximum characters for highlights per result (must be a number, default: 4000)"),
+      textMaxCharacters: z.coerce.number().optional().describe("Maximum characters for text content per result (must be a number)"),
+      highlightsMaxCharacters: z.coerce.number().optional().describe("Maximum characters for highlights per result (must be a number, default: 4000)"),
       structuredOutput: z.boolean().optional().describe("When true, returns a structured JSON response instead of markdown. The API will determine the appropriate structure based on the query."),
     },
     {
@@ -28,7 +29,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
       destructiveHint: false,
       idempotentHint: false
     },
-    async ({ objective, search_queries, type, numResults, highlightMaxCharacters, structuredOutput }) => {
+    async ({ objective, search_queries, type, numResults, textMaxCharacters, highlightsMaxCharacters, structuredOutput }) => {
       const requestId = `deep_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'deep_search_exa');
 
@@ -51,8 +52,9 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           type: type || "deep",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           contents: {
+            ...(textMaxCharacters != null && { text: { maxCharacters: textMaxCharacters } }),
             highlights: {
-              maxCharacters: highlightMaxCharacters || 4000
+              maxCharacters: highlightsMaxCharacters || 4000
             }
           }
         };

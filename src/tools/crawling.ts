@@ -15,14 +15,15 @@ Best for: Extracting content from a known URL.
 Returns: Full text content and metadata from the page.`,
     {
       url: z.string().describe("URL to crawl and extract content from"),
-      maxCharacters: z.coerce.number().optional().describe("Maximum characters to extract (must be a number, default: 3000)")
+      textMaxCharacters: z.coerce.number().optional().describe("Maximum characters for text content (must be a number, default: 2000)"),
+      highlightsMaxCharacters: z.coerce.number().optional().describe("Maximum characters for highlights per result (must be a number)")
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ url, maxCharacters }) => {
+    async ({ url, textMaxCharacters, highlightsMaxCharacters }) => {
       const requestId = `crawling_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'crawling_exa');
       
@@ -45,8 +46,9 @@ Returns: Full text content and metadata from the page.`,
           ids: [url],
           contents: {
             text: {
-              maxCharacters: maxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS
+              maxCharacters: textMaxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS
             },
+            ...(highlightsMaxCharacters != null && { highlights: { maxCharacters: highlightsMaxCharacters } }),
             livecrawl: 'preferred'
           }
         };
@@ -121,4 +123,4 @@ Returns: Full text content and metadata from the page.`,
       }
     }
   );
-}                                                                                                
+}                                                                                                                                                                                                
