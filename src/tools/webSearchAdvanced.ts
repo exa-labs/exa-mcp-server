@@ -17,10 +17,10 @@ Not recommended for: Simple searches - use web_search_exa instead.
 Returns: Search results with optional highlights, summaries, and subpage content.`,
     {
       query: z.string().describe("Search query - can be a question, statement, or keywords"),
-      numResults: z.coerce.number().optional().describe("Number of results (must be a number, 1-100, default: 10)"),
-      type: z.enum(['auto', 'fast', 'neural']).optional().describe("Search type - 'auto': balanced (default), 'fast': quick results, 'neural': semantic search"),
+      numResults: z.coerce.number().optional().catch(undefined).describe("Number of results (must be a number, 1-100, default: 10)"),
+      type: z.enum(['auto', 'fast', 'neural']).optional().catch(undefined).describe("Search type - 'auto': balanced (default), 'fast': quick results, 'neural': semantic search"),
 
-      category: z.enum(['company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'people', 'financial report']).optional().describe("Filter results to a specific category"),
+      category: z.enum(['company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'people', 'financial report']).optional().catch(undefined).describe("Filter results to a specific category. Must be one of: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'people', 'financial report'. Omit if no specific category is needed."),
 
       includeDomains: z.array(z.string()).optional().describe("Only include results from these domains (e.g., ['arxiv.org', 'github.com'])"),
       excludeDomains: z.array(z.string()).optional().describe("Exclude results from these domains"),
@@ -39,21 +39,21 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
       additionalQueries: z.array(z.string()).optional().describe("Additional query variations to expand search coverage"),
 
-      textMaxCharacters: z.coerce.number().optional().describe("Max characters for text extraction per result (must be a number)"),
-      contextMaxCharacters: z.coerce.number().optional().describe("Max characters for context string (must be a number, not included by default)"),
+      textMaxCharacters: z.coerce.number().optional().catch(undefined).describe("Max characters for text extraction per result (must be a number)"),
+      contextMaxCharacters: z.coerce.number().optional().catch(undefined).describe("Max characters for context string (must be a number, not included by default)"),
 
       enableSummary: z.boolean().optional().describe("Enable summary generation for results"),
       summaryQuery: z.string().optional().describe("Focus query for summary generation"),
 
       enableHighlights: z.boolean().optional().describe("Enable highlights extraction"),
-      highlightsNumSentences: z.coerce.number().optional().describe("Number of sentences per highlight (must be a number)"),
-      highlightsPerUrl: z.coerce.number().optional().describe("Number of highlights per URL (must be a number)"),
+      highlightsNumSentences: z.coerce.number().optional().catch(undefined).describe("Number of sentences per highlight (must be a number)"),
+      highlightsPerUrl: z.coerce.number().optional().catch(undefined).describe("Number of highlights per URL (must be a number)"),
       highlightsQuery: z.string().optional().describe("Query for highlight relevance"),
 
-      livecrawl: z.enum(['never', 'fallback', 'always', 'preferred']).optional().describe("Live crawl mode - 'never': only cached, 'fallback': cached then live, 'always': always live, 'preferred': prefer live (default: 'fallback')"),
-      livecrawlTimeout: z.coerce.number().optional().describe("Timeout for live crawl in milliseconds (must be a number)"),
+      livecrawl: z.enum(['never', 'fallback', 'always', 'preferred']).optional().catch(undefined).describe("Live crawl mode - 'never': only cached, 'fallback': cached then live, 'always': always live, 'preferred': prefer live (default: 'fallback')"),
+      livecrawlTimeout: z.coerce.number().optional().catch(undefined).describe("Timeout for live crawl in milliseconds (must be a number)"),
 
-      subpages: z.coerce.number().optional().describe("Number of subpages to crawl from each result (must be a number, 1-10)"),
+      subpages: z.coerce.number().optional().catch(undefined).describe("Number of subpages to crawl from each result (must be a number, 1-10)"),
       subpageTarget: z.array(z.string()).optional().describe("Keywords to target when selecting subpages"),
     },
     {

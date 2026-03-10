@@ -18,9 +18,9 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
     {
       objective: z.string().describe("Natural language description of what the web search is looking for. Try to make the search query atomic - looking for a specific piece of information."),
       search_queries: z.array(z.string()).optional().describe("Optional list of keyword search queries related to the objective. Limited to 5 entries of up to 5 words each (~200 characters)."),
-      type: z.enum(['deep', 'deep-reasoning']).optional().describe("Search depth - 'deep': fast deep search (4-12s, default), 'deep-reasoning': thorough with reasoning (12-50s)"),
-      numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
-      highlightMaxCharacters: z.coerce.number().optional().describe("Maximum characters for highlights per result (must be a number, default: 4000)"),
+      type: z.enum(['deep', 'deep-reasoning']).optional().catch(undefined).describe("Search depth - 'deep': fast deep search (4-12s, default), 'deep-reasoning': thorough with reasoning (12-50s)"),
+      numResults: z.coerce.number().optional().catch(undefined).describe("Number of search results to return (must be a number, default: 8)"),
+      highlightMaxCharacters: z.coerce.number().optional().catch(undefined).describe("Maximum characters for highlights per result (must be a number, default: 4000)"),
       structuredOutput: z.boolean().optional().describe("When true, returns a structured JSON response instead of markdown. The API will determine the appropriate structure based on the query."),
     },
     {
