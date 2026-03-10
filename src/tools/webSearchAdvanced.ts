@@ -16,7 +16,7 @@ Best for: When you need specific filters like date ranges, domain restrictions, 
 Not recommended for: Simple searches - use web_search_exa instead.
 Returns: Search results with optional highlights, summaries, and subpage content.`,
     {
-      query: z.coerce.string().describe("Search query - can be a question, statement, or keywords"),
+      query: z.preprocess(v => typeof v === 'number' || typeof v === 'boolean' ? String(v) : v, z.string()).describe("Search query - can be a question, statement, or keywords"),
       numResults: z.coerce.number().optional().catch(undefined).describe("Number of results (must be a number, 1-100, default: 10)"),
       type: z.enum(['auto', 'fast', 'neural']).optional().catch(undefined).describe("Search type - 'auto': balanced (default), 'fast': quick results, 'neural': semantic search"),
 
