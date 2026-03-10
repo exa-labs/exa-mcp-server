@@ -16,14 +16,15 @@ Best for: Finding professionals, executives, or anyone with a public profile.
 Returns: Profile information and links.`,
     {
       query: z.string().describe("Search query for finding people"),
-      numResults: z.coerce.number().optional().describe("Number of profile results to return (must be a number, default: 5)")
+      numResults: z.coerce.number().optional().describe("Number of profile results to return (must be a number, default: 5)"),
+      contextMaxCharacters: z.coerce.number().optional().describe("Maximum characters for context string optimized for LLMs (must be a number, default: 8000)")
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ query, numResults }) => {
+    async ({ query, numResults, contextMaxCharacters }) => {
       const requestId = `people_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'people_search_exa');
       
@@ -52,7 +53,10 @@ Returns: Profile information and links.`,
           category: "people",
           contents: {
             text: {
-              maxCharacters: API_CONFIG.DEFAULT_MAX_CHARACTERS
+              maxCharacters: 500
+            },
+            context: {
+              maxCharacters: contextMaxCharacters || 8000
             },
           },
         };
@@ -81,11 +85,24 @@ Returns: Profile information and links.`,
         }
 
         logger.log(`Found ${response.data.results.length} results`);
-        
+
+        const profiles = response.data.results.map(r => ({
+          title: r.title,
+          url: r.url,
+          author: r.author,
+          ...(r.text && { text: r.text }),
+        }));
+
+        const parts: string[] = [];
+        if (response.data.context) {
+          parts.push(response.data.context);
+        }
+        parts.push(JSON.stringify(profiles));
+
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(response.data, null, 2)
+            text: parts.join("\n\n")
           }]
         };
         
