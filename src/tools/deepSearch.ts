@@ -22,7 +22,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
       numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
       highlightMaxCharacters: z.coerce.number().optional().describe("Maximum characters for highlights per result (must be a number, default: 4000)"),
       outputSchema: z.record(z.string(), z.unknown()).optional().describe("JSON schema for structured output. When provided, the API returns a structured JSON response matching this schema. Automatically enables structured output mode."),
-      systemPrompt: z.string().optional().describe("Instructions for how the deep search agent should process and format results. Max 32,000 characters."),
+      systemPrompt: z.string().max(32000).optional().describe("Instructions for how the deep search agent should process and format results."),
       structuredOutput: z.boolean().optional().describe("When true, returns a structured JSON response instead of markdown. The API will determine the appropriate structure based on the query. Prefer using outputSchema for more control over the response shape."),
     },
     {
