@@ -18,9 +18,9 @@ Returns: Search results with optional highlights, summaries, and subpage content
     {
       query: z.preprocess(v => typeof v === 'number' || typeof v === 'boolean' ? String(v) : v, z.string()).describe("Search query - can be a question, statement, or keywords"),
       numResults: z.coerce.number().optional().catch(undefined).describe("Number of results (must be a number, 1-100, default: 10)"),
-      type: z.enum(['auto', 'fast', 'neural']).optional().catch(undefined).describe("Search type - 'auto': balanced (default), 'fast': quick results, 'neural': semantic search"),
+      type: z.enum(['auto', 'fast', 'neural']).optional().describe("Search type - 'auto': balanced (default), 'fast': quick results, 'neural': semantic search"),
 
-      category: z.enum(['company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'people', 'financial report']).optional().catch(undefined).describe("Filter results to a specific category. Must be one of: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'people', 'financial report'. Omit if no specific category is needed."),
+      category: z.enum(['company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'people', 'financial report']).optional().describe("Filter results to a specific category. Must be one of: 'company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'people', 'financial report'. Omit if no specific category is needed."),
 
       includeDomains: z.array(z.string()).optional().describe("Only include results from these domains (e.g., ['arxiv.org', 'github.com'])"),
       excludeDomains: z.array(z.string()).optional().describe("Exclude results from these domains"),
@@ -50,7 +50,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
       highlightsPerUrl: z.coerce.number().optional().catch(undefined).describe("Number of highlights per URL (must be a number)"),
       highlightsQuery: z.string().optional().describe("Query for highlight relevance"),
 
-      livecrawl: z.enum(['never', 'fallback', 'always', 'preferred']).optional().catch(undefined).describe("Live crawl mode - 'never': only cached, 'fallback': cached then live, 'always': always live, 'preferred': prefer live (default: 'fallback')"),
+      livecrawl: z.enum(['never', 'fallback', 'always', 'preferred']).optional().describe("Live crawl mode - 'never': only cached, 'fallback': cached then live, 'always': always live, 'preferred': prefer live (default: 'fallback')"),
       livecrawlTimeout: z.coerce.number().optional().catch(undefined).describe("Timeout for live crawl in milliseconds (must be a number)"),
 
       subpages: z.coerce.number().optional().catch(undefined).describe("Number of subpages to crawl from each result (must be a number, 1-10)"),
