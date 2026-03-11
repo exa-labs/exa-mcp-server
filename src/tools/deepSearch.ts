@@ -16,14 +16,14 @@ Best for: Complex questions needing information from multiple angles.
 Returns: A synthesized answer with citations, plus individual search results with highlights. When structuredOutput is enabled, returns structured JSON instead of markdown.
 Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 12-50s.`,
     {
-      objective: z.string().describe("Natural language description of what the web search is looking for. Try to make the search query atomic - looking for a specific piece of information."),
+      objective: z.preprocess(v => typeof v === 'number' || typeof v === 'boolean' ? String(v) : v, z.string()).describe("Natural language description of what the web search is looking for. Try to make the search query atomic - looking for a specific piece of information."),
       search_queries: z.array(z.string()).optional().describe("Optional list of keyword search queries related to the objective. Limited to 5 entries of up to 5 words each (~200 characters)."),
       type: z.enum(['deep', 'deep-reasoning']).optional().describe("Search depth - 'deep': fast deep search (4-12s, default), 'deep-reasoning': thorough with reasoning (12-50s)"),
-      numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
-      highlightMaxCharacters: z.coerce.number().optional().describe("Maximum characters for highlights per result (must be a number, default: 4000)"),
+      numResults: z.coerce.number().optional().catch(undefined).describe("Number of search results to return (must be a number, default: 8)"),
+      highlightMaxCharacters: z.coerce.number().optional().catch(undefined).describe("Maximum characters for highlights per result (must be a number, default: 4000)"),
       outputSchema: z.record(z.string(), z.unknown()).optional().describe("JSON schema for structured output. Must include a 'type' field set to 'object' or 'text'. For 'object' type, optionally include 'properties' and 'required'. Max 10 total properties, max nesting depth 2. When provided, automatically enables structured output mode."),
       systemPrompt: z.string().max(32000).optional().describe("Instructions for how the deep search agent should process and format results."),
-      structuredOutput: z.boolean().optional().describe("When true, returns a structured JSON response instead of markdown. The API will determine the appropriate structure based on the query. Prefer using outputSchema for more control over the response shape."),
+      structuredOutput: z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()).catch(undefined).describe("When true, returns a structured JSON response instead of markdown. The API will determine the appropriate structure based on the query. Prefer using outputSchema for more control over the response shape."),
     },
     {
       readOnlyHint: true,
