@@ -111,6 +111,7 @@ export interface ExaDeepSearchRequest {
   numResults?: number;
   additionalQueries?: string[];
   outputSchema?: Record<string, unknown>;
+  systemPrompt?: string;
   contents: {
     highlights?: {
       maxCharacters?: number;
