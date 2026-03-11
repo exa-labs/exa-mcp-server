@@ -21,14 +21,16 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
       type: z.enum(['deep', 'deep-reasoning']).optional().describe("Search depth - 'deep': fast deep search (4-12s, default), 'deep-reasoning': thorough with reasoning (12-50s)"),
       numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
       highlightMaxCharacters: z.coerce.number().optional().describe("Maximum characters for highlights per result (must be a number, default: 4000)"),
-      structuredOutput: z.boolean().optional().describe("When true, returns a structured JSON response instead of markdown. The API will determine the appropriate structure based on the query."),
+      outputSchema: z.record(z.string(), z.unknown()).optional().describe("JSON schema for structured output. When provided, the API returns a structured JSON response matching this schema. Automatically enables structured output mode."),
+      systemPrompt: z.string().optional().describe("Instructions for how the deep search agent should process and format results. Max 32,000 characters."),
+      structuredOutput: z.boolean().optional().describe("When true, returns a structured JSON response instead of markdown. The API will determine the appropriate structure based on the query. Prefer using outputSchema for more control over the response shape."),
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: false
     },
-    async ({ objective, search_queries, type, numResults, highlightMaxCharacters, structuredOutput }) => {
+    async ({ objective, search_queries, type, numResults, highlightMaxCharacters, outputSchema, systemPrompt, structuredOutput }) => {
       const requestId = `deep_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'deep_search_exa');
 
@@ -57,9 +59,17 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           }
         };
 
-        if (structuredOutput) {
+        if (outputSchema) {
+          searchRequest.outputSchema = outputSchema;
+          logger.log("Using custom output schema");
+        } else if (structuredOutput) {
           searchRequest.outputSchema = { type: "object" };
-          logger.log("Using structured output");
+          logger.log("Using default structured output");
+        }
+
+        if (systemPrompt) {
+          searchRequest.systemPrompt = systemPrompt;
+          logger.log("Using system prompt");
         }
 
         if (search_queries && search_queries.length > 0) {
@@ -94,8 +104,8 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
 
         const data = response.data;
 
-        // When structured output was requested, return the raw JSON response
-        if (structuredOutput) {
+        // When structured output was requested (via outputSchema or structuredOutput flag), return the raw JSON response
+        if (outputSchema || structuredOutput) {
           const structuredResponse = {
             output: data.output,
             results: data.results,
