@@ -28,16 +28,6 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
       const logger = createRequestLogger(requestId, 'get_code_context_exa');
       
       logger.start(`Searching for code context: ${query}`);
-      
-      if (!query || query.trim().length === 0) {
-        return {
-          content: [{
-            type: "text" as const,
-            text: "Please provide a non-empty search query. For example: 'React useState hook examples' or 'Python pandas dataframe filtering'"
-          }],
-          isError: true,
-        };
-      }
 
       try {
         // Create a fresh axios instance for each request
