@@ -10,7 +10,7 @@
     "url": "git+https://github.com/exa-labs/exa-mcp-server.git"
   },
   "bin": {
-    "exa-mcp-server": ".smithery/stdio/index.cjs"
+    "exa-mcp-server": "./.smithery/stdio/index.cjs"
   },
   "files": [
     ".smithery"
