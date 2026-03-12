@@ -53,6 +53,7 @@ export interface ExaAdvancedSearchRequest {
       query?: string;
     } | boolean;
     highlights?: {
+      maxCharacters?: number;
       numSentences?: number;
       highlightsPerUrl?: number;
       query?: string;
