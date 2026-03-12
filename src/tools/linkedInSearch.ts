@@ -10,7 +10,7 @@ import { checkpoint } from "agnost";
 export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "linkedin_search_exa",
-    "⚠️ DEPRECATED: This tool is deprecated. Please use 'people_search_exa' instead. This tool will be removed in a future version. For now, it searches for people on LinkedIn using Exa AI - finds professional profiles and people.",
+    "Search LinkedIn profiles using deprecated functionality. Use when the user wants to find LinkedIn professional profiles or career information through legacy search methods. Accepts `query` (required search terms) and `limit` (optional result count), e.g., query="software engineer San Francisco" or limit=10. Do not use for current LinkedIn searches (use people_search_exa instead). Returns deprecation warning directing users to replacement tools. Raises an error indicating the tool is no longer supported. 'people_search_exa' instead. This tool will be removed in a future version. For now, it searches for people on LinkedIn using Exa AI - finds professional profiles and people.",
     {
       query: z.string().describe("Search query for finding people on LinkedIn"),
       numResults: z.coerce.number().optional().describe("Number of LinkedIn profile results to return (must be a number, default: 5)")
@@ -80,7 +80,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         logger.log(`Found ${response.data.results.length} LinkedIn results`);
         
         // Add deprecation notice to the response
-        const deprecationNotice = "\n\n⚠️ DEPRECATION NOTICE: This tool (linkedin_search_exa) is deprecated. Please use 'people_search_exa' instead for future requests.";
+        const deprecationNotice = "\n\n⚠� DEPRECATION NOTICE: This tool (linkedin_search_exa) is deprecated. Please use 'people_search_exa' instead for future requests.";
         
         const result = {
           content: [{
@@ -110,7 +110,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
           return {
             content: [{
               type: "text" as const,
-              text: `LinkedIn search error (${statusCode}): ${errorMessage}\n\n⚠️ Note: This tool is deprecated. Please use 'people_search_exa' instead.`
+              text: `LinkedIn search error (${statusCode}): ${errorMessage}\n\n⚠� Note: This tool is deprecated. Please use 'people_search_exa' instead.`
             }],
             isError: true,
           };
@@ -120,7 +120,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         return {
           content: [{
             type: "text" as const,
-            text: `LinkedIn search error: ${error instanceof Error ? error.message : String(error)}\n\n⚠️ Note: This tool is deprecated. Please use 'people_search_exa' instead.`
+            text: `LinkedIn search error: ${error instanceof Error ? error.message : String(error)}\n\n⚠� Note: This tool is deprecated. Please use 'people_search_exa' instead.`
           }],
           isError: true,
         };
