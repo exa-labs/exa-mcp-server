@@ -66,7 +66,8 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
     const normalizedConfig = {
       exaApiKey: config.exaApiKey,
       enabledTools: parsedEnabledTools,
-      debug: config.debug
+      debug: config.debug,
+      userProvidedApiKey: !!config.exaApiKey
     };
     
     if (config.debug) {
