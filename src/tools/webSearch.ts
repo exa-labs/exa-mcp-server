@@ -23,6 +23,7 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       contextMaxCharacters: z.coerce.number().optional().describe("Maximum characters for context string optimized for LLMs (must be a number, default: 10000)")
     },
     {
+      title: "Web Search",
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true

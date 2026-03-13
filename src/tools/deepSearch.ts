@@ -26,6 +26,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
       structuredOutput: z.boolean().optional().describe("When true, returns a structured JSON response instead of markdown. The API will determine the appropriate structure based on the query. Prefer using outputSchema for more control over the response shape."),
     },
     {
+      title: "Deep Search",
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: false
