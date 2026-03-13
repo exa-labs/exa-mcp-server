@@ -1,9 +1,11 @@
 process.env.AGNOST_LOG_LEVEL = 'error';
 
-import { createMcpHandler } from 'mcp-handler';
+import { createMcpHandler, withMcpAuth } from 'mcp-handler';
 import { initializeMcpServer } from '../src/mcp-handler.js';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { verifyAccessToken as verifyOAuthToken } from '../src/auth/oauth.js';
+import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 
 /**
  * IP-based rate limiting configuration for free MCP users.
@@ -209,8 +211,12 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * - EXA_API_KEY: Your Exa AI API key
  * - DEBUG: Enable debug logging (true/false)
  * - ENABLED_TOOLS: Comma-separated list of tools to enable
+ * - OAUTH_SECRET: Secret for OAuth2 token encryption (enables OAuth2 flow)
  * 
- * URL query parameters take precedence over environment variables.
+ * Authentication priority (highest to lowest):
+ * 1. OAuth2 Bearer token (Authorization header)
+ * 2. URL query parameter (?exaApiKey=YOUR_KEY)
+ * 3. Environment variable (EXA_API_KEY)
  * 
  * ARCHITECTURE NOTE:
  * The mcp-handler library creates a single server instance and doesn't pass
@@ -301,6 +307,13 @@ function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; de
 async function handleRequest(request: Request): Promise<Response> {
   // Extract configuration from the request URL
   const config = getConfigFromUrl(request.url);
+
+  // OAuth2 bearer token takes highest priority for API key
+  const authInfo = (request as Request & { auth?: AuthInfo }).auth;
+  if (authInfo?.extra?.exaApiKey) {
+    config.exaApiKey = authInfo.extra.exaApiKey as string;
+    config.userProvidedApiKey = true;
+  }
   
   if (config.debug) {
     console.log(`[EXA-MCP] Request URL: ${request.url}`);
@@ -364,6 +377,31 @@ async function handleRequest(request: Request): Promise<Response> {
   return handler(request);
 }
 
+/**
+ * Verify an OAuth2 bearer token and extract the Exa API key.
+ * Returns AuthInfo with the API key in extra.exaApiKey, or undefined if invalid.
+ */
+async function verifyToken(_req: Request, bearerToken?: string): Promise<AuthInfo | undefined> {
+  if (!bearerToken) return undefined;
+
+  const result = verifyOAuthToken(bearerToken);
+  if (!result) return undefined;
+
+  return {
+    token: bearerToken,
+    clientId: 'oauth-client',
+    scopes: [],
+    extra: { exaApiKey: result.apiKey },
+  };
+}
+
+// Wrap the handler with optional OAuth2 bearer token auth.
+// When required=false, requests without tokens still work (backward compatible).
+const authedHandler = withMcpAuth(handleRequest, verifyToken, {
+  required: false,
+  resourceMetadataPath: '/.well-known/oauth-protected-resource',
+});
+
 // Export handlers for Vercel Functions
-export { handleRequest as GET, handleRequest as POST, handleRequest as DELETE };
+export { authedHandler as GET, authedHandler as POST, authedHandler as DELETE };
 
