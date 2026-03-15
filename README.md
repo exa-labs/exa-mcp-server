@@ -63,19 +63,10 @@ claude mcp add --transport http exa https://mcp.exa.ai/mcp
 <details>
 <summary><b>Claude Desktop</b></summary>
 
-Add to your config file:
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+In Claude Desktop, open **Settings** > **Connectors** (or **Customize** > **Connectors**), click **Add custom connector**, paste the URL below, and click **Add**:
 
-```json
-{
-  "mcpServers": {
-    "exa": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "https://mcp.exa.ai/mcp"]
-    }
-  }
-}
+```
+https://mcp.exa.ai/mcp
 ```
 </details>
 
