@@ -42,7 +42,7 @@
     "prepublishOnly": "npm run build:stdio"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@modelcontextprotocol/sdk": "^1.5.0",
     "agnost": "^0.1.10",
     "axios": "^1.7.8",
     "mcp-handler": "^1.0.4",
