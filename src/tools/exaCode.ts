@@ -50,14 +50,16 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
         checkpoint('code_context_request_prepared');
         logger.log("Sending code context request to Exa API");
         
+        const startTime = Date.now();
         const response = await axiosInstance.post<ExaCodeResponse>(
           API_CONFIG.ENDPOINTS.CONTEXT,
           exaCodeRequest,
           { timeout: 30000 }
         );
+        const elapsedMs = Date.now() - startTime;
         
         checkpoint('code_context_response_received');
-        logger.log("Received code context response from Exa API");
+        logger.log(`Received code context response from Exa API in ${elapsedMs}ms`);
 
         if (!response.data) {
           logger.log("Warning: Empty response from Exa Code API");
@@ -70,17 +72,19 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
           };
         }
 
-        logger.log(`Code search completed with ${response.data.resultsCount || 0} results`);
+        const searchTime = response.data.searchTime;
+        logger.log(`Code search completed with ${response.data.resultsCount || 0} results (searchTime: ${searchTime ?? 'N/A'}ms, totalElapsed: ${elapsedMs}ms)`);
         
-        // Return the actual code content from the response field
         const codeContent = typeof response.data.response === 'string' 
           ? response.data.response 
           : JSON.stringify(response.data.response, null, 2);
         
+        const metadata = `\n\n---\nSearch metadata: {"searchTime": ${searchTime ?? elapsedMs}, "totalElapsedMs": ${elapsedMs}, "resultsCount": ${response.data.resultsCount ?? 0}}`;
+        
         const result = {
           content: [{
             type: "text" as const,
-            text: codeContent
+            text: codeContent + metadata
           }]
         };
         

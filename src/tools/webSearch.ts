@@ -63,14 +63,16 @@ Returns: Clean text content from top search results, ready for LLM use.`,
         checkpoint('web_search_request_prepared');
         logger.log("Sending request to Exa API");
         
+        const startTime = Date.now();
         const response = await axiosInstance.post<ExaSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
           searchRequest,
           { timeout: 25000 }
         );
+        const elapsedMs = Date.now() - startTime;
         
         checkpoint('exa_search_response_received');
-        logger.log("Received response from Exa API");
+        logger.log(`Received response from Exa API in ${elapsedMs}ms`);
 
         if (!response.data || !response.data.context) {
           logger.log("Warning: Empty or invalid response from Exa API");
@@ -83,12 +85,15 @@ Returns: Clean text content from top search results, ready for LLM use.`,
           };
         }
 
-        logger.log(`Context received with ${response.data.context.length} characters`);
+        const searchTime = response.data.searchTime;
+        logger.log(`Context received with ${response.data.context.length} characters (searchTime: ${searchTime ?? 'N/A'}ms, totalElapsed: ${elapsedMs}ms)`);
+        
+        const metadata = `\n\n---\nSearch metadata: {"searchTime": ${searchTime ?? elapsedMs}, "totalElapsedMs": ${elapsedMs}, "resultsCount": ${response.data.results?.length ?? 0}}`;
         
         const result = {
           content: [{
             type: "text" as const,
-            text: response.data.context
+            text: response.data.context + metadata
           }]
         };
         
@@ -130,4 +135,4 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
