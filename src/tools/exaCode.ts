@@ -7,6 +7,14 @@ import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
+const MAX_RETRIES = 2;
+
+function isTransientError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return false;
+  const status = error.response?.status;
+  return typeof status === 'number' && (status >= 500 || status === 429);
+}
+
 export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "get_code_context_exa",
@@ -48,45 +56,65 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
         };
         
         checkpoint('code_context_request_prepared');
-        logger.log("Sending code context request to Exa API");
         
-        const response = await axiosInstance.post<ExaCodeResponse>(
-          API_CONFIG.ENDPOINTS.CONTEXT,
-          exaCodeRequest,
-          { timeout: 30000 }
-        );
-        
-        checkpoint('code_context_response_received');
-        logger.log("Received code context response from Exa API");
+        let lastError: unknown = null;
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          if (attempt > 0) {
+            const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
+            logger.log(`Retry attempt ${attempt}/${MAX_RETRIES} after ${delayMs}ms delay`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          }
+          
+          try {
+            logger.log(`Sending code context request to Exa API (attempt ${attempt + 1}/${MAX_RETRIES + 1})`);
+            
+            const response = await axiosInstance.post<ExaCodeResponse>(
+              API_CONFIG.ENDPOINTS.CONTEXT,
+              exaCodeRequest,
+              { timeout: 30000 }
+            );
+            
+            checkpoint('code_context_response_received');
+            logger.log("Received code context response from Exa API");
 
-        if (!response.data) {
-          logger.log("Warning: Empty response from Exa Code API");
-          checkpoint('code_context_complete');
-          return {
-            content: [{
-              type: "text" as const,
-              text: "No code snippets or documentation found. Please try a different query, be more specific about the library or programming concept, or check the spelling of framework names."
-            }]
-          };
+            if (!response.data) {
+              logger.log("Warning: Empty response from Exa Code API");
+              checkpoint('code_context_complete');
+              return {
+                content: [{
+                  type: "text" as const,
+                  text: "No code snippets or documentation found. Please try a different query, be more specific about the library or programming concept, or check the spelling of framework names."
+                }]
+              };
+            }
+
+            logger.log(`Code search completed with ${response.data.resultsCount || 0} results`);
+            
+            const codeContent = typeof response.data.response === 'string' 
+              ? response.data.response 
+              : JSON.stringify(response.data.response, null, 2);
+            
+            const result = {
+              content: [{
+                type: "text" as const,
+                text: codeContent
+              }]
+            };
+            
+            checkpoint('code_context_complete');
+            logger.complete();
+            return result;
+          } catch (retryError) {
+            lastError = retryError;
+            if (!isTransientError(retryError) || attempt === MAX_RETRIES) {
+              throw retryError;
+            }
+            const status = axios.isAxiosError(retryError) ? retryError.response?.status : 'unknown';
+            logger.log(`Transient error (${status}), will retry`);
+          }
         }
-
-        logger.log(`Code search completed with ${response.data.resultsCount || 0} results`);
         
-        // Return the actual code content from the response field
-        const codeContent = typeof response.data.response === 'string' 
-          ? response.data.response 
-          : JSON.stringify(response.data.response, null, 2);
-        
-        const result = {
-          content: [{
-            type: "text" as const,
-            text: codeContent
-          }]
-        };
-        
-        checkpoint('code_context_complete');
-        logger.complete();
-        return result;
+        throw lastError;
       } catch (error) {
         logger.error(error);
         
