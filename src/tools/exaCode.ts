@@ -12,7 +12,7 @@ const MAX_RETRIES = 2;
 function isTransientError(error: unknown): boolean {
   if (!axios.isAxiosError(error)) return false;
   const status = error.response?.status;
-  return typeof status === 'number' && (status >= 500 || status === 429);
+  return typeof status === 'number' && status >= 500;
 }
 
 export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
