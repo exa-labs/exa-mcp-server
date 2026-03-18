@@ -215,12 +215,13 @@ Returns: Search results with optional highlights, summaries, and subpage content
         if (axios.isAxiosError(error)) {
           const statusCode = error.response?.status || 'unknown';
           const errorMessage = error.response?.data?.message || error.message;
+          const isTransient = typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429);
 
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,
-              text: `Advanced search error (${statusCode}): ${errorMessage}`
+              text: `Advanced search error (${statusCode}): ${errorMessage}\nRequest ID: ${requestId}${isTransient ? '\nThis error appears to be transient. Please retry the request.' : '\nThis error appears to be permanent. Please check your query parameters.'}`
             }],
             isError: true,
           };
@@ -229,7 +230,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
         return {
           content: [{
             type: "text" as const,
-            text: `Advanced search error: ${error instanceof Error ? error.message : String(error)}`
+            text: `Advanced search error: ${error instanceof Error ? error.message : String(error)}\nRequest ID: ${requestId}\nPlease retry the request.`
           }],
           isError: true,
         };

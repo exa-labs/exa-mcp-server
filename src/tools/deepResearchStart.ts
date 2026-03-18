@@ -103,29 +103,28 @@ Important: Call deep_researcher_check with the returned research ID to get the r
         }
         
         if (axios.isAxiosError(error)) {
-          // Handle Axios errors specifically
           const statusCode = error.response?.status || 'unknown';
           const errorMessage = error.response?.data?.message || error.message;
+          const isTransient = typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429);
           
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,
-              text: `Research start error (${statusCode}): ${errorMessage}`
+              text: `Research start error (${statusCode}): ${errorMessage}\nRequest ID: ${requestId}${isTransient ? '\nThis error appears to be transient. Please retry the request.' : '\nThis error appears to be permanent. Please check your request parameters.'}`
             }],
             isError: true,
           };
         }
         
-        // Handle generic errors
         return {
           content: [{
             type: "text" as const,
-            text: `Research start error: ${error instanceof Error ? error.message : String(error)}`
+            text: `Research start error: ${error instanceof Error ? error.message : String(error)}\nRequest ID: ${requestId}\nPlease retry the request.`
           }],
           isError: true,
         };
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

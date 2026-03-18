@@ -102,25 +102,24 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         }
         
         if (axios.isAxiosError(error)) {
-          // Handle Axios errors specifically
           const statusCode = error.response?.status || 'unknown';
           const errorMessage = error.response?.data?.message || error.message;
+          const isTransient = typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429);
           
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,
-              text: `LinkedIn search error (${statusCode}): ${errorMessage}\n\n⚠️ Note: This tool is deprecated. Please use 'people_search_exa' instead.`
+              text: `LinkedIn search error (${statusCode}): ${errorMessage}\nRequest ID: ${requestId}${isTransient ? '\nThis error appears to be transient. Please retry the request.' : '\nThis error appears to be permanent. Please check your query parameters.'}\n\n⚠️ Note: This tool is deprecated. Please use 'people_search_exa' instead.`
             }],
             isError: true,
           };
         }
         
-        // Handle generic errors
         return {
           content: [{
             type: "text" as const,
-            text: `LinkedIn search error: ${error instanceof Error ? error.message : String(error)}\n\n⚠️ Note: This tool is deprecated. Please use 'people_search_exa' instead.`
+            text: `LinkedIn search error: ${error instanceof Error ? error.message : String(error)}\nRequest ID: ${requestId}\nPlease retry the request.\n\n⚠️ Note: This tool is deprecated. Please use 'people_search_exa' instead.`
           }],
           isError: true,
         };

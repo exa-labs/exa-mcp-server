@@ -196,12 +196,13 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         if (axios.isAxiosError(error)) {
           const statusCode = error.response?.status || 'unknown';
           const errorMessage = error.response?.data?.message || error.message;
+          const isTransient = typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429);
 
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,
-              text: `Deep search error (${statusCode}): ${errorMessage}`
+              text: `Deep search error (${statusCode}): ${errorMessage}\nRequest ID: ${requestId}${isTransient ? '\nThis error appears to be transient. Please retry the request.' : '\nThis error appears to be permanent. Please check your query parameters.'}`
             }],
             isError: true,
           };
@@ -210,7 +211,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         return {
           content: [{
             type: "text" as const,
-            text: `Deep search error: ${error instanceof Error ? error.message : String(error)}`
+            text: `Deep search error: ${error instanceof Error ? error.message : String(error)}\nRequest ID: ${requestId}\nPlease retry the request.`
           }],
           isError: true,
         };
