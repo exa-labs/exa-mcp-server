@@ -167,7 +167,7 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
           
           const statusCode = error.response?.status || 'unknown';
           const errorMessage = error.response?.data?.message || error.message;
-          const isTransient = typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429);
+          const isTransient = !error.response || (typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429));
           
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
@@ -189,4 +189,4 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

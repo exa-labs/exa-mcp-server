@@ -105,7 +105,7 @@ Important: Call deep_researcher_check with the returned research ID to get the r
         if (axios.isAxiosError(error)) {
           const statusCode = error.response?.status || 'unknown';
           const errorMessage = error.response?.data?.message || error.message;
-          const isTransient = typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429);
+          const isTransient = !error.response || (typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429));
           
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
@@ -127,4 +127,4 @@ Important: Call deep_researcher_check with the returned research ID to get the r
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

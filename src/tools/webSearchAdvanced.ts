@@ -215,7 +215,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
         if (axios.isAxiosError(error)) {
           const statusCode = error.response?.status || 'unknown';
           const errorMessage = error.response?.data?.message || error.message;
-          const isTransient = typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429);
+          const isTransient = !error.response || (typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429));
 
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
