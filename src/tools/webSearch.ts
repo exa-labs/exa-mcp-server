@@ -83,12 +83,22 @@ Returns: Clean text content from top search results, ready for LLM use.`,
           };
         }
 
-        logger.log(`Context received with ${response.data.context.length} characters`);
+        const resultsCount = response.data.results?.length ?? 0;
+        const requestedCount = numResults || API_CONFIG.DEFAULT_NUM_RESULTS;
+        const isLowConfidence = resultsCount === 0 || resultsCount < Math.ceil(requestedCount / 2);
+
+        logger.log(`Context received with ${response.data.context.length} characters (${resultsCount}/${requestedCount} results)`);
+
+        let contextText = response.data.context;
+        if (isLowConfidence) {
+          logger.log("Low-confidence results detected");
+          contextText = `[LOW CONFIDENCE] The search returned fewer results than expected (${resultsCount}/${requestedCount}). The results below may not be highly relevant to your query. Consider rephrasing your query for better results.\n\n${contextText}`;
+        }
         
         const result = {
           content: [{
             type: "text" as const,
-            text: response.data.context
+            text: contextText
           }]
         };
         
@@ -130,4 +140,4 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
