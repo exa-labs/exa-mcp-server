@@ -20,15 +20,14 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       livecrawl: z.enum(['fallback', 'preferred']).optional().describe("Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')"),
       type: z.enum(['auto', 'fast']).optional().describe("Search type - 'auto': balanced search (default), 'fast': quick results"),
       category: z.enum(['company', 'research paper', 'people']).optional().describe("Filter results to a specific category - 'company': company websites and profiles, 'research paper': academic papers and research, 'people': LinkedIn profiles and personal bios"),
-      numSentences: z.coerce.number().optional().describe("Number of sentences per highlight (must be a number, default: 3)"),
-      highlightsPerUrl: z.coerce.number().optional().describe("Number of highlights per URL (must be a number, default: 3)")
+      highlightsMaxCharacters: z.coerce.number().optional().describe("Maximum characters for highlights per result (must be a number, default: 4000)")
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ query, numResults, livecrawl, type, category, numSentences, highlightsPerUrl }) => {
+    async ({ query, numResults, livecrawl, type, category, highlightsMaxCharacters }) => {
       const requestId = `web_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'web_search_exa');
       
@@ -54,8 +53,7 @@ Returns: Clean text content from top search results, ready for LLM use.`,
           ...(category && { category }),
           contents: {
             highlights: {
-              numSentences: numSentences || 3,
-              highlightsPerUrl: highlightsPerUrl || 3,
+              maxCharacters: highlightsMaxCharacters || 4000,
             },
             livecrawl: livecrawl || 'fallback'
           }
@@ -136,4 +134,4 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
