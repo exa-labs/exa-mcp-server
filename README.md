@@ -275,12 +275,12 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | ---- | ----------- |
 | `web_search_exa` | Search the web for any topic and get clean, ready-to-use content |
 | `get_code_context_exa` | Find code examples, documentation, and programming solutions from GitHub, Stack Overflow, and docs |
-| `company_research_exa` | Research any company to get business information, news, and insights |
 
 **Off by Default:**
 | Tool | Description |
 | ---- | ----------- |
 | `web_search_advanced_exa` | Advanced web search with full control over filters, domains, dates, and content options |
+| `company_research_exa` | Research any company to get business information, news, and insights |
 | `crawling_exa` | Get the full content of a specific webpage from a known URL |
 | `people_search_exa` | Find people and their professional profiles |
 | `deep_researcher_start` | Start an AI research agent that searches, reads, and writes a detailed report |
