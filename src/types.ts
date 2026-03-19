@@ -14,8 +14,10 @@ export interface ExaSearchRequest {
     text?: {
       maxCharacters?: number;
     } | boolean;
-    context?: {
-      maxCharacters?: number;
+    highlights?: {
+      numSentences?: number;
+      highlightsPerUrl?: number;
+      query?: string;
     } | boolean;
     summary?: {
       query?: string;
