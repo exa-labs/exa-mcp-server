@@ -5,7 +5,6 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
-import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
 export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -49,9 +48,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           category: "people",
           contents: {
-            text: {
-              maxCharacters: API_CONFIG.DEFAULT_MAX_CHARACTERS
-            },
+            highlights: true,
           },
         };
         
@@ -67,7 +64,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         checkpoint('linkedin_search_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data || !response.data.results) {
+        if (!response.data || !response.data.results || response.data.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint('linkedin_search_complete');
           return {
@@ -79,14 +76,18 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         }
 
         logger.log(`Found ${response.data.results.length} LinkedIn results`);
-        
-        // Add deprecation notice to the response
+
+        const formattedResults = response.data.results.map((r) => {
+          const highlights = r.highlights?.join('\n') || '';
+          return `Title: ${r.title}\nURL: ${r.url}\nPublished: ${r.publishedDate || 'N/A'}\nHighlights:\n${highlights}`;
+        }).join('\n\n---\n\n');
+
         const deprecationNotice = "\n\n⚠️ DEPRECATION NOTICE: This tool (linkedin_search_exa) is deprecated. Please use 'people_search_exa' instead for future requests.";
         
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(sanitizeSearchResponse(response.data), null, 2) + deprecationNotice
+            text: formattedResults + deprecationNotice
           }]
         };
         

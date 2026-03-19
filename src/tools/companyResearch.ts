@@ -5,7 +5,6 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
-import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
 export function registerCompanyResearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -49,9 +48,7 @@ Returns: Company information from trusted business sources.`,
           numResults: numResults || 3,
           category: "company",
           contents: {
-            text: {
-              maxCharacters: 7000
-            }
+            highlights: true
           }
         };
         
@@ -67,7 +64,7 @@ Returns: Company information from trusted business sources.`,
         checkpoint('company_research_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data || !response.data.results) {
+        if (!response.data || !response.data.results || response.data.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint('company_research_complete');
           return {
@@ -79,11 +76,16 @@ Returns: Company information from trusted business sources.`,
         }
 
         logger.log(`Found ${response.data.results.length} company research results`);
+
+        const formattedResults = response.data.results.map((r) => {
+          const highlights = r.highlights?.join('\n') || '';
+          return `Title: ${r.title}\nURL: ${r.url}\nPublished: ${r.publishedDate || 'N/A'}\nHighlights:\n${highlights}`;
+        }).join('\n\n---\n\n');
         
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(sanitizeSearchResponse(response.data), null, 2)
+            text: formattedResults
           }]
         };
         
@@ -125,4 +127,4 @@ Returns: Company information from trusted business sources.`,
       }
     }
   );
-}                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                

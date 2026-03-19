@@ -5,7 +5,6 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
-import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
 export function registerPeopleSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -52,9 +51,7 @@ Returns: Profile information and links.`,
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           category: "people",
           contents: {
-            text: {
-              maxCharacters: API_CONFIG.DEFAULT_MAX_CHARACTERS
-            },
+            highlights: true,
           },
         };
         
@@ -70,7 +67,7 @@ Returns: Profile information and links.`,
         checkpoint('people_search_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data || !response.data.results) {
+        if (!response.data || !response.data.results || response.data.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint('people_search_complete');
           return {
@@ -82,11 +79,16 @@ Returns: Profile information and links.`,
         }
 
         logger.log(`Found ${response.data.results.length} results`);
+
+        const formattedResults = response.data.results.map((r) => {
+          const highlights = r.highlights?.join('\n') || '';
+          return `Title: ${r.title}\nURL: ${r.url}\nPublished: ${r.publishedDate || 'N/A'}\nHighlights:\n${highlights}`;
+        }).join('\n\n---\n\n');
         
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(sanitizeSearchResponse(response.data), null, 2)
+            text: formattedResults
           }]
         };
         
