@@ -97,14 +97,16 @@ Returns: Full text content and metadata from the page.`,
         
         if (axios.isAxiosError(error)) {
           const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
+          const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+          const serverRequestId = error.response?.data?.requestId;
           const isTransient = !error.response || (typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429));
+          const guidance = isTransient ? 'This error appears to be transient. Please retry the request.' : statusCode === 401 ? 'This error appears to be permanent. Please check your API key.' : 'This error appears to be permanent. Please check your query parameters.';
           
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,
-              text: `Crawling error (${statusCode}): ${errorMessage}\nRequest ID: ${requestId}${isTransient ? '\nThis error appears to be transient. Please retry the request.' : '\nThis error appears to be permanent. Please check your query parameters.'}`
+              text: `Crawling error (${statusCode}): ${errorMessage}\nRequest ID: ${requestId}${serverRequestId ? ` (Exa ID: ${serverRequestId})` : ''}\n${guidance}`
             }],
             isError: true,
           };
@@ -120,4 +122,4 @@ Returns: Full text content and metadata from the page.`,
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
