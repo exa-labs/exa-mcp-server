@@ -122,4 +122,4 @@ Returns: Full text content and metadata from the page.`,
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
