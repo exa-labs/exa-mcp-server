@@ -5,6 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
 export function registerCompanyResearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -82,7 +83,7 @@ Returns: Company information from trusted business sources.`,
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(response.data, null, 2)
+            text: JSON.stringify(sanitizeSearchResponse(response.data), null, 2)
           }]
         };
         

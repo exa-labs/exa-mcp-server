@@ -5,6 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaAdvancedSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
 export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -190,7 +191,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
           };
         }
 
-        const resultText = JSON.stringify(response.data);
+        const resultText = JSON.stringify(sanitizeSearchResponse(response.data));
         logger.log(`Response prepared with ${resultText.length} characters`);
 
         const result = {
