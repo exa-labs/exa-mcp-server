@@ -79,7 +79,7 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
           ? response.data.response 
           : JSON.stringify(response.data.response, null, 2);
         
-        const metadata = `\n\n---\nSearch metadata: {"searchTime": ${searchTime ?? elapsedMs}, "totalElapsedMs": ${elapsedMs}, "resultsCount": ${response.data.resultsCount ?? 0}}`;
+        const metadata = `\n\n---\nSearch metadata: ${JSON.stringify({ searchTime: searchTime ?? null, totalElapsedMs: elapsedMs, resultsCount: response.data.resultsCount ?? 0 })}`;
         
         const result = {
           content: [{
