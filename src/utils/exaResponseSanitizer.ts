@@ -289,8 +289,6 @@ export function sanitizeDeepSearchStructuredResponse(response: ExaDeepSearchResp
 
   if ("output" in sanitized && isRecord(sanitized.output)) {
     const output = { ...sanitized.output };
-    // Preserve original output.content for structured responses — this is user-defined
-    // schema output, so stripping keys like requestTags would remove legitimate user data
     if (isRecord(response) && isRecord((response as Record<string, unknown>).output)) {
       output.content = ((response as Record<string, unknown>).output as Record<string, unknown>).content;
     }
