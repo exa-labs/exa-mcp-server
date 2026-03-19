@@ -5,6 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
 export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -85,7 +86,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(response.data, null, 2) + deprecationNotice
+            text: JSON.stringify(sanitizeSearchResponse(response.data), null, 2) + deprecationNotice
           }]
         };
         
