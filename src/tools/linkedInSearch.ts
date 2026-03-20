@@ -5,6 +5,7 @@ import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
 export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -77,8 +78,11 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
 
         logger.log(`Found ${response.data.results.length} LinkedIn results`);
 
-        const formattedResults = response.data.results.map((r) => {
-          const highlights = r.highlights?.join('\n') || '';
+        const sanitized = sanitizeSearchResponse(response.data);
+        const results = Array.isArray(sanitized.results) ? sanitized.results : [];
+
+        const formattedResults = results.map((r) => {
+          const highlights = Array.isArray(r.highlights) ? r.highlights.join('\n') : '';
           const lines = [
             `Title: ${r.title || 'N/A'}`,
             `URL: ${r.url}`,
@@ -89,7 +93,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
           return lines.join('\n');
         }).join('\n\n---\n\n');
 
-        const searchTime = response.data.searchTime;
+        const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
         const header = searchTime != null ? `Search Time: ${searchTime}ms\n\n` : '';
         const deprecationNotice = "\n\n⚠️ DEPRECATION NOTICE: This tool (linkedin_search_exa) is deprecated. Please use 'people_search_exa' instead for future requests.";
         
