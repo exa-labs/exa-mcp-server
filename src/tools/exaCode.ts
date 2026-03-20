@@ -15,8 +15,8 @@ export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: st
 Best for: Any programming question - API usage, library examples, code snippets, debugging help.
 Returns: Relevant code and documentation, formatted for easy reading.`,
     {
-      query: z.string().describe("Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"),
-      tokensNum: z.coerce.number().min(1000).max(50000).default(5000).describe("Number of tokens to return (must be a number, 1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation.")
+      query: z.preprocess(v => typeof v === 'number' || typeof v === 'boolean' ? String(v) : v, z.string().trim().min(1)).describe("Search query to find relevant context for APIs, Libraries, and SDKs. Must be a non-empty text string. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"),
+      tokensNum: z.coerce.number().min(1000).max(50000).default(5000).catch(5000).describe("Number of tokens to return (must be a number, 1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation.")
     },
     {
       readOnlyHint: true,
@@ -28,7 +28,7 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
       const logger = createRequestLogger(requestId, 'get_code_context_exa');
       
       logger.start(`Searching for code context: ${query}`);
-      
+
       try {
         // Create a fresh axios instance for each request
         const axiosInstance = axios.create({
