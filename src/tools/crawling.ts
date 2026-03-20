@@ -64,7 +64,7 @@ Returns: Full text content and metadata from the page.`,
         checkpoint('crawl_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data || !response.data.results) {
+        if (!response.data || !response.data.results || response.data.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint('crawl_complete');
           return {
@@ -76,7 +76,7 @@ Returns: Full text content and metadata from the page.`,
         }
 
         logger.log(`Successfully crawled content from URL`);
-        
+
         const result = {
           content: [{
             type: "text" as const,
@@ -122,4 +122,4 @@ Returns: Full text content and metadata from the page.`,
       }
     }
   );
-}                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

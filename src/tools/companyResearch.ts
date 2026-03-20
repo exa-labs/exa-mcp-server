@@ -49,9 +49,7 @@ Returns: Company information from trusted business sources.`,
           numResults: numResults || 3,
           category: "company",
           contents: {
-            text: {
-              maxCharacters: 7000
-            }
+            highlights: true
           }
         };
         
@@ -67,7 +65,7 @@ Returns: Company information from trusted business sources.`,
         checkpoint('company_research_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data || !response.data.results) {
+        if (!response.data || !response.data.results || response.data.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint('company_research_complete');
           return {
@@ -79,11 +77,29 @@ Returns: Company information from trusted business sources.`,
         }
 
         logger.log(`Found ${response.data.results.length} company research results`);
+
+        const sanitized = sanitizeSearchResponse(response.data);
+        const results = Array.isArray(sanitized.results) ? sanitized.results : [];
+
+        const formattedResults = results.map((r) => {
+          const highlights = Array.isArray(r.highlights) ? r.highlights.join('\n') : '';
+          const lines = [
+            `Title: ${r.title || 'N/A'}`,
+            `URL: ${r.url}`,
+            `Published: ${r.publishedDate || 'N/A'}`,
+            `Author: ${r.author || 'N/A'}`,
+            `Highlights:\n${highlights}`,
+          ];
+          return lines.join('\n');
+        }).join('\n\n---\n\n');
+
+        const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
+        const header = searchTime != null ? `Search Time: ${searchTime}ms\n\n` : '';
         
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(sanitizeSearchResponse(response.data), null, 2)
+            text: header + formattedResults
           }]
         };
         
@@ -125,4 +141,4 @@ Returns: Company information from trusted business sources.`,
       }
     }
   );
-}                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
