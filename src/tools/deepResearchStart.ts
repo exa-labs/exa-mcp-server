@@ -10,7 +10,7 @@ import { checkpoint } from "agnost";
 export function registerDeepResearchStartTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "deep_researcher_start",
-    `Start an AI research agent that searches, reads, and writes a detailed report. Takes 15 seconds to 2 minutes.
+    `[Deprecated] Start an AI research agent that searches, reads, and writes a detailed report. Takes 15 seconds to 2 minutes.
 
 Best for: Complex research questions needing deep analysis and synthesis.
 Returns: Research ID - use deep_researcher_check to get results.
