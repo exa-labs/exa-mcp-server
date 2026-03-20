@@ -11,8 +11,14 @@ const MAX_RETRIES = 2;
 
 function isTransientError(error: unknown): boolean {
   if (!axios.isAxiosError(error)) return false;
-  const status = error.response?.status;
-  return typeof status === 'number' && status >= 500;
+  if (!error.response) return true;
+  const status = error.response.status;
+  return status >= 500;
+}
+
+function extractServerRequestId(error: unknown): string | undefined {
+  if (!axios.isAxiosError(error)) return undefined;
+  return error.response?.data?.requestId;
 }
 
 export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -110,7 +116,9 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
               throw retryError;
             }
             const status = axios.isAxiosError(retryError) ? retryError.response?.status : 'unknown';
-            logger.log(`Transient error (${status}), will retry`);
+            const serverReqId = extractServerRequestId(retryError);
+            const errorBody = axios.isAxiosError(retryError) ? JSON.stringify(retryError.response?.data) : undefined;
+            logger.log(`Transient error (${status}), will retry. Server requestId: ${serverReqId || 'N/A'}. Response: ${errorBody || 'N/A'}`);
           }
         }
         
@@ -125,25 +133,25 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
         }
         
         if (axios.isAxiosError(error)) {
-          // Handle Axios errors specifically
           const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
+          const serverReqId = extractServerRequestId(error);
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
+          const isTransient = !error.response || (typeof statusCode === 'number' && statusCode >= 500);
           
-          logger.log(`Axios error (${statusCode}): ${errorMessage}`);
+          logger.log(`Axios error (${statusCode}): ${errorMessage}. Server requestId: ${serverReqId || 'N/A'}. Full response: ${JSON.stringify(error.response?.data)}`);
           return {
             content: [{
               type: "text" as const,
-              text: `Code search error (${statusCode}): ${errorMessage}. Please check your query and try again.`
+              text: `Code search error (${statusCode}): ${errorMessage}\nRequest ID: ${serverReqId || requestId}${isTransient ? '\nThis error appears to be transient. Please retry the request.' : '\nThis error appears to be permanent. Please check your query parameters.'}`
             }],
             isError: true,
           };
         }
         
-        // Handle generic errors
         return {
           content: [{
             type: "text" as const,
-            text: `Code search error: ${error instanceof Error ? error.message : String(error)}`
+            text: `Code search error: ${error instanceof Error ? error.message : String(error)}\nRequest ID: ${requestId}\nPlease retry the request.`
           }],
           isError: true,
         };
