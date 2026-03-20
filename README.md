@@ -280,17 +280,12 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | Tool | Description |
 | ---- | ----------- |
 | `web_search_advanced_exa` | Advanced web search with full control over filters, domains, dates, and content options |
-| `company_research_exa` | Research any company to get business information, news, and insights |
 | `crawling_exa` | Get the full content of a specific webpage from a known URL |
-| `people_search_exa` | Find people and their professional profiles |
-| `deep_researcher_start` | Start an AI research agent that searches, reads, and writes a detailed report |
-| `deep_researcher_check` | Check status and get results from a deep research task |
-| `deep_search_exa` | Deep search with query expansion and synthesized answers. Requires your own API key — it will not appear in the tools list without one. |
 
-Enable all tools with the `tools` parameter:
+Enable additional tools with the `tools` parameter:
 
 ```
-https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,crawling_exa,company_research_exa,people_search_exa,deep_researcher_start,deep_researcher_check,deep_search_exa
+https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,crawling_exa
 ```
 
 ## Agent Skills (Claude Skills)

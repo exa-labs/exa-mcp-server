@@ -15,7 +15,7 @@ function delay(ms: number): Promise<void> {
 export function registerDeepResearchCheckTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "deep_researcher_check",
-    `Check status and get results from a deep research task.
+    `[Deprecated] Check status and get results from a deep research task.
 
 Best for: Getting the research report after calling deep_researcher_start.
 Returns: Research report when complete, or status update if still running.

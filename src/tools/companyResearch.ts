@@ -11,7 +11,7 @@ import { checkpoint } from "agnost";
 export function registerCompanyResearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "company_research_exa",
-    `Research any company to get business information, news, and insights.
+    `[Deprecated: Use web_search_advanced_exa instead] Research any company to get business information, news, and insights.
 
 Best for: Learning about a company's products, services, recent news, or industry position.
 Returns: Company information from trusted business sources.`,
