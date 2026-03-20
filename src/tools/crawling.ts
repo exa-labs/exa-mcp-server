@@ -26,9 +26,9 @@ Returns: Full text content and metadata from the page.`,
     async ({ url, maxCharacters }) => {
       const requestId = `crawling_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'crawling_exa');
-      
+
       logger.start(url);
-      
+
       try {
         // Create a fresh axios instance for each request
         const axiosInstance = axios.create({
@@ -51,16 +51,16 @@ Returns: Full text content and metadata from the page.`,
             livecrawl: 'preferred'
           }
         };
-        
+
         checkpoint('crawl_request_prepared');
         logger.log("Sending crawl request to Exa API");
-        
+
         const response = await axiosInstance.post(
           '/contents',
           crawlRequest,
           { timeout: 25000 }
         );
-        
+
         checkpoint('crawl_response_received');
         logger.log("Received response from Exa API");
 
@@ -83,43 +83,44 @@ Returns: Full text content and metadata from the page.`,
             text: JSON.stringify(sanitizeContentsResponse(response.data), null, 2)
           }]
         };
-        
+
         checkpoint('crawl_complete');
         logger.complete();
         return result;
       } catch (error) {
         logger.error(error);
-        
+
         // Check for rate limit error on free MCP
         const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'crawling_exa');
         if (rateLimitResult) {
           return rateLimitResult;
         }
-        
+
         if (axios.isAxiosError(error)) {
-          // Handle Axios errors specifically
           const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
-          
+          const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+          const serverRequestId = error.response?.data?.requestId;
+          const isTransient = !error.response || (typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429));
+          const guidance = isTransient ? 'This error appears to be transient. Please retry the request.' : statusCode === 401 ? 'This error appears to be permanent. Please check your API key.' : 'This error appears to be permanent. Please check your query parameters.';
+
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,
-              text: `Crawling error (${statusCode}): ${errorMessage}`
+              text: `Crawling error (${statusCode}): ${errorMessage}\nRequest ID: ${requestId}${serverRequestId ? ` (Exa ID: ${serverRequestId})` : ''}\n${guidance}`
             }],
             isError: true,
           };
         }
-        
-        // Handle generic errors
+
         return {
           content: [{
             type: "text" as const,
-            text: `Crawling error: ${error instanceof Error ? error.message : String(error)}`
+            text: `Crawling error: ${error instanceof Error ? error.message : String(error)}\nRequest ID: ${requestId}\nPlease retry the request.`
           }],
           isError: true,
         };
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}

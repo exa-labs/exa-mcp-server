@@ -144,6 +144,7 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
           // Handle specific 404 error for task not found
           if (error.response?.status === 404) {
             const errorData = error.response.data as DeepResearchErrorResponse;
+            const serverRequestId = error.response?.data?.requestId;
             logger.log(`Research not found: ${researchId}`);
             return {
               content: [{
@@ -152,7 +153,10 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
                   success: false,
                   error: "Research not found",
                   researchId: researchId,
-                  message: "The specified research ID was not found. Please check the ID or start a new research task using deep_researcher_start."
+                  requestId: requestId,
+                  ...(serverRequestId && { exaRequestId: serverRequestId }),
+                  message: "The specified research ID was not found. Please check the ID or start a new research task using deep_researcher_start.",
+                  errorType: "permanent"
                 }, null, 2)
               }],
               isError: true,
@@ -165,29 +169,30 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
             return rateLimitResult;
           }
           
-          // Handle other Axios errors
           const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
+          const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+          const serverRequestId = error.response?.data?.requestId;
+          const isTransient = !error.response || (typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429));
+          const guidance = isTransient ? 'This error appears to be transient. Please retry the request.' : statusCode === 401 ? 'This error appears to be permanent. Please check your API key.' : 'This error appears to be permanent. Please check your request parameters.';
           
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,
-              text: `Research check error (${statusCode}): ${errorMessage}`
+              text: `Research check error (${statusCode}): ${errorMessage}\nRequest ID: ${requestId}${serverRequestId ? ` (Exa ID: ${serverRequestId})` : ''}\n${guidance}`
             }],
             isError: true,
           };
         }
         
-        // Handle generic errors
         return {
           content: [{
             type: "text" as const,
-            text: `Research check error: ${error instanceof Error ? error.message : String(error)}`
+            text: `Research check error: ${error instanceof Error ? error.message : String(error)}\nRequest ID: ${requestId}\nPlease retry the request.`
           }],
           isError: true,
         };
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

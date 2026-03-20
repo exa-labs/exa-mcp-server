@@ -27,9 +27,9 @@ Returns: Company information from trusted business sources.`,
     async ({ companyName, numResults }) => {
       const requestId = `company_research_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'company_research_exa');
-      
+
       logger.start(companyName);
-      
+
       try {
         // Create a fresh axios instance for each request
         const axiosInstance = axios.create({
@@ -52,16 +52,16 @@ Returns: Company information from trusted business sources.`,
             highlights: true
           }
         };
-        
+
         checkpoint('company_research_request_prepared');
         logger.log("Sending request to Exa API for company research");
-        
+
         const response = await axiosInstance.post<ExaSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
           searchRequest,
           { timeout: 25000 }
         );
-        
+
         checkpoint('company_research_response_received');
         logger.log("Received response from Exa API");
 
@@ -95,50 +95,51 @@ Returns: Company information from trusted business sources.`,
 
         const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
         const header = searchTime != null ? `Search Time: ${searchTime}ms\n\n` : '';
-        
+
         const result = {
           content: [{
             type: "text" as const,
             text: header + formattedResults
           }]
         };
-        
+
         checkpoint('company_research_complete');
         logger.complete();
         return result;
       } catch (error) {
         logger.error(error);
-        
+
         // Check for rate limit error on free MCP
         const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'company_research_exa');
         if (rateLimitResult) {
           return rateLimitResult;
         }
-        
+
         if (axios.isAxiosError(error)) {
-          // Handle Axios errors specifically
           const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
-          
+          const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+          const serverRequestId = error.response?.data?.requestId;
+          const isTransient = !error.response || (typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429));
+          const guidance = isTransient ? 'This error appears to be transient. Please retry the request.' : statusCode === 401 ? 'This error appears to be permanent. Please check your API key.' : 'This error appears to be permanent. Please check your query parameters.';
+
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,
-              text: `Company research error (${statusCode}): ${errorMessage}`
+              text: `Company research error (${statusCode}): ${errorMessage}\nRequest ID: ${requestId}${serverRequestId ? ` (Exa ID: ${serverRequestId})` : ''}\n${guidance}`
             }],
             isError: true,
           };
         }
-        
-        // Handle generic errors
+
         return {
           content: [{
             type: "text" as const,
-            text: `Company research error: ${error instanceof Error ? error.message : String(error)}`
+            text: `Company research error: ${error instanceof Error ? error.message : String(error)}\nRequest ID: ${requestId}\nPlease retry the request.`
           }],
           isError: true,
         };
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}

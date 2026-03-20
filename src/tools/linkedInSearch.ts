@@ -117,25 +117,26 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         }
         
         if (axios.isAxiosError(error)) {
-          // Handle Axios errors specifically
           const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
+          const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+          const serverRequestId = error.response?.data?.requestId;
+          const isTransient = !error.response || (typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429));
+          const guidance = isTransient ? 'This error appears to be transient. Please retry the request.' : statusCode === 401 ? 'This error appears to be permanent. Please check your API key.' : 'This error appears to be permanent. Please check your query parameters.';
           
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,
-              text: `LinkedIn search error (${statusCode}): ${errorMessage}\n\n⚠️ Note: This tool is deprecated. Please use 'people_search_exa' instead.`
+              text: `LinkedIn search error (${statusCode}): ${errorMessage}\nRequest ID: ${requestId}${serverRequestId ? ` (Exa ID: ${serverRequestId})` : ''}\n${guidance}\n\n⚠️ Note: This tool is deprecated. Please use 'people_search_exa' instead.`
             }],
             isError: true,
           };
         }
         
-        // Handle generic errors
         return {
           content: [{
             type: "text" as const,
-            text: `LinkedIn search error: ${error instanceof Error ? error.message : String(error)}\n\n⚠️ Note: This tool is deprecated. Please use 'people_search_exa' instead.`
+            text: `LinkedIn search error: ${error instanceof Error ? error.message : String(error)}\nRequest ID: ${requestId}\nPlease retry the request.\n\n⚠️ Note: This tool is deprecated. Please use 'people_search_exa' instead.`
           }],
           isError: true,
         };
