@@ -79,13 +79,27 @@ Returns: Company information from trusted business sources.`,
 
         const formattedResults = response.data.results.map((r) => {
           const highlights = r.highlights?.join('\n') || '';
-          return `Title: ${r.title}\nURL: ${r.url}\nPublished: ${r.publishedDate || 'N/A'}\nHighlights:\n${highlights}`;
+          const highlightScores = r.highlightScores?.join(', ') || '';
+          const lines = [
+            `Title: ${r.title || 'N/A'}`,
+            `URL: ${r.url}`,
+            `Published: ${r.publishedDate || 'N/A'}`,
+            `Author: ${r.author || 'N/A'}`,
+            `Image: ${r.image || 'N/A'}`,
+            `Favicon: ${r.favicon || 'N/A'}`,
+            `Highlight Scores: ${highlightScores || 'N/A'}`,
+            `Highlights:\n${highlights}`,
+          ];
+          return lines.join('\n');
         }).join('\n\n---\n\n');
+
+        const searchTime = response.data.searchTime;
+        const header = searchTime != null ? `Search Time: ${searchTime}ms\n\n` : '';
         
         const result = {
           content: [{
             type: "text" as const,
-            text: formattedResults
+            text: header + formattedResults
           }]
         };
         
@@ -127,4 +141,4 @@ Returns: Company information from trusted business sources.`,
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
