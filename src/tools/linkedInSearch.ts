@@ -79,13 +79,11 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
 
         const formattedResults = response.data.results.map((r) => {
           const highlights = r.highlights?.join('\n') || '';
-          const highlightScores = r.highlightScores?.join(', ') || '';
           const lines = [
             `Title: ${r.title || 'N/A'}`,
             `URL: ${r.url}`,
             `Published: ${r.publishedDate || 'N/A'}`,
             `Author: ${r.author || 'N/A'}`,
-            `Highlight Scores: ${highlightScores || 'N/A'}`,
             `Highlights:\n${highlights}`,
           ];
           return lines.join('\n');
