@@ -11,11 +11,6 @@ const AVAILABLE_TOOLS = [
   'web_search_advanced_exa',
   'get_code_context_exa',
   'crawling_exa',
-  'deep_researcher_start',
-  'deep_researcher_check',
-  'people_search_exa',
-  'linkedin_search_exa', // Deprecated: use people_search_exa
-  'company_research_exa',
 ];
 
 const configSchema = {
@@ -36,8 +31,8 @@ const configSchema = {
       "title": "Enabled Tools",
       "description": "Comma-separated list of tools to enable. Leave empty for defaults (web_search_exa, get_code_context_exa).",
       "examples": [
-        "web_search_exa,crawling_exa",
-        "web_search_exa,crawling_exa,company_research_exa"
+        "web_search_exa,web_search_advanced_exa",
+        "web_search_exa,web_search_advanced_exa,get_code_context_exa"
       ],
       "x-available-values": AVAILABLE_TOOLS
     },

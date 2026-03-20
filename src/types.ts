@@ -14,8 +14,11 @@ export interface ExaSearchRequest {
     text?: {
       maxCharacters?: number;
     } | boolean;
-    context?: {
+    highlights?: {
       maxCharacters?: number;
+      numSentences?: number;
+      highlightsPerUrl?: number;
+      query?: string;
     } | boolean;
     summary?: {
       query?: string;
@@ -65,23 +68,42 @@ export interface ExaAdvancedSearchRequest {
 }
 
 export interface ExaSearchResult {
-  id: string;
-  title: string;
-  url: string;
-  publishedDate: string;
-  author: string;
-  text: string;
+  id?: string;
+  title?: string | null;
+  url?: string;
+  publishedDate?: string;
+  author?: string;
+  text?: string;
   summary?: string;
   highlights?: string[];
   highlightScores?: number[];
   image?: string;
   favicon?: string;
   score?: number;
+  entities?: Record<string, unknown>[];
+  extras?: {
+    links?: string[];
+    imageLinks?: string[];
+  };
+  subpages?: ExaSearchResult[];
+}
+
+export interface ExaSearchStatus {
+  id: string;
+  status: string;
+  source: string;
+}
+
+export interface ExaCostDollars {
+  total: number;
+  search?: Record<string, number>;
+  contents?: Record<string, number>;
 }
 
 export interface ExaSearchResponse {
   requestId: string;
   autopromptString?: string;
+  autoDate?: string;
   resolvedSearchType: string;
   context?: string;
   output?: {
@@ -95,13 +117,10 @@ export interface ExaSearchResponse {
       confidence: string;
     }>;
   };
+  statuses?: ExaSearchStatus[];
   results: ExaSearchResult[];
   searchTime?: number;
-  costDollars?: {
-    total: number;
-    search?: Record<string, number>;
-    contents?: Record<string, number>;
-  };
+  costDollars?: ExaCostDollars;
 }
 
 // Deep Search API Types
@@ -125,6 +144,7 @@ export interface ExaDeepSearchRequest {
 export interface ExaDeepSearchResponse {
   requestId: string;
   autopromptString?: string;
+  autoDate?: string;
   resolvedSearchType: string;
   output?: {
     content: string | Record<string, unknown>;
@@ -137,13 +157,17 @@ export interface ExaDeepSearchResponse {
       confidence: string;
     }>;
   };
+  statuses?: ExaSearchStatus[];
   results: ExaSearchResult[];
   searchTime?: number;
-  costDollars?: {
-    total: number;
-    search?: Record<string, number>;
-    contents?: Record<string, number>;
-  };
+  costDollars?: ExaCostDollars;
+}
+
+export interface ExaContentsResponse {
+  requestId?: string;
+  results?: ExaSearchResult[];
+  statuses?: ExaSearchStatus[];
+  costDollars?: ExaCostDollars;
 }
 
 // Deep Research API Types (v1)

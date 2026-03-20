@@ -5,12 +5,13 @@ import { API_CONFIG } from "./config.js";
 import { ExaDeepSearchRequest, ExaDeepSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { sanitizeDeepSearchStructuredResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
 export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "deep_search_exa",
-    `Deep search with automatic query expansion for thorough research. Generates multiple search variations to find results from multiple angles, then synthesizes a short answer with citations.
+    `[Deprecated: Use web_search_advanced_exa instead] Deep search with automatic query expansion for thorough research. Generates multiple search variations to find results from multiple angles, then synthesizes a short answer with citations.
 
 Best for: Complex questions needing information from multiple angles.
 Returns: A synthesized answer with citations, plus individual search results with highlights. When structuredOutput is enabled, returns structured JSON instead of markdown.
@@ -106,12 +107,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
 
         // When structured output was requested (via outputSchema or structuredOutput flag), return the raw JSON response
         if (outputSchema || structuredOutput) {
-          const structuredResponse = {
-            output: data.output,
-            results: data.results,
-            searchTime: data.searchTime,
-            costDollars: data.costDollars
-          };
+          const structuredResponse = sanitizeDeepSearchStructuredResponse(data);
 
           const text = JSON.stringify(structuredResponse, null, 2);
           logger.log(`Structured response prepared with ${text.length} characters`);

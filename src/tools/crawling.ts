@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { handleRateLimitError } from "../utils/errorHandler.js";
+import { sanitizeContentsResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
 export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -25,9 +26,9 @@ Returns: Full text content and metadata from the page.`,
     async ({ url, maxCharacters }) => {
       const requestId = `crawling_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'crawling_exa');
-      
+
       logger.start(url);
-      
+
       try {
         // Create a fresh axios instance for each request
         const axiosInstance = axios.create({
@@ -50,20 +51,20 @@ Returns: Full text content and metadata from the page.`,
             livecrawl: 'preferred'
           }
         };
-        
+
         checkpoint('crawl_request_prepared');
         logger.log("Sending crawl request to Exa API");
-        
+
         const response = await axiosInstance.post(
           '/contents',
           crawlRequest,
           { timeout: 25000 }
         );
-        
+
         checkpoint('crawl_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data || !response.data.results) {
+        if (!response.data || !response.data.results || response.data.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint('crawl_complete');
           return {
@@ -75,33 +76,33 @@ Returns: Full text content and metadata from the page.`,
         }
 
         logger.log(`Successfully crawled content from URL`);
-        
+
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(response.data, null, 2)
+            text: JSON.stringify(sanitizeContentsResponse(response.data), null, 2)
           }]
         };
-        
+
         checkpoint('crawl_complete');
         logger.complete();
         return result;
       } catch (error) {
         logger.error(error);
-        
+
         // Check for rate limit error on free MCP
         const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'crawling_exa');
         if (rateLimitResult) {
           return rateLimitResult;
         }
-        
+
         if (axios.isAxiosError(error)) {
           const statusCode = error.response?.status || 'unknown';
           const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
           const serverRequestId = error.response?.data?.requestId;
           const isTransient = !error.response || (typeof statusCode === 'number' && (statusCode >= 500 || statusCode === 429));
           const guidance = isTransient ? 'This error appears to be transient. Please retry the request.' : statusCode === 401 ? 'This error appears to be permanent. Please check your API key.' : 'This error appears to be permanent. Please check your query parameters.';
-          
+
           logger.log(`Axios error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
@@ -111,7 +112,7 @@ Returns: Full text content and metadata from the page.`,
             isError: true,
           };
         }
-        
+
         return {
           content: [{
             type: "text" as const,
@@ -122,4 +123,4 @@ Returns: Full text content and metadata from the page.`,
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}
