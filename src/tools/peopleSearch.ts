@@ -88,8 +88,6 @@ Returns: Profile information and links.`,
             `URL: ${r.url}`,
             `Published: ${r.publishedDate || 'N/A'}`,
             `Author: ${r.author || 'N/A'}`,
-            `Image: ${r.image || 'N/A'}`,
-            `Favicon: ${r.favicon || 'N/A'}`,
             `Highlight Scores: ${highlightScores || 'N/A'}`,
             `Highlights:\n${highlights}`,
           ];
