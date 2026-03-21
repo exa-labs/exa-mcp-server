@@ -4,7 +4,7 @@ node_modules/
 # Build outputs
 build/
 dist/
-.smithery/
+smithery/
 
 # Environment variables
 .env
