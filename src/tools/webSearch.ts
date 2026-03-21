@@ -23,6 +23,7 @@ Returns: Clean text content from top search results, ready for LLM use.`,
       category: z.enum(['company', 'research paper', 'people']).optional().describe("Filter results to a specific category - 'company': company websites and profiles, 'research paper': academic papers and research, 'people': LinkedIn profiles and personal bios"),
     },
     {
+      title: "Web Search",
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true
