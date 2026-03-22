@@ -44,7 +44,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "agnost": "^0.1.10",
-    "axios": "^1.7.8",
+    "axios": "^1.13.6",
+    "exa-js": "^2.8.0",
     "mcp-handler": "^1.0.4",
     "whoami": "^0.0.3",
     "zod": "^3.22.4"

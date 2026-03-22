@@ -1,5 +1,5 @@
 import { z } from "zod";
-import axios from "axios";
+import { Exa, ExaError } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { DeepResearchRequest, DeepResearchStartResponse } from "../types.js";
@@ -32,17 +32,7 @@ Important: Call deep_researcher_check with the returned research ID to get the r
       logger.start(instructions);
       
       try {
-        // Create a fresh axios instance for each request
-        const axiosInstance = axios.create({
-          baseURL: API_CONFIG.BASE_URL,
-          headers: {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
-            'x-exa-integration': 'deep-research-mcp'
-          },
-          timeout: 25000
-        });
+        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
 
         const researchRequest: DeepResearchRequest = {
           model: model || 'exa-research-fast',
@@ -55,16 +45,18 @@ Important: Call deep_researcher_check with the returned research ID to get the r
         });
         logger.log(`Starting research with model: ${researchRequest.model}`);
         
-        const response = await axiosInstance.post<DeepResearchStartResponse>(
+        const response = await exa.request<DeepResearchStartResponse>(
           API_CONFIG.ENDPOINTS.RESEARCH,
+          'POST',
           researchRequest,
-          { timeout: 25000 }
+          undefined,
+          { 'x-exa-integration': 'deep-research-mcp' }
         );
-        
-        checkpoint('deep_research_start_response_received');
-        logger.log(`Research task started with ID: ${response.data.researchId}`);
 
-        if (!response.data || !response.data.researchId) {
+        checkpoint('deep_research_start_response_received');
+        logger.log(`Research task started with ID: ${response.researchId}`);
+
+        if (!response || !response.researchId) {
           logger.log("Warning: Empty or invalid response from Exa Research API");
           checkpoint('deep_research_start_complete');
           return {
@@ -81,11 +73,11 @@ Important: Call deep_researcher_check with the returned research ID to get the r
             type: "text" as const,
             text: JSON.stringify({
               success: true,
-              researchId: response.data.researchId,
+              researchId: response.researchId,
               model: researchRequest.model,
               instructions: instructions,
-              message: `Deep research task started successfully with ${researchRequest.model} model. IMMEDIATELY use deep_researcher_check with research ID '${response.data.researchId}' to monitor progress. Keep checking every few seconds until status is 'completed' to get the research results.`,
-              nextStep: `Call deep_researcher_check with researchId: "${response.data.researchId}"`
+              message: `Deep research task started successfully with ${researchRequest.model} model. IMMEDIATELY use deep_researcher_check with research ID '${response.researchId}' to monitor progress. Keep checking every few seconds until status is 'completed' to get the research results.`,
+              nextStep: `Call deep_researcher_check with researchId: "${response.researchId}"`
             }, null, 2)
           }]
         };
@@ -102,12 +94,11 @@ Important: Call deep_researcher_check with the returned research ID to get the r
           return rateLimitResult;
         }
         
-        if (axios.isAxiosError(error)) {
-          // Handle Axios errors specifically
-          const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
-          
-          logger.log(`Axios error (${statusCode}): ${errorMessage}`);
+        if (error instanceof ExaError) {
+          const statusCode = error.statusCode || 'unknown';
+          const errorMessage = error.message;
+
+          logger.log(`Exa error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,

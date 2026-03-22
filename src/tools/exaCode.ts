@@ -1,5 +1,5 @@
 import { z } from "zod";
-import axios from "axios";
+import { Exa, ExaError } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaCodeRequest, ExaCodeResponse } from "../types.js";
@@ -30,17 +30,7 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
       logger.start(`Searching for code context: ${query}`);
       
       try {
-        // Create a fresh axios instance for each request
-        const axiosInstance = axios.create({
-          baseURL: API_CONFIG.BASE_URL,
-          headers: {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
-            'x-exa-integration': 'exa-code-mcp'
-          },
-          timeout: 30000
-        });
+        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
 
         const exaCodeRequest: ExaCodeRequest = {
           query,
@@ -50,16 +40,18 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
         checkpoint('code_context_request_prepared');
         logger.log("Sending code context request to Exa API");
         
-        const response = await axiosInstance.post<ExaCodeResponse>(
+        const response = await exa.request<ExaCodeResponse>(
           API_CONFIG.ENDPOINTS.CONTEXT,
+          'POST',
           exaCodeRequest,
-          { timeout: 30000 }
+          undefined,
+          { 'x-exa-integration': 'exa-code-mcp' }
         );
-        
+
         checkpoint('code_context_response_received');
         logger.log("Received code context response from Exa API");
 
-        if (!response.data) {
+        if (!response) {
           logger.log("Warning: Empty response from Exa Code API");
           checkpoint('code_context_complete');
           return {
@@ -70,12 +62,12 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
           };
         }
 
-        logger.log(`Code search completed with ${response.data.resultsCount || 0} results`);
-        
+        logger.log(`Code search completed with ${response.resultsCount || 0} results`);
+
         // Return the actual code content from the response field
-        const codeContent = typeof response.data.response === 'string' 
-          ? response.data.response 
-          : JSON.stringify(response.data.response, null, 2);
+        const codeContent = typeof response.response === 'string'
+          ? response.response
+          : JSON.stringify(response.response, null, 2);
         
         const result = {
           content: [{
@@ -96,12 +88,11 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
           return rateLimitResult;
         }
         
-        if (axios.isAxiosError(error)) {
-          // Handle Axios errors specifically
-          const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
-          
-          logger.log(`Axios error (${statusCode}): ${errorMessage}`);
+        if (error instanceof ExaError) {
+          const statusCode = error.statusCode || 'unknown';
+          const errorMessage = error.message;
+
+          logger.log(`Exa error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,
