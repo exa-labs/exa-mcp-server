@@ -1,5 +1,5 @@
 import { z } from "zod";
-import axios from "axios";
+import { Exa, ExaError } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaDeepSearchRequest, ExaDeepSearchResponse } from "../types.js";
@@ -38,16 +38,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
       logger.start(objective);
 
       try {
-        const axiosInstance = axios.create({
-          baseURL: API_CONFIG.BASE_URL,
-          headers: {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
-            'x-exa-integration': 'deep-search-mcp'
-          },
-          timeout: 55000
-        });
+        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
 
         const searchRequest: ExaDeepSearchRequest = {
           query: objective,
@@ -83,16 +74,18 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         checkpoint('deep_search_request_prepared');
         logger.log("Sending deep search request to Exa API");
 
-        const response = await axiosInstance.post<ExaDeepSearchResponse>(
+        const response = await exa.request<ExaDeepSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
+          'POST',
           searchRequest,
-          { timeout: 55000 }
+          undefined,
+          { 'x-exa-integration': 'deep-search-mcp' }
         );
 
         checkpoint('deep_search_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data) {
+        if (!response) {
           logger.log("Warning: Empty response from Exa API");
           checkpoint('deep_search_complete');
           return {
@@ -103,7 +96,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           };
         }
 
-        const data = response.data;
+        const data = response;
 
         // When structured output was requested (via outputSchema or structuredOutput flag), return the raw JSON response
         if (outputSchema || structuredOutput) {
@@ -189,11 +182,11 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           return rateLimitResult;
         }
 
-        if (axios.isAxiosError(error)) {
-          const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
+        if (error instanceof ExaError) {
+          const statusCode = error.statusCode || 'unknown';
+          const errorMessage = error.message;
 
-          logger.log(`Axios error (${statusCode}): ${errorMessage}`);
+          logger.log(`Exa error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,

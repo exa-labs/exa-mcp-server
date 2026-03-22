@@ -1,5 +1,5 @@
 import { z } from "zod";
-import axios from "axios";
+import { Exa, ExaError } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
@@ -31,17 +31,7 @@ Returns: Company information from trusted business sources.`,
       logger.start(companyName);
       
       try {
-        // Create a fresh axios instance for each request
-        const axiosInstance = axios.create({
-          baseURL: API_CONFIG.BASE_URL,
-          headers: {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
-            'x-exa-integration': 'company-research-mcp'
-          },
-          timeout: 25000
-        });
+        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
 
         const searchRequest: ExaSearchRequest = {
           query: `${companyName} company`,
@@ -56,16 +46,18 @@ Returns: Company information from trusted business sources.`,
         checkpoint('company_research_request_prepared');
         logger.log("Sending request to Exa API for company research");
         
-        const response = await axiosInstance.post<ExaSearchResponse>(
+        const response = await exa.request<ExaSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
+          'POST',
           searchRequest,
-          { timeout: 25000 }
+          undefined,
+          { 'x-exa-integration': 'company-research-mcp' }
         );
-        
+
         checkpoint('company_research_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data || !response.data.results || response.data.results.length === 0) {
+        if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint('company_research_complete');
           return {
@@ -76,9 +68,9 @@ Returns: Company information from trusted business sources.`,
           };
         }
 
-        logger.log(`Found ${response.data.results.length} company research results`);
+        logger.log(`Found ${response.results.length} company research results`);
 
-        const sanitized = sanitizeSearchResponse(response.data);
+        const sanitized = sanitizeSearchResponse(response);
         const results = Array.isArray(sanitized.results) ? sanitized.results : [];
 
         const formattedResults = results.map((r) => {
@@ -115,12 +107,11 @@ Returns: Company information from trusted business sources.`,
           return rateLimitResult;
         }
         
-        if (axios.isAxiosError(error)) {
-          // Handle Axios errors specifically
-          const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
-          
-          logger.log(`Axios error (${statusCode}): ${errorMessage}`);
+        if (error instanceof ExaError) {
+          const statusCode = error.statusCode || 'unknown';
+          const errorMessage = error.message;
+
+          logger.log(`Exa error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,
