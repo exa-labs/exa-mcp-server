@@ -72,13 +72,58 @@ function initializeRateLimiters(): boolean {
   }
 }
 
+/**
+ * Extract the client IP from the request using platform-trusted headers.
+ *
+ * On Vercel, `x-forwarded-for` is set by the edge network with the real client
+ * IP as the *rightmost* entry (Vercel appends it, so clients cannot spoof it).
+ * `x-real-ip` is also set by Vercel's edge to the connecting IP.
+ *
+ * We intentionally do NOT trust `cf-connecting-ip` because it is only set by
+ * Cloudflare — when the deployment runs directly on Vercel (not behind
+ * Cloudflare), an attacker can supply an arbitrary value for that header to
+ * bypass rate limiting.
+ *
+ * Preference order:
+ *   1. x-real-ip          — set by Vercel edge, single trusted value
+ *   2. x-forwarded-for    — last (rightmost) entry appended by the platform
+ *   3. 'unknown'          — safe fallback (will be rate-limited as one bucket)
+ */
 function getClientIp(request: Request): string {
-  const cfConnectingIp = request.headers.get('cf-connecting-ip');
+  // x-real-ip is set by Vercel's edge network and is the most reliable source
   const xRealIp = request.headers.get('x-real-ip');
-  const xForwardedFor = request.headers.get('x-forwarded-for');
-  const xForwardedForFirst = xForwardedFor?.split(',')[0]?.trim();
+  if (xRealIp) {
+    return xRealIp.trim();
+  }
 
-  return cfConnectingIp ?? xRealIp ?? xForwardedForFirst ?? 'unknown';
+  // Fallback: use the last entry in x-forwarded-for (appended by the platform)
+  const xForwardedFor = request.headers.get('x-forwarded-for');
+  if (xForwardedFor) {
+    const parts = xForwardedFor.split(',');
+    const lastEntry = parts[parts.length - 1]?.trim();
+    if (lastEntry) {
+      return lastEntry;
+    }
+  }
+
+  return 'unknown';
+}
+
+/**
+ * Redact sensitive query parameters (e.g. exaApiKey) from a URL string
+ * so that API keys are not leaked into logs.
+ */
+function redactUrl(urlString: string): string {
+  try {
+    const url = new URL(urlString);
+    if (url.searchParams.has('exaApiKey')) {
+      url.searchParams.set('exaApiKey', 'REDACTED');
+    }
+    return url.toString();
+  } catch {
+    // If URL parsing fails, do a best-effort regex redaction
+    return urlString.replace(/([?&]exaApiKey=)[^&]*/gi, '$1REDACTED');
+  }
 }
 
 const RATE_LIMIT_ERROR_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
@@ -327,7 +372,7 @@ async function handleRequest(request: Request): Promise<Response> {
   const config = getConfigFromRequest(request);
   
   if (config.debug) {
-    console.log(`[EXA-MCP] Request URL: ${request.url}`);
+    console.log(`[EXA-MCP] Request URL: ${redactUrl(request.url)}`);
     console.log(`[EXA-MCP] Enabled tools: ${config.enabledTools?.join(', ') || 'default'}`);
     console.log(`[EXA-MCP] API key provided: ${config.userProvidedApiKey ? 'yes (user provided via header or query param)' : 'no (using env var)'}`);
   }
@@ -390,4 +435,3 @@ async function handleRequest(request: Request): Promise<Response> {
 
 // Export handlers for Vercel Functions
 export { handleRequest as GET, handleRequest as POST, handleRequest as DELETE };
-
