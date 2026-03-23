@@ -157,8 +157,11 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           parts.push(`## Results\n\n${resultLines.join('\n\n---\n\n')}`);
         }
 
+        const searchTime = typeof data.searchTime === 'number' ? data.searchTime : undefined;
+        const header = searchTime != null ? `Search Time: ${searchTime}ms\n\n` : '';
+
         const text = parts.length > 0
-          ? parts.join('\n\n---\n\n')
+          ? header + parts.join('\n\n---\n\n')
           : "No results found. Please try a different query.";
 
         logger.log(`Response prepared with ${text.length} characters`);
