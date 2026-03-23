@@ -75,13 +75,9 @@ export function formatToolError(
 
   if (error instanceof ExaError) {
     const statusCode = error.statusCode || 'unknown';
-    const isTransient = typeof statusCode === 'number' && TRANSIENT_STATUS_CODES.has(statusCode);
     const lines = [
       `${toolName} error (${statusCode}): ${error.message}`,
       ...(error.timestamp ? [`Timestamp: ${error.timestamp}`] : []),
-      isTransient
-        ? 'This is a transient server error. The request was retried automatically but continued to fail. It may succeed if you try again.'
-        : 'This error is likely permanent. Please check your request parameters.',
     ];
     return { content: [{ type: "text" as const, text: lines.join('\n') }], isError: true };
   }
