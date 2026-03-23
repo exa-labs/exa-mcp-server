@@ -4,7 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { DeepResearchCheckResponse, DeepResearchErrorResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { handleRateLimitError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
 // Helper function to create a delay
@@ -45,13 +45,13 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
         logger.log(`Checking status for research: ${researchId}`);
         
         checkpoint('deep_research_check_request_prepared');
-        const response = await exa.request<DeepResearchCheckResponse>(
+        const response = await retryWithBackoff(() => exa.request<DeepResearchCheckResponse>(
           `${API_CONFIG.ENDPOINTS.RESEARCH}/${researchId}`,
           'GET',
           undefined,
           undefined,
           { 'x-exa-integration': 'deep-research-mcp' }
-        );
+        ));
 
         checkpoint('deep_research_check_response_received');
         logger.log(`Task status: ${response.status}`);
@@ -133,53 +133,25 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
         return result;
       } catch (error) {
         logger.error(error);
-        
-        if (error instanceof ExaError) {
-          // Handle specific 404 error for task not found
-          if (error.statusCode === 404) {
-            logger.log(`Research not found: ${researchId}`);
-            return {
-              content: [{
-                type: "text" as const,
-                text: JSON.stringify({
-                  success: false,
-                  error: "Research not found",
-                  researchId: researchId,
-                  message: "The specified research ID was not found. Please check the ID or start a new research task using deep_researcher_start."
-                }, null, 2)
-              }],
-              isError: true,
-            };
-          }
 
-          // Check for rate limit error on free MCP
-          const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'deep_researcher_check');
-          if (rateLimitResult) {
-            return rateLimitResult;
-          }
-
-          // Handle other Exa errors
-          const statusCode = error.statusCode || 'unknown';
-          const errorMessage = error.message;
-
-          logger.log(`Exa error (${statusCode}): ${errorMessage}`);
+        // Handle specific 404 error for task not found
+        if (error instanceof ExaError && error.statusCode === 404) {
+          logger.log(`Research not found: ${researchId}`);
           return {
             content: [{
               type: "text" as const,
-              text: `Research check error (${statusCode}): ${errorMessage}`
+              text: JSON.stringify({
+                success: false,
+                error: "Research not found",
+                researchId: researchId,
+                message: "The specified research ID was not found. Please check the ID or start a new research task using deep_researcher_start."
+              }, null, 2)
             }],
             isError: true,
           };
         }
-        
-        // Handle generic errors
-        return {
-          content: [{
-            type: "text" as const,
-            text: `Research check error: ${error instanceof Error ? error.message : String(error)}`
-          }],
-          isError: true,
-        };
+
+        return formatToolError(error, 'deep_researcher_check', config?.userProvidedApiKey);
       }
     }
   );

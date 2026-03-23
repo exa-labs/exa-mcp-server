@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { Exa, ExaError } from "exa-js";
+import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { handleRateLimitError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost"
 
@@ -77,13 +77,13 @@ If highlights are insufficient, follow up with crawling_exa on the best URLs.`,
         checkpoint('web_search_request_prepared');
         logger.log("Sending request to Exa API");
 
-        const response = await exa.request<ExaSearchResponse>(
+        const response = await retryWithBackoff(() => exa.request<ExaSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
           'POST',
           searchRequest,
           undefined,
           { 'x-exa-integration': 'web-search-mcp' }
-        );
+        ));
 
         checkpoint('exa_search_response_received');
         logger.log("Received response from Exa API");
@@ -134,35 +134,7 @@ If highlights are insufficient, follow up with crawling_exa on the best URLs.`,
         return result;
       } catch (error) {
         logger.error(error);
-        
-        // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'web_search_exa');
-        if (rateLimitResult) {
-          return rateLimitResult;
-        }
-        
-        if (error instanceof ExaError) {
-          const statusCode = error.statusCode || 'unknown';
-          const errorMessage = error.message;
-
-          logger.log(`Exa error (${statusCode}): ${errorMessage}`);
-          return {
-            content: [{
-              type: "text" as const,
-              text: `Search error (${statusCode}): ${errorMessage}`
-            }],
-            isError: true,
-          };
-        }
-        
-        // Handle generic errors
-        return {
-          content: [{
-            type: "text" as const,
-            text: `Search error: ${error instanceof Error ? error.message : String(error)}`
-          }],
-          isError: true,
-        };
+        return formatToolError(error, 'web_search_exa', config?.userProvidedApiKey);
       }
     }
   );

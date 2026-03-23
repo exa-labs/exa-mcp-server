@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { Exa, ExaError } from "exa-js";
+import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaCodeRequest, ExaCodeResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { handleRateLimitError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
 export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -40,13 +40,13 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
         checkpoint('code_context_request_prepared');
         logger.log("Sending code context request to Exa API");
         
-        const response = await exa.request<ExaCodeResponse>(
+        const response = await retryWithBackoff(() => exa.request<ExaCodeResponse>(
           API_CONFIG.ENDPOINTS.CONTEXT,
           'POST',
           exaCodeRequest,
           undefined,
           { 'x-exa-integration': 'exa-code-mcp' }
-        );
+        ));
 
         checkpoint('code_context_response_received');
         logger.log("Received code context response from Exa API");
@@ -81,35 +81,7 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
         return result;
       } catch (error) {
         logger.error(error);
-        
-        // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'get_code_context_exa');
-        if (rateLimitResult) {
-          return rateLimitResult;
-        }
-        
-        if (error instanceof ExaError) {
-          const statusCode = error.statusCode || 'unknown';
-          const errorMessage = error.message;
-
-          logger.log(`Exa error (${statusCode}): ${errorMessage}`);
-          return {
-            content: [{
-              type: "text" as const,
-              text: `Code search error (${statusCode}): ${errorMessage}. Please check your query and try again.`
-            }],
-            isError: true,
-          };
-        }
-        
-        // Handle generic errors
-        return {
-          content: [{
-            type: "text" as const,
-            text: `Code search error: ${error instanceof Error ? error.message : String(error)}`
-          }],
-          isError: true,
-        };
+        return formatToolError(error, 'get_code_context_exa', config?.userProvidedApiKey);
       }
     }
   );

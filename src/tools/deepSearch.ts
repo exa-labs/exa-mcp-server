@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { Exa, ExaError } from "exa-js";
+import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaDeepSearchRequest, ExaDeepSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { handleRateLimitError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeDeepSearchStructuredResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
@@ -74,13 +74,13 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         checkpoint('deep_search_request_prepared');
         logger.log("Sending deep search request to Exa API");
 
-        const response = await exa.request<ExaDeepSearchResponse>(
+        const response = await retryWithBackoff(() => exa.request<ExaDeepSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
           'POST',
           searchRequest,
           undefined,
           { 'x-exa-integration': 'deep-search-mcp' }
-        );
+        ));
 
         checkpoint('deep_search_response_received');
         logger.log("Received response from Exa API");
@@ -176,33 +176,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
       } catch (error) {
         checkpoint('deep_search_complete');
         logger.error(error);
-
-        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'deep_search_exa');
-        if (rateLimitResult) {
-          return rateLimitResult;
-        }
-
-        if (error instanceof ExaError) {
-          const statusCode = error.statusCode || 'unknown';
-          const errorMessage = error.message;
-
-          logger.log(`Exa error (${statusCode}): ${errorMessage}`);
-          return {
-            content: [{
-              type: "text" as const,
-              text: `Deep search error (${statusCode}): ${errorMessage}`
-            }],
-            isError: true,
-          };
-        }
-
-        return {
-          content: [{
-            type: "text" as const,
-            text: `Deep search error: ${error instanceof Error ? error.message : String(error)}`
-          }],
-          isError: true,
-        };
+        return formatToolError(error, 'deep_search_exa', config?.userProvidedApiKey);
       }
     }
   );

@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { Exa, ExaError } from "exa-js";
+import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { handleRateLimitError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeContentsResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
@@ -74,13 +74,13 @@ Returns: Clean text content and metadata from the page(s).`,
         checkpoint('crawl_request_prepared');
         logger.log("Sending crawl request to Exa API");
 
-        const response = await exa.request<any>(
+        const response = await retryWithBackoff(() => exa.request<any>(
           '/contents',
           'POST',
           crawlRequest,
           undefined,
           { 'x-exa-integration': 'crawling-mcp' }
-        );
+        ));
 
         checkpoint('crawl_response_received');
         logger.log("Received response from Exa API");
@@ -127,35 +127,7 @@ Returns: Clean text content and metadata from the page(s).`,
         return result;
       } catch (error) {
         logger.error(error);
-        
-        // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'crawling_exa');
-        if (rateLimitResult) {
-          return rateLimitResult;
-        }
-        
-        if (error instanceof ExaError) {
-          const statusCode = error.statusCode || 'unknown';
-          const errorMessage = error.message;
-
-          logger.log(`Exa error (${statusCode}): ${errorMessage}`);
-          return {
-            content: [{
-              type: "text" as const,
-              text: `Crawling error (${statusCode}): ${errorMessage}`
-            }],
-            isError: true,
-          };
-        }
-        
-        // Handle generic errors
-        return {
-          content: [{
-            type: "text" as const,
-            text: `Crawling error: ${error instanceof Error ? error.message : String(error)}`
-          }],
-          isError: true,
-        };
+        return formatToolError(error, 'crawling_exa', config?.userProvidedApiKey);
       }
     }
   );
