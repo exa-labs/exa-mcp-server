@@ -120,12 +120,14 @@ If highlights are insufficient, follow up with crawling_exa on the best URLs.`,
         }).join('\n\n---\n\n');
 
         const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
-        const header = searchTime != null ? `Search Time: ${searchTime}ms\n\n` : '';
-        
+
         const result = {
           content: [{
             type: "text" as const,
-            text: header + formattedResults
+            text: formattedResults,
+            _meta: {
+              searchTime: searchTime
+            }
           }]
         };
         

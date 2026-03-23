@@ -184,13 +184,18 @@ Returns: Search results with optional highlights, summaries, and subpage content
           };
         }
 
-        const resultText = JSON.stringify(sanitizeSearchResponse(response));
+        const sanitized = sanitizeSearchResponse(response);
+        const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
+        const resultText = JSON.stringify(sanitized);
         logger.log(`Response prepared with ${resultText.length} characters`);
 
         const result = {
           content: [{
             type: "text" as const,
-            text: resultText
+            text: resultText,
+            _meta: {
+              searchTime: searchTime
+            }
           }]
         };
 

@@ -68,11 +68,16 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
         const codeContent = typeof response.response === 'string'
           ? response.response
           : JSON.stringify(response.response, null, 2);
-        
+
+        const searchTime = typeof response.searchTime === 'number' ? response.searchTime : undefined;
+
         const result = {
           content: [{
             type: "text" as const,
-            text: codeContent
+            text: codeContent,
+            _meta: {
+              searchTime: searchTime
+            }
           }]
         };
         

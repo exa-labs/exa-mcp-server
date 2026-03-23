@@ -115,10 +115,15 @@ Returns: Clean text content and metadata from the page(s).`,
         const results = Array.isArray(sanitized.results) ? sanitized.results : [];
         const formattedText = formatCrawlResults(results, urlErrors);
 
+        const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
+
         const result = {
           content: [{
             type: "text" as const,
-            text: formattedText
+            text: formattedText,
+            _meta: { 
+              searchTime: searchTime
+            }
           }]
         };
 
