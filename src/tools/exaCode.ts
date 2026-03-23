@@ -70,12 +70,14 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
           : JSON.stringify(response.response, null, 2);
 
         const searchTime = typeof response.searchTime === 'number' ? response.searchTime : undefined;
-        const header = searchTime != null ? `Search Time: ${searchTime}ms\n\n` : '';
 
         const result = {
           content: [{
             type: "text" as const,
-            text: header + codeContent
+            text: codeContent,
+            _meta: {
+              searchTime: searchTime
+            }
           }]
         };
         

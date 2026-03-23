@@ -116,12 +116,14 @@ Returns: Clean text content and metadata from the page(s).`,
         const formattedText = formatCrawlResults(results, urlErrors);
 
         const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
-        const header = searchTime != null ? `Search Time: ${searchTime}ms\n\n` : '';
 
         const result = {
           content: [{
             type: "text" as const,
-            text: header + formattedText
+            text: formattedText,
+            _meta: { 
+              searchTime: searchTime
+            }
           }]
         };
 

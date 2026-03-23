@@ -86,13 +86,15 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
         }).join('\n\n---\n\n');
 
         const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
-        const header = searchTime != null ? `Search Time: ${searchTime}ms\n\n` : '';
         const deprecationNotice = "\n\n⚠️ DEPRECATION NOTICE: This tool (linkedin_search_exa) is deprecated. Please use 'people_search_exa' instead for future requests.";
-        
+
         const result = {
           content: [{
             type: "text" as const,
-            text: header + formattedResults + deprecationNotice
+            text: formattedResults + deprecationNotice,
+            _meta: {
+              searchTime: searchTime
+            }
           }]
         };
         

@@ -158,10 +158,9 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         }
 
         const searchTime = typeof data.searchTime === 'number' ? data.searchTime : undefined;
-        const header = searchTime != null ? `Search Time: ${searchTime}ms\n\n` : '';
 
         const text = parts.length > 0
-          ? header + parts.join('\n\n---\n\n')
+          ? parts.join('\n\n---\n\n')
           : "No results found. Please try a different query.";
 
         logger.log(`Response prepared with ${text.length} characters`);
@@ -169,7 +168,10 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         const result = {
           content: [{
             type: "text" as const,
-            text
+            text,
+            _meta: {
+              searchTime: searchTime
+            }
           }]
         };
 
