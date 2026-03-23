@@ -1,5 +1,5 @@
 import { z } from "zod";
-import axios from "axios";
+import { Exa, ExaError } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
@@ -8,68 +8,87 @@ import { handleRateLimitError } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost"
 
+function resolveFreshness(freshness?: string, category?: string): { startPublishedDate?: string; maxAgeHours?: number } {
+  if (!freshness || freshness === 'any') return {};
+  if (category === 'company' || category === 'people') return {};
+  const offsets: Record<string, number> = {
+    '24h': 864e5,
+    'week': 6048e5,
+    'month': 2592e6,
+    'year': 31536e6,
+  };
+  const offset = offsets[freshness];
+  if (!offset) return {};
+  const startPublishedDate = new Date(Date.now() - offset).toISOString().split('T')[0];
+  const maxAgeHours = freshness === '24h' || freshness === 'week' ? 0 : undefined;
+  return { startPublishedDate, maxAgeHours };
+}
+
 export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "web_search_exa",
     `Search the web for any topic and get clean, ready-to-use content.
 
 Best for: Finding current information, news, facts, or answering questions about any topic.
-Returns: Clean text content from top search results, ready for LLM use.`,
+Returns: Clean text content from top search results, ready for LLM use.
+
+Query tips: describe the ideal page, not keywords. "blog post comparing React and Vue performance" not "React vs Vue".
+If highlights are insufficient, follow up with crawling_exa on the best URLs.`,
     {
-      query: z.string().describe("Websearch query"),
-      numResults: z.coerce.number().optional().describe("Number of search results to return (must be a number, default: 8)"),
+      query: z.string().describe("Natural language search query. Should be a semantically rich description of the ideal page, not just keywords."),
+      numResults: z.coerce.number().min(1).max(100).optional().describe("Number of search results to return (must be a number, default: 8)"),
       livecrawl: z.enum(['fallback', 'preferred']).optional().describe("Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')"),
       type: z.enum(['auto', 'fast']).optional().describe("Search type - 'auto': balanced search (default), 'fast': quick results"),
-      category: z.enum(['company', 'research paper', 'people']).optional().describe("Filter results to a specific category - 'company': company websites and profiles, 'research paper': academic papers and research, 'people': LinkedIn profiles and personal bios"),
+      category: z.enum(['company', 'research paper', 'news', 'tweet', 'personal site', 'people', 'financial report']).optional().describe("Filter results to a specific category"),
+      freshness: z.enum(['24h', 'week', 'month', 'year', 'any']).optional().describe("How recent results should be. Only set when recency matters."),
+      includeDomains: z.array(z.string()).optional().describe("List of domains to include in the search. If specified, results will only come from these domains."),
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ query, numResults, livecrawl, type, category }) => {
+    async ({ query, numResults, livecrawl, type, category, freshness, includeDomains }) => {
       const requestId = `web_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'web_search_exa');
-      
+
       logger.start(query);
-      
+
       try {
-        // Create a fresh axios instance for each request
-        const axiosInstance = axios.create({
-          baseURL: API_CONFIG.BASE_URL,
-          headers: {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
-            'x-exa-integration': 'web-search-mcp'
-          },
-          timeout: 25000
-        });
+        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
+
+        const { startPublishedDate, maxAgeHours } = resolveFreshness(freshness, category);
 
         const searchRequest: ExaSearchRequest = {
           query,
           type: type || "auto",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           ...(category && { category }),
+          ...(includeDomains?.length && { includeDomains }),
+          ...(startPublishedDate && { startPublishedDate }),
           contents: {
-            highlights: true,
-            livecrawl: livecrawl || 'fallback'
+            highlights: { query },
+            text: { maxCharacters: 300 },
+            livecrawl: livecrawl || 'fallback',
+            ...(maxAgeHours !== undefined && { maxAgeHours } as any),
           }
         };
-        
+
         checkpoint('web_search_request_prepared');
         logger.log("Sending request to Exa API");
-        
-        const response = await axiosInstance.post<ExaSearchResponse>(
+
+        const response = await exa.request<ExaSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
+          'POST',
           searchRequest,
-          { timeout: 25000 }
+          undefined,
+          { 'x-exa-integration': 'web-search-mcp' }
         );
-        
+
         checkpoint('exa_search_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data || !response.data.results || response.data.results.length === 0) {
+        if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint('web_search_complete');
           return {
@@ -80,20 +99,23 @@ Returns: Clean text content from top search results, ready for LLM use.`,
           };
         }
 
-        logger.log(`Received ${response.data.results.length} results with highlights`);
+        logger.log(`Received ${response.results.length} results with highlights`);
 
-        const sanitized = sanitizeSearchResponse(response.data);
+        const sanitized = sanitizeSearchResponse(response);
         const results = Array.isArray(sanitized.results) ? sanitized.results : [];
 
         const formattedResults = results.map((r) => {
-          const highlights = Array.isArray(r.highlights) ? r.highlights.join('\n') : '';
           const lines = [
             `Title: ${r.title || 'N/A'}`,
             `URL: ${r.url}`,
             `Published: ${r.publishedDate || 'N/A'}`,
             `Author: ${r.author || 'N/A'}`,
-            `Highlights:\n${highlights}`,
           ];
+          if (Array.isArray(r.highlights) && r.highlights.length > 0) {
+            lines.push(`Highlights:\n${r.highlights.join('\n')}`);
+          } else if (r.text) {
+            lines.push(`Text: ${r.text}`);
+          }
           return lines.join('\n');
         }).join('\n\n---\n\n');
 
@@ -119,12 +141,11 @@ Returns: Clean text content from top search results, ready for LLM use.`,
           return rateLimitResult;
         }
         
-        if (axios.isAxiosError(error)) {
-          // Handle Axios errors specifically
-          const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
-          
-          logger.log(`Axios error (${statusCode}): ${errorMessage}`);
+        if (error instanceof ExaError) {
+          const statusCode = error.statusCode || 'unknown';
+          const errorMessage = error.message;
+
+          logger.log(`Exa error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,

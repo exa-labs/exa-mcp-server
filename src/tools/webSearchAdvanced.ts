@@ -1,5 +1,5 @@
 import { z } from "zod";
-import axios from "axios";
+import { Exa, ExaError } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG } from "./config.js";
 import { ExaAdvancedSearchRequest, ExaSearchResponse } from "../types.js";
@@ -69,16 +69,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
       logger.start(params.query);
 
       try {
-        const axiosInstance = axios.create({
-          baseURL: API_CONFIG.BASE_URL,
-          headers: {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
-            'x-exa-integration': 'web-search-advanced-mcp'
-          },
-          timeout: params.livecrawlTimeout || 30000
-        });
+        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
 
         const contents: ExaAdvancedSearchRequest['contents'] = {
           text: params.textMaxCharacters ? { maxCharacters: params.textMaxCharacters } : true,
@@ -171,16 +162,18 @@ Returns: Search results with optional highlights, summaries, and subpage content
         checkpoint('web_search_advanced_request_prepared');
         logger.log("Sending advanced search request to Exa API");
 
-        const response = await axiosInstance.post<ExaSearchResponse>(
+        const response = await exa.request<ExaSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
+          'POST',
           searchRequest,
-          { timeout: params.livecrawlTimeout || 30000 }
+          undefined,
+          { 'x-exa-integration': 'web-search-advanced-mcp' }
         );
 
         checkpoint('exa_advanced_search_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data) {
+        if (!response) {
           logger.log("Warning: Empty response from Exa API");
           checkpoint('web_search_advanced_complete');
           return {
@@ -191,7 +184,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
           };
         }
 
-        const resultText = JSON.stringify(sanitizeSearchResponse(response.data));
+        const resultText = JSON.stringify(sanitizeSearchResponse(response));
         logger.log(`Response prepared with ${resultText.length} characters`);
 
         const result = {
@@ -213,11 +206,11 @@ Returns: Search results with optional highlights, summaries, and subpage content
           return rateLimitResult;
         }
 
-        if (axios.isAxiosError(error)) {
-          const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
+        if (error instanceof ExaError) {
+          const statusCode = error.statusCode || 'unknown';
+          const errorMessage = error.message;
 
-          logger.log(`Axios error (${statusCode}): ${errorMessage}`);
+          logger.log(`Exa error (${statusCode}): ${errorMessage}`);
           return {
             content: [{
               type: "text" as const,
