@@ -130,9 +130,13 @@ function isRateLimitedMethod(body: string): boolean {
   }
 }
 
+/** 7-day TTL for daily bypass tracking buckets. */
+const BYPASS_BUCKET_TTL_SECONDS = 7 * 24 * 60 * 60;
+
 /**
  * Save IP and user agent for bypass requests to Redis for tracking.
- * Uses a sorted set with timestamp as score for easy time-based queries.
+ * Uses daily-bucketed sorted sets (e.g. exa-mcp:bypass:2026-03-24) with a 7-day TTL
+ * to prevent unbounded growth that would hit Upstash's 100MB single-record limit.
  */
 async function saveBypassRequestInfo(ip: string, userAgent: string, debug: boolean): Promise<void> {
   initializeRateLimiters();
@@ -146,9 +150,14 @@ async function saveBypassRequestInfo(ip: string, userAgent: string, debug: boole
   
   try {
     const timestamp = Date.now();
+    const dateKey = new Date(timestamp).toISOString().slice(0, 10);
+    const bucketKey = `exa-mcp:bypass:${dateKey}`;
     const entry = JSON.stringify({ ip, userAgent, timestamp });
     
-    await redisClient.zadd('exa-mcp:bypass-requests', { score: timestamp, member: entry });
+    await Promise.all([
+      redisClient.zadd(bucketKey, { score: timestamp, member: entry }),
+      redisClient.expire(bucketKey, BYPASS_BUCKET_TTL_SECONDS),
+    ]);
     
     if (debug) {
       console.log(`[EXA-MCP] Saved bypass request info for IP: ${ip}`);
