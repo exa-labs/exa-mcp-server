@@ -41,7 +41,7 @@ Use appropriate Exa `category` depending on what you need:
 - `news` → press mentions, interviews, speaker bios
 - No category (`type: "auto"`) → general web results, broader context
 
-Start with `category: "people"` for profile discovery, then use other categories or no category with `livecrawl: "fallback"` for deeper research on specific individuals.
+Start with `category: "people"` for profile discovery, then use other categories or no category for deeper research on specific individuals.
 
 ### Category-Specific Filter Restrictions
 
@@ -94,7 +94,6 @@ web_search_advanced_exa {
 web_search_advanced_exa {
   "query": "Dario Amodei Anthropic CEO background",
   "type": "auto",
-  "livecrawl": "fallback",
   "numResults": 15
 }
 ```

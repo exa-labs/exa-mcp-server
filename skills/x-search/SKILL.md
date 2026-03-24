@@ -38,7 +38,7 @@ The `tweet` category has **LIMITED filter support**. The following parameters ar
 
 ### Additional
 - `additionalQueries` - useful for hashtag variations
-- `livecrawl` / `livecrawlTimeout` - use "preferred" for recent tweets
+- `maxAgeHours` / `livecrawlTimeout` - use `maxAgeHours: 0` for freshest tweets
 
 ## Token Isolation (Critical)
 
@@ -67,7 +67,7 @@ web_search_advanced_exa {
   "startPublishedDate": "2025-01-01",
   "numResults": 20,
   "type": "auto",
-  "livecrawl": "preferred"
+  "maxAgeHours": 0
 }
 ```
 
@@ -89,7 +89,7 @@ web_search_advanced_exa {
   "category": "tweet",
   "numResults": 20,
   "type": "deep",
-  "livecrawl": "preferred"
+  "maxAgeHours": 0
 }
 ```
 

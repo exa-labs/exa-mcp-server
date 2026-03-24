@@ -351,7 +351,7 @@ Use appropriate Exa `category` depending on what you need:
 - `people` → LinkedIn profiles (public data)
 - No category (`type: "auto"`) → general web results, deep dives, broader context
 
-Start with `category: "company"` for discovery, then use other categories or no category with `livecrawl: "fallback"` for deeper research.
+Start with `category: "company"` for discovery, then use other categories or no category for deeper research.
 
 ### Category-Specific Filter Restrictions
 
@@ -393,7 +393,6 @@ web_search_advanced_exa {
 web_search_advanced_exa {
   "query": "Anthropic funding rounds valuation 2024",
   "type": "deep",
-  "livecrawl": "fallback",
   "numResults": 10,
   "includeDomains": ["techcrunch.com", "crunchbase.com", "bloomberg.com"]
 }
@@ -589,7 +588,7 @@ Use appropriate Exa `category` depending on what you need:
 - `news` → press mentions, interviews, speaker bios
 - No category (`type: "auto"`) → general web results, broader context
 
-Start with `category: "people"` for profile discovery, then use other categories or no category with `livecrawl: "fallback"` for deeper research on specific individuals.
+Start with `category: "people"` for profile discovery, then use other categories or no category for deeper research on specific individuals.
 
 ### Category-Specific Filter Restrictions
 
@@ -642,7 +641,6 @@ web_search_advanced_exa {
 web_search_advanced_exa {
   "query": "Dario Amodei Anthropic CEO background",
   "type": "auto",
-  "livecrawl": "fallback",
   "numResults": 15
 }
 ```
@@ -731,7 +729,7 @@ The `financial report` category has one known restriction:
 
 ### Additional
 - `additionalQueries`
-- `livecrawl` / `livecrawlTimeout`
+- `maxAgeHours` / `livecrawlTimeout`
 - `subpages` / `subpageTarget`
 
 ## Token Isolation (Critical)
@@ -872,7 +870,7 @@ The `research paper` category supports ALL available parameters:
 - `userLocation`
 - `moderation`
 - `additionalQueries`
-- `livecrawl` / `livecrawlTimeout`
+- `maxAgeHours` / `livecrawlTimeout`
 - `subpages` / `subpageTarget`
 
 ## Token Isolation (Critical)
@@ -988,7 +986,7 @@ The `personal site` category supports ALL available parameters:
 
 ### Additional
 - `additionalQueries`
-- `livecrawl` / `livecrawlTimeout`
+- `maxAgeHours` / `livecrawlTimeout`
 - `subpages` / `subpageTarget` - useful for exploring portfolio sites
 
 ## Token Isolation (Critical)
@@ -1113,7 +1111,7 @@ The `tweet` category has **LIMITED filter support**. The following parameters ar
 
 ### Additional
 - `additionalQueries` - useful for hashtag variations
-- `livecrawl` / `livecrawlTimeout` - use "preferred" for recent tweets
+- `maxAgeHours` / `livecrawlTimeout` - use `maxAgeHours: 0` for freshest tweets
 
 ## Token Isolation (Critical)
 
@@ -1142,7 +1140,7 @@ web_search_advanced_exa {
   "startPublishedDate": "2025-01-01",
   "numResults": 20,
   "type": "auto",
-  "livecrawl": "preferred"
+  "maxAgeHours": 0
 }
 ```
 
@@ -1164,7 +1162,7 @@ web_search_advanced_exa {
   "category": "tweet",
   "numResults": 20,
   "type": "deep",
-  "livecrawl": "preferred"
+  "maxAgeHours": 0
 }
 ```
 

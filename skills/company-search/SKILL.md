@@ -42,7 +42,7 @@ Use appropriate Exa `category` depending on what you need:
 - `people` → LinkedIn profiles (public data)
 - No category (`type: "auto"`) → general web results, deep dives, broader context
 
-Start with `category: "company"` for discovery, then use other categories or no category with `livecrawl: "fallback"` for deeper research.
+Start with `category: "company"` for discovery, then use other categories or no category for deeper research.
 
 ### Category-Specific Filter Restrictions
 
@@ -84,7 +84,6 @@ web_search_advanced_exa {
 web_search_advanced_exa {
   "query": "Anthropic funding rounds valuation 2024",
   "type": "deep",
-  "livecrawl": "fallback",
   "numResults": 10,
   "includeDomains": ["techcrunch.com", "crunchbase.com", "bloomberg.com"]
 }
