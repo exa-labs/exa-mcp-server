@@ -21,7 +21,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
       numResults: z.coerce.number().optional().describe("Number of results (must be a number, 1-100, default: 10)"),
       type: z.enum(['auto', 'fast', 'neural']).optional().describe("Search type - 'auto': balanced (default), 'fast': quick results, 'neural': semantic search"),
 
-      category: z.enum(['company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'people', 'financial report']).optional().describe("Filter results to a specific category"),
+      category: z.enum(['company', 'research paper', 'news', 'pdf', 'github', 'personal site', 'people', 'financial report']).optional().describe("Filter results to a specific category"),
 
       includeDomains: z.array(z.string()).optional().describe("Only include results from these domains (e.g., ['arxiv.org', 'github.com'])"),
       excludeDomains: z.array(z.string()).optional().describe("Exclude results from these domains"),
