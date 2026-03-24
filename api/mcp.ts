@@ -130,43 +130,6 @@ function isRateLimitedMethod(body: string): boolean {
   }
 }
 
-/** 7-day TTL for daily bypass tracking buckets. */
-const BYPASS_BUCKET_TTL_SECONDS = 7 * 24 * 60 * 60;
-
-/**
- * Save IP and user agent for bypass requests to Redis for tracking.
- * Uses daily-bucketed sorted sets (e.g. exa-mcp:bypass:2026-03-24) with a 7-day TTL
- * to prevent unbounded growth that would hit Upstash's 100MB single-record limit.
- */
-async function saveBypassRequestInfo(ip: string, userAgent: string, debug: boolean): Promise<void> {
-  initializeRateLimiters();
-  
-  if (!redisClient) {
-    if (debug) {
-      console.log('[EXA-MCP] Cannot save bypass info: Redis not configured');
-    }
-    return;
-  }
-  
-  try {
-    const timestamp = Date.now();
-    const dateKey = new Date(timestamp).toISOString().slice(0, 10);
-    const bucketKey = `exa-mcp:bypass:${dateKey}`;
-    const entry = JSON.stringify({ ip, userAgent, timestamp });
-    
-    await Promise.all([
-      redisClient.zadd(bucketKey, { score: timestamp, member: entry }),
-      redisClient.expire(bucketKey, BYPASS_BUCKET_TTL_SECONDS),
-    ]);
-    
-    if (debug) {
-      console.log(`[EXA-MCP] Saved bypass request info for IP: ${ip}`);
-    }
-  } catch (error) {
-    console.error('[EXA-MCP] Failed to save bypass request info:', error);
-  }
-}
-
 /**
  * Check rate limits for a given IP.
  * Returns null if within limits, or a Response if rate limited.
@@ -348,11 +311,10 @@ async function handleRequest(request: Request): Promise<Response> {
   // This ensures bypass users always use a dedicated key for tracking/billing
   const bypassRateLimit = bypassPrefix && bypassApiKey && userAgent.startsWith(bypassPrefix);
   
-  // Use separate API key for bypass users and save their IP/user-agent for tracking
+  // Use separate API key for bypass users (usage is tracked server-side via
+  // x-exa-integration headers in ClickHouse and Orb billing on the bypass key)
   if (bypassRateLimit) {
     config.exaApiKey = bypassApiKey;
-    const clientIp = getClientIp(request);
-    saveBypassRequestInfo(clientIp, userAgent, config.debug);
   }
   
   // Rate limit users who didn't provide their own API key (including bypass users)
