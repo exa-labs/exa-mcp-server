@@ -42,7 +42,7 @@ The `research paper` category supports ALL available parameters:
 - `userLocation`
 - `moderation`
 - `additionalQueries`
-- `livecrawl` / `livecrawlTimeout`
+- `maxAgeHours` / `livecrawlTimeout`
 - `subpages` / `subpageTarget`
 
 ## Token Isolation (Critical)

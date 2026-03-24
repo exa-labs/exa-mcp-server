@@ -40,7 +40,7 @@ The `personal site` category supports ALL available parameters:
 
 ### Additional
 - `additionalQueries`
-- `livecrawl` / `livecrawlTimeout`
+- `maxAgeHours` / `livecrawlTimeout`
 - `subpages` / `subpageTarget` - useful for exploring portfolio sites
 
 ## Token Isolation (Critical)

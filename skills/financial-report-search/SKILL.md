@@ -42,7 +42,7 @@ The `financial report` category has one known restriction:
 
 ### Additional
 - `additionalQueries`
-- `livecrawl` / `livecrawlTimeout`
+- `maxAgeHours` / `livecrawlTimeout`
 - `subpages` / `subpageTarget`
 
 ## Token Isolation (Critical)
