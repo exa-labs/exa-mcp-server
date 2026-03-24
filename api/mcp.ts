@@ -130,12 +130,12 @@ function isRateLimitedMethod(body: string): boolean {
   }
 }
 
-/** 7-day TTL for daily bypass tracking buckets. */
+/** 7-day TTL for ~10-minute bypass tracking buckets. */
 const BYPASS_BUCKET_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 /**
  * Save IP and user agent for bypass requests to Redis for tracking.
- * Uses daily-bucketed sorted sets (e.g. exa-mcp:bypass:2026-03-24) with a 7-day TTL
+ * Uses ~10-min-bucketed sorted sets (e.g. exa-mcp:bypass:2026-03-24T14:1) with a 7-day TTL
  * to prevent unbounded growth that would hit Upstash's 100MB single-record limit.
  */
 async function saveBypassRequestInfo(ip: string, userAgent: string, debug: boolean): Promise<void> {
@@ -150,7 +150,7 @@ async function saveBypassRequestInfo(ip: string, userAgent: string, debug: boole
   
   try {
     const timestamp = Date.now();
-    const dateKey = new Date(timestamp).toISOString().slice(0, 10);
+    const dateKey = new Date(timestamp).toISOString().slice(0, 15);
     const bucketKey = `exa-mcp:bypass:${dateKey}`;
     const entry = JSON.stringify({ ip, userAgent, timestamp });
     
