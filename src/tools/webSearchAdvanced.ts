@@ -51,7 +51,8 @@ Returns: Search results with optional highlights, summaries, and subpage content
       highlightsPerUrl: z.coerce.number().optional().describe("Number of highlights per URL (must be a number)"),
       highlightsQuery: z.string().optional().describe("Query for highlight relevance"),
 
-      maxAgeHours: z.coerce.number().optional().describe("Maximum age of cached content in hours. 0 = always livecrawl for freshest content, omit = use cache with livecrawl fallback (must be a number)"),
+      maxAgeHours: z.coerce.number().optional().describe("Maximum age of cached content in hours. 0 = always fetch fresh content, omit = use cached content with fresh fetch fallback (must be a number)"),
+      livecrawlTimeout: z.coerce.number().optional().describe("Timeout in milliseconds for fetching fresh content when maxAgeHours triggers a live fetch (must be a number)"),
 
       subpages: z.coerce.number().optional().describe("Number of subpages to crawl from each result (must be a number, 1-10)"),
       subpageTarget: z.array(z.string()).optional().describe("Keywords to target when selecting subpages"),
@@ -73,6 +74,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
         const contents: ExaAdvancedSearchRequest['contents'] = {
           text: params.textMaxCharacters ? { maxCharacters: params.textMaxCharacters } : true,
           ...(params.maxAgeHours !== undefined ? { maxAgeHours: params.maxAgeHours } : { livecrawl: 'fallback' as const }),
+          ...(params.livecrawlTimeout && { livecrawlTimeout: params.livecrawlTimeout }),
         };
 
         if (params.contextMaxCharacters) {

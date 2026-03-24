@@ -63,6 +63,7 @@ export interface ExaAdvancedSearchRequest {
     };
     livecrawl?: 'never' | 'fallback' | 'always' | 'preferred';
     maxAgeHours?: number;
+    livecrawlTimeout?: number;
     subpages?: number;
     subpageTarget?: string[];
   };

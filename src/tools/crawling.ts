@@ -41,7 +41,7 @@ Returns: Clean text content and metadata from the page(s).`,
     {
       urls: z.array(z.string()).describe("URLs to read. Batch multiple URLs in one call."),
       maxCharacters: z.coerce.number().optional().describe("Maximum characters to extract per page (must be a number, default: 3000)"),
-      maxAgeHours: z.coerce.number().optional().describe("Maximum age of cached content in hours. 0 = always livecrawl, omit = use cache with livecrawl fallback."),
+      maxAgeHours: z.coerce.number().optional().describe("Maximum age of cached content in hours. 0 = always fetch fresh content, omit = use cached content with fresh fetch fallback."),
       subpages: z.coerce.number().optional().describe("Number of subpages to also crawl from each URL."),
       subpageTarget: z.string().optional().describe("Keywords to prioritize when selecting subpages"),
     },
@@ -136,4 +136,4 @@ Returns: Clean text content and metadata from the page(s).`,
       }
     }
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
