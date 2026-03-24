@@ -24,6 +24,7 @@ export interface ExaSearchRequest {
       query?: string;
     } | boolean;
     livecrawl?: 'fallback' | 'preferred';
+    maxAgeHours?: number;
     subpages?: number;
     subpageTarget?: string[];
   };
@@ -61,7 +62,7 @@ export interface ExaAdvancedSearchRequest {
       query?: string;
     };
     livecrawl?: 'never' | 'fallback' | 'always' | 'preferred';
-    livecrawlTimeout?: number;
+    maxAgeHours?: number;
     subpages?: number;
     subpageTarget?: string[];
   };
