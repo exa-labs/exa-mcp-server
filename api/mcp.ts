@@ -81,6 +81,37 @@ function getClientIp(request: Request): string {
   return cfConnectingIp ?? xRealIp ?? xForwardedForFirst ?? 'unknown';
 }
 
+/**
+ * Redact sensitive query parameters (e.g. exaApiKey) from a URL string
+ * so that API keys are not leaked into logs.
+ */
+function redactUrl(urlString: string): string {
+  try {
+    const url = new URL(urlString);
+    if (url.searchParams.has('exaApiKey')) {
+      url.searchParams.set('exaApiKey', 'REDACTED');
+    }
+    return url.toString();
+  } catch {
+    // If URL parsing fails, do a best-effort regex redaction
+    return urlString.replace(/([?&]exaApiKey=)[^&]*/gi, '$1REDACTED');
+  }
+}
+
+/**
+ * Strip the exaApiKey query parameter from a URL so the secret is not
+ * propagated to downstream libraries or platform-level request logs.
+ */
+function stripApiKeyFromUrl(urlString: string): string {
+  try {
+    const url = new URL(urlString);
+    url.searchParams.delete('exaApiKey');
+    return url.toString();
+  } catch {
+    return urlString.replace(/([?&])exaApiKey=[^&]*&?/gi, '$1').replace(/[?&]$/, '');
+  }
+}
+
 const RATE_LIMIT_ERROR_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
 
 Fix: Create API key at https://dashboard.exa.ai/api-keys , then either:
@@ -327,10 +358,15 @@ async function handleRequest(request: Request): Promise<Response> {
   const config = getConfigFromRequest(request);
   
   if (config.debug) {
-    console.log(`[EXA-MCP] Request URL: ${request.url}`);
+    console.log(`[EXA-MCP] Request URL: ${redactUrl(request.url)}`);
     console.log(`[EXA-MCP] Enabled tools: ${config.enabledTools?.join(', ') || 'default'}`);
     console.log(`[EXA-MCP] API key provided: ${config.userProvidedApiKey ? 'yes (user provided via header or query param)' : 'no (using env var)'}`);
   }
+  
+  // Strip exaApiKey from the request URL now that it has been extracted into
+  // config. This prevents the secret from appearing in downstream library logs,
+  // platform-level request logs, or HTTP Referer headers.
+  request = new Request(stripApiKeyFromUrl(request.url), request);
   
   const userAgent = request.headers.get('user-agent') || '';
   const bypassPrefix = process.env.RATE_LIMIT_BYPASS;
@@ -390,4 +426,3 @@ async function handleRequest(request: Request): Promise<Response> {
 
 // Export handlers for Vercel Functions
 export { handleRequest as GET, handleRequest as POST, handleRequest as DELETE };
-
