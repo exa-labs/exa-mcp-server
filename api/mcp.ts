@@ -436,3 +436,6 @@ async function handleRequest(request: Request): Promise<Response> {
 // Export handlers for Vercel Functions
 export { handleRequest as GET, handleRequest as POST, handleRequest as DELETE };
 
+// Named export for reuse by other endpoints (e.g. /mcp-oauth)
+export { handleRequest, getBearerToken };
+
