@@ -424,7 +424,7 @@ async function handleRequest(request: Request): Promise<Response> {
   // Normalize URL pathname to /api/mcp for mcp-handler (it checks url.pathname)
   // This handles requests from /mcp and / rewrites
   const url = new URL(request.url);
-  if (url.pathname === '/mcp' || url.pathname === '/' || url.pathname === '/mcp-oauth') {
+  if (url.pathname === '/mcp' || url.pathname === '/' || url.pathname === '/mcp-oauth' || url.pathname === '/api/mcp-oauth') {
     url.pathname = '/api/mcp';
     request = new Request(url.toString(), request);
   }
