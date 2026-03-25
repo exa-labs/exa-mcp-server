@@ -4,6 +4,7 @@ import { createMcpHandler } from 'mcp-handler';
 import { initializeMcpServer } from '../src/mcp-handler.js';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { timingSafeEqual } from 'node:crypto';
 
 /**
  * IP-based rate limiting configuration for free MCP users.
@@ -197,6 +198,24 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
 }
 
 /**
+ * Verify a bypass token using constant-time comparison.
+ * Returns true only when the provided token exactly matches the expected token.
+ * Uses timingSafeEqual to prevent timing side-channel attacks.
+ */
+function verifyBypassToken(provided: string, expected: string): boolean {
+  try {
+    const expectedBuf = Buffer.from(expected, 'utf-8');
+    const providedBuf = Buffer.from(provided, 'utf-8');
+    if (expectedBuf.length !== providedBuf.length) {
+      return false;
+    }
+    return timingSafeEqual(expectedBuf, providedBuf);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Vercel Function entry point for MCP server
  * 
  * This handler is automatically deployed as a Vercel Function and provides
@@ -333,11 +352,13 @@ async function handleRequest(request: Request): Promise<Response> {
   }
   
   const userAgent = request.headers.get('user-agent') || '';
-  const bypassPrefix = process.env.RATE_LIMIT_BYPASS;
+  const bypassToken = process.env.RATE_LIMIT_BYPASS_TOKEN || process.env.RATE_LIMIT_BYPASS;
   const bypassApiKey = process.env.EXA_API_KEY_BYPASS;
-  // Only allow bypass if BOTH prefix matches AND bypass API key is configured
-  // This ensures bypass users always use a dedicated key for tracking/billing
-  const bypassRateLimit = bypassPrefix && bypassApiKey && userAgent.startsWith(bypassPrefix);
+  // Only allow bypass if BOTH token matches AND bypass API key is configured.
+  // The token is sent via a dedicated X-Bypass-Token header (not User-Agent)
+  // and is verified using constant-time comparison to prevent timing attacks.
+  const bypassTokenHeader = request.headers.get('x-bypass-token') || '';
+  const bypassRateLimit = !!(bypassToken && bypassApiKey && bypassTokenHeader && verifyBypassToken(bypassTokenHeader, bypassToken));
   
   // Use separate API key for bypass users and save their IP/user-agent for tracking
   if (bypassRateLimit) {
@@ -390,4 +411,3 @@ async function handleRequest(request: Request): Promise<Response> {
 
 // Export handlers for Vercel Functions
 export { handleRequest as GET, handleRequest as POST, handleRequest as DELETE };
-
