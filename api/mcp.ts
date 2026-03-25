@@ -72,13 +72,41 @@ function initializeRateLimiters(): boolean {
   }
 }
 
+/**
+ * Extract the client IP from the request using platform-trusted headers.
+ *
+ * On Vercel, `x-real-ip` is set by the edge network to the connecting client's
+ * IP and cannot be spoofed by the client. `x-forwarded-for` is also set by
+ * Vercel's edge, with the real client IP appended as the *rightmost* entry.
+ *
+ * We intentionally do NOT trust `cf-connecting-ip` because it is only set by
+ * Cloudflare — when the deployment runs directly on Vercel (not behind
+ * Cloudflare), an attacker can supply an arbitrary value for that header to
+ * bypass rate limiting.
+ *
+ * Preference order:
+ *   1. x-real-ip          — set by Vercel edge, single trusted value
+ *   2. x-forwarded-for    — last (rightmost) entry appended by the platform
+ *   3. 'unknown'          — safe fallback (will be rate-limited as one bucket)
+ */
 function getClientIp(request: Request): string {
-  const cfConnectingIp = request.headers.get('cf-connecting-ip');
+  // x-real-ip is set by Vercel's edge network and is the most reliable source
   const xRealIp = request.headers.get('x-real-ip');
-  const xForwardedFor = request.headers.get('x-forwarded-for');
-  const xForwardedForFirst = xForwardedFor?.split(',')[0]?.trim();
+  if (xRealIp) {
+    return xRealIp.trim();
+  }
 
-  return cfConnectingIp ?? xRealIp ?? xForwardedForFirst ?? 'unknown';
+  // Fallback: use the last entry in x-forwarded-for (appended by the platform)
+  const xForwardedFor = request.headers.get('x-forwarded-for');
+  if (xForwardedFor) {
+    const parts = xForwardedFor.split(',');
+    const lastEntry = parts[parts.length - 1]?.trim();
+    if (lastEntry) {
+      return lastEntry;
+    }
+  }
+
+  return 'unknown';
 }
 
 const RATE_LIMIT_ERROR_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
@@ -402,4 +430,3 @@ async function handleRequest(request: Request): Promise<Response> {
 
 // Export handlers for Vercel Functions
 export { handleRequest as GET, handleRequest as POST, handleRequest as DELETE };
-
