@@ -8,9 +8,8 @@ import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost"
 
-function resolveFreshness(freshness?: string, category?: string): { startPublishedDate?: string; maxAgeHours?: number } {
+function resolveFreshness(freshness?: string): { startPublishedDate?: string; maxAgeHours?: number } {
   if (!freshness || freshness === 'any') return {};
-  if (category === 'company' || category === 'people') return {};
   const offsets: Record<string, number> = {
     '24h': 864e5,
     'week': 6048e5,
@@ -38,7 +37,6 @@ If highlights are insufficient, follow up with crawling_exa on the best URLs.`,
       query: z.string().describe("Natural language search query. Should be a semantically rich description of the ideal page, not just keywords."),
       numResults: z.coerce.number().min(1).max(100).optional().describe("Number of search results to return (must be a number, default: 8)"),
       type: z.enum(['auto', 'fast']).optional().describe("Search type - 'auto': balanced search (default), 'fast': quick results"),
-      category: z.enum(['company', 'research paper', 'news', 'personal site', 'people', 'financial report']).optional().describe("Filter results to a specific category"),
       freshness: z.enum(['24h', 'week', 'month', 'year', 'any']).optional().describe("How recent results should be. Only set when recency matters."),
       includeDomains: z.array(z.string()).optional().describe("List of domains to include in the search. If specified, results will only come from these domains."),
     },
@@ -47,7 +45,7 @@ If highlights are insufficient, follow up with crawling_exa on the best URLs.`,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ query, numResults, type, category, freshness, includeDomains }) => {
+    async ({ query, numResults, type, freshness, includeDomains }) => {
       const requestId = `web_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'web_search_exa');
 
@@ -56,13 +54,12 @@ If highlights are insufficient, follow up with crawling_exa on the best URLs.`,
       try {
         const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
 
-        const { startPublishedDate, maxAgeHours } = resolveFreshness(freshness, category);
+        const { startPublishedDate, maxAgeHours } = resolveFreshness(freshness);
 
         const searchRequest: ExaSearchRequest = {
           query,
           type: type || "auto",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
-          ...(category && { category }),
           ...(includeDomains?.length && { includeDomains }),
           ...(startPublishedDate && { startPublishedDate }),
           contents: {
