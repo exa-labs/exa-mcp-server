@@ -17,6 +17,10 @@
     {
       "source": "/.well-known/mcp-config",
       "destination": "/api/well-known-mcp-config"
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource",
+      "destination": "/api/well-known-oauth-protected-resource"
     }
   ],
   "buildCommand": "npm run build:vercel",

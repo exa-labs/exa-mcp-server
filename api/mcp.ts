@@ -4,6 +4,7 @@ import { createMcpHandler } from 'mcp-handler';
 import { initializeMcpServer } from '../src/mcp-handler.js';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { isJwtToken, verifyOAuthToken } from '../src/utils/auth.js';
 
 /**
  * IP-based rate limiting configuration for free MCP users.
@@ -239,8 +240,8 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * 3. Users can specify different tools and API keys per request
  */
 
-/** Extract API key from Authorization: Bearer header. */
-function getApiKeyFromHeader(request: Request): string | undefined {
+/** Extract bearer token from Authorization header. */
+function getBearerToken(request: Request): string | undefined {
   const authHeader = request.headers.get('authorization');
   if (authHeader) {
     const match = authHeader.match(/^Bearer\s+(.+)$/i);
@@ -255,17 +256,47 @@ function getApiKeyFromHeader(request: Request): string | undefined {
  * Extract configuration from request headers, URL, or environment variables.
  * Priority: header > query parameter > environment variable.
  */
-function getConfigFromRequest(request: Request) {
+
+interface RequestConfig {
+  exaApiKey?: string;
+  enabledTools?: string[];
+  debug: boolean;
+  userProvidedApiKey: boolean;
+  authMethod: 'oauth' | 'api_key' | 'free_tier';
+}
+
+/**
+ * Extract configuration from request headers, URL, or environment variables.
+ * Priority: OAuth JWT > plain Bearer API key > query parameter > environment variable.
+ */
+async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let exaApiKey = process.env.EXA_API_KEY;
   let enabledTools: string[] | undefined;
   let debug = process.env.DEBUG === 'true';
   let userProvidedApiKey = false;
+  let authMethod: 'oauth' | 'api_key' | 'free_tier' = 'free_tier';
 
   // 1. Check Authorization: Bearer header (highest priority)
-  const headerApiKey = getApiKeyFromHeader(request);
-  if (headerApiKey) {
-    exaApiKey = headerApiKey;
-    userProvidedApiKey = true;
+  const bearerToken = getBearerToken(request);
+  if (bearerToken) {
+    // Distinguish JWT (OAuth) from plain API key
+    if (isJwtToken(bearerToken)) {
+      const claims = await verifyOAuthToken(bearerToken);
+      if (claims) {
+        // The api_key_id claim IS the API key (ApiKey.id UUID = the key string)
+        exaApiKey = claims['exa:api_key_id'];
+        userProvidedApiKey = true;
+        authMethod = 'oauth';
+      } else {
+        // JWT verification failed — don't fall through to treating it as an API key
+        console.error('[EXA-MCP] Invalid OAuth JWT token');
+      }
+    } else {
+      // Plain API key in Bearer header
+      exaApiKey = bearerToken;
+      userProvidedApiKey = true;
+      authMethod = 'api_key';
+    }
   }
 
   try {
@@ -273,11 +304,12 @@ function getConfigFromRequest(request: Request) {
     const params = parsedUrl.searchParams;
 
     // 2. Check ?exaApiKey=YOUR_KEY (fallback for backwards compat, only if no header)
-    if (!headerApiKey && params.has('exaApiKey')) {
+    if (!bearerToken && params.has('exaApiKey')) {
       const keyFromUrl = params.get('exaApiKey');
       if (keyFromUrl) {
         exaApiKey = keyFromUrl;
         userProvidedApiKey = true;
+        authMethod = 'api_key';
       }
     }
 
@@ -311,7 +343,7 @@ function getConfigFromRequest(request: Request) {
       .filter(t => t.length > 0);
   }
 
-  return { exaApiKey, enabledTools, debug, userProvidedApiKey };
+  return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod };
 }
 
 /**
@@ -336,12 +368,13 @@ function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; de
  */
 async function handleRequest(request: Request): Promise<Response> {
   // Extract configuration from request headers, URL, and env vars
-  const config = getConfigFromRequest(request);
+  const config = await getConfigFromRequest(request);
   
   if (config.debug) {
     console.log(`[EXA-MCP] Request URL: ${request.url}`);
     console.log(`[EXA-MCP] Enabled tools: ${config.enabledTools?.join(', ') || 'default'}`);
-    console.log(`[EXA-MCP] API key provided: ${config.userProvidedApiKey ? 'yes (user provided via header or query param)' : 'no (using env var)'}`);
+    console.log(`[EXA-MCP] Auth method: ${config.authMethod}`);
+    console.log(`[EXA-MCP] API key provided: ${config.userProvidedApiKey ? 'yes' : 'no (using env var)'}`);
   }
   
   const userAgent = request.headers.get('user-agent') || '';
