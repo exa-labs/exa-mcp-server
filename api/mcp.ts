@@ -302,13 +302,11 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let userProvidedApiKey = false;
   let authMethod: 'oauth' | 'api_key' | 'free_tier' = 'free_tier';
 
-  const oauthEnabled = process.env.ENABLE_OAUTH_VERIFY === 'true';
-
   // 1. Check Authorization: Bearer header (highest priority)
   const bearerToken = getBearerToken(request);
   if (bearerToken) {
     // Distinguish JWT (OAuth) from plain API key
-    if (oauthEnabled && isJwtToken(bearerToken)) {
+    if (isJwtToken(bearerToken)) {
       const claims = await verifyOAuthToken(bearerToken);
       if (claims) {
         // Resolve the actual API key from the JWT's api_key_id claim
