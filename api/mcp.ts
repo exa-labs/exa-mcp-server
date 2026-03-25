@@ -424,7 +424,7 @@ async function handleRequest(request: Request): Promise<Response> {
   // Normalize URL pathname to /api/mcp for mcp-handler (it checks url.pathname)
   // This handles requests from /mcp and / rewrites
   const url = new URL(request.url);
-  if (url.pathname === '/mcp' || url.pathname === '/') {
+  if (url.pathname === '/mcp' || url.pathname === '/' || url.pathname === '/mcp-oauth') {
     url.pathname = '/api/mcp';
     request = new Request(url.toString(), request);
   }
@@ -435,4 +435,7 @@ async function handleRequest(request: Request): Promise<Response> {
 
 // Export handlers for Vercel Functions
 export { handleRequest as GET, handleRequest as POST, handleRequest as DELETE };
+
+// Named export for reuse by other endpoints (e.g. /mcp-oauth)
+export { handleRequest, getBearerToken };
 
