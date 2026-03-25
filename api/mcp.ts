@@ -256,32 +256,6 @@ function getBearerToken(request: Request): string | undefined {
  * Extract configuration from request headers, URL, or environment variables.
  * Priority: header > query parameter > environment variable.
  */
-/**
- * Resolve the actual Exa API key from an OAuth JWT's api_key_id claim.
- * Looks up the key via the Exa internal API.
- */
-async function resolveApiKeyFromId(apiKeyId: string): Promise<string | null> {
-  const internalApiUrl = process.env.EXA_INTERNAL_API_URL || 'https://api.exa.ai';
-  const internalApiKey = process.env.EXA_INTERNAL_API_KEY;
-  if (!internalApiKey) {
-    console.error('[EXA-MCP] EXA_INTERNAL_API_KEY not configured — cannot resolve OAuth API key');
-    return null;
-  }
-  try {
-    const res = await fetch(`${internalApiUrl}/internal/api-keys/${apiKeyId}`, {
-      headers: { 'x-api-key': internalApiKey },
-    });
-    if (!res.ok) {
-      console.error(`[EXA-MCP] Failed to resolve API key ${apiKeyId}: ${res.status}`);
-      return null;
-    }
-    const data = await res.json() as { key?: string };
-    return data.key ?? null;
-  } catch (error) {
-    console.error('[EXA-MCP] Error resolving API key:', error);
-    return null;
-  }
-}
 
 interface RequestConfig {
   exaApiKey?: string;
@@ -309,15 +283,10 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
     if (isJwtToken(bearerToken)) {
       const claims = await verifyOAuthToken(bearerToken);
       if (claims) {
-        // Resolve the actual API key from the JWT's api_key_id claim
-        const resolvedKey = await resolveApiKeyFromId(claims['exa:api_key_id']);
-        if (resolvedKey) {
-          exaApiKey = resolvedKey;
-          userProvidedApiKey = true;
-          authMethod = 'oauth';
-        } else {
-          console.error('[EXA-MCP] OAuth token valid but API key resolution failed');
-        }
+        // The api_key_id claim IS the API key (ApiKey.id UUID = the key string)
+        exaApiKey = claims['exa:api_key_id'];
+        userProvidedApiKey = true;
+        authMethod = 'oauth';
       } else {
         // JWT verification failed — don't fall through to treating it as an API key
         console.error('[EXA-MCP] Invalid OAuth JWT token');
