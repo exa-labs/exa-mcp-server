@@ -27,7 +27,7 @@
       "destination": "/api/well-known-oauth-protected-resource"
     },
     {
-      "source": "/mcp-oauth",
+      "source": "/mcp/oauth",
       "destination": "/api/mcp-oauth"
     }
   ],
