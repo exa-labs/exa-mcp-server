@@ -309,7 +309,3 @@ export function sanitizeDeepSearchStructuredResponse(response: ExaDeepSearchResp
 
   return structured;
 }
-
-export function sanitizeContentsResponse(response: unknown): Record<string, unknown> {
-  return sanitizeTopLevelResponse(response);
-}

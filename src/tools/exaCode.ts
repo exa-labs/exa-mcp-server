@@ -16,8 +16,7 @@ export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: st
 Best for: Any programming question - API usage, library examples, code snippets, debugging help.
 Returns: Relevant code and documentation.
 
-Query tips: describe what you're looking for specifically. "Python requests library POST with JSON body" not "python http".
-If highlights are insufficient, follow up with crawling_exa on the best URLs.`,
+Query tips: describe what you're looking for specifically. "Python requests library POST with JSON body" not "python http".`,
     {
       query: z.string().describe("Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"),
       numResults: z.coerce.number().min(1).max(20).optional().describe("Number of search results to return (must be a number, default: 8)"),
