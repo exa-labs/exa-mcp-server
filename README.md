@@ -4,7 +4,7 @@
 [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=exa&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fmcp.exa.ai%2Fmcp%22%7D)
 [![npm version](https://badge.fury.io/js/exa-mcp-server.svg)](https://www.npmjs.com/package/exa-mcp-server)
 
-Connect AI assistants to Exa's search capabilities: web search, code search, and company research.
+Connect AI assistants to Exa's search capabilities: web search, deep search, and code search.
 
 **[Full Documentation](https://docs.exa.ai/reference/exa-mcp)** | **[npm Package](https://www.npmjs.com/package/exa-mcp-server)** | **[Get Your Exa API Key](https://dashboard.exa.ai/api-keys)**
 
@@ -275,7 +275,6 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | ---- | ----------- |
 | `web_search_exa` | Search the web for any topic and get clean, ready-to-use content |
 | `get_code_context_exa` | Find code examples, documentation, and programming solutions from GitHub, Stack Overflow, and docs |
-| `crawling_exa` | Get the full content of a specific webpage from a known URL |
 
 **Off by Default:**
 | Tool | Description |
@@ -285,7 +284,7 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 Enable additional tools with the `tools` parameter:
 
 ```
-https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,crawling_exa
+https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,get_code_context_exa
 ```
 
 ## Agent Skills (Claude Skills)

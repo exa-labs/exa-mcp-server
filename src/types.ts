@@ -165,65 +165,6 @@ export interface ExaDeepSearchResponse {
   costDollars?: ExaCostDollars;
 }
 
-export interface ExaContentsResponse {
-  requestId?: string;
-  results?: ExaSearchResult[];
-  statuses?: ExaSearchStatus[];
-  costDollars?: ExaCostDollars;
-}
-
-// Deep Research API Types (v1)
-export interface DeepResearchRequest {
-  model: 'exa-research-fast' | 'exa-research' | 'exa-research-pro';
-  instructions: string;
-  outputSchema?: Record<string, unknown>;
-}
-
-export interface DeepResearchStartResponse {
-  researchId: string;
-  createdAt: number;
-  model: string;
-  instructions: string;
-  outputSchema?: Record<string, unknown>;
-  status: string;
-}
-
-export interface DeepResearchCheckResponse {
-  researchId: string;
-  createdAt: number;
-  model: string;
-  instructions: string;
-  outputSchema?: Record<string, unknown>;
-  finishedAt?: number;
-  status: 'pending' | 'running' | 'completed' | 'canceled' | 'failed';
-  output?: {
-    content: string;
-    parsed?: Record<string, unknown>;
-  };
-  citations?: Array<{
-    id: string;
-    url: string;
-    title: string;
-  }>;
-  costDollars?: {
-    total: number;
-    numSearches: number;
-    numPages: number;
-    reasoningTokens: number;
-  };
-}
-
-export interface DeepResearchErrorResponse {
-  response: {
-    message: string;
-    error: string;
-    statusCode: number;
-  };
-  status: number;
-  options: any;
-  message: string;
-  name: string;
-}
 
 // Exa Code API Types
 export interface ExaCodeRequest {
