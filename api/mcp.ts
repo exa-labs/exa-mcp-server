@@ -362,11 +362,61 @@ function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; de
   );
 }
 
+function hasAuth(request: Request): boolean {
+  if (getBearerToken(request)) return true;
+  try {
+    const url = new URL(request.url);
+    if (url.searchParams.get('exaApiKey')) return true;
+  } catch {
+    // URL parsing failed — no auth
+  }
+  return false;
+}
+
+function create401Response(): Response {
+  return new Response(
+    JSON.stringify({
+      jsonrpc: '2.0',
+      error: {
+        code: -32000,
+        message: 'Authentication required. Use OAuth or provide an API key.',
+      },
+      id: null,
+    }),
+    {
+      status: 401,
+      headers: {
+        'WWW-Authenticate':
+          'Bearer resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource"',
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+}
+
 /**
  * Main request handler that extracts config from URL and creates
  * a fresh handler for each request
  */
-async function handleRequest(request: Request): Promise<Response> {
+async function handleRequest(request: Request, options?: { forceOAuth?: boolean }): Promise<Response> {
+  const debug = process.env.DEBUG === 'true';
+
+  // Check user-agent bypass BEFORE the 401 gate so bypass clients never see auth prompts
+  const userAgent = request.headers.get('user-agent') || '';
+  const bypassPrefix = process.env.RATE_LIMIT_BYPASS;
+  const bypassApiKey = process.env.EXA_API_KEY_BYPASS;
+  const bypassRateLimit = bypassPrefix && bypassApiKey && userAgent.startsWith(bypassPrefix);
+
+  // Check if user-agent matches OAUTH_USER_AGENTS (force OAuth on /mcp for these clients)
+  const oauthUserAgents = process.env.OAUTH_USER_AGENTS?.split(',').map(s => s.trim()).filter(Boolean) || [];
+  const userAgentMatchesOAuth = oauthUserAgents.some(ua => userAgent.includes(ua));
+
+  // Gate: require auth for /mcp/oauth endpoint OR matching user agents (unless bypassed)
+  const requireOAuth = options?.forceOAuth || userAgentMatchesOAuth;
+  if (!bypassRateLimit && requireOAuth && !hasAuth(request)) {
+    return create401Response();
+  }
+
   // Extract configuration from request headers, URL, and env vars
   const config = await getConfigFromRequest(request);
   
@@ -376,13 +426,6 @@ async function handleRequest(request: Request): Promise<Response> {
     console.log(`[EXA-MCP] Auth method: ${config.authMethod}`);
     console.log(`[EXA-MCP] API key provided: ${config.userProvidedApiKey ? 'yes' : 'no (using env var)'}`);
   }
-  
-  const userAgent = request.headers.get('user-agent') || '';
-  const bypassPrefix = process.env.RATE_LIMIT_BYPASS;
-  const bypassApiKey = process.env.EXA_API_KEY_BYPASS;
-  // Only allow bypass if BOTH prefix matches AND bypass API key is configured
-  // This ensures bypass users always use a dedicated key for tracking/billing
-  const bypassRateLimit = bypassPrefix && bypassApiKey && userAgent.startsWith(bypassPrefix);
   
   // Use separate API key for bypass users and save their IP/user-agent for tracking
   if (bypassRateLimit) {
@@ -424,7 +467,7 @@ async function handleRequest(request: Request): Promise<Response> {
   // Normalize URL pathname to /api/mcp for mcp-handler (it checks url.pathname)
   // This handles requests from /mcp and / rewrites
   const url = new URL(request.url);
-  if (url.pathname === '/mcp' || url.pathname === '/' || url.pathname === '/mcp-oauth' || url.pathname === '/api/mcp-oauth') {
+  if (url.pathname === '/mcp' || url.pathname === '/' || url.pathname === '/mcp/oauth' || url.pathname === '/mcp-oauth' || url.pathname === '/api/mcp-oauth') {
     url.pathname = '/api/mcp';
     request = new Request(url.toString(), request);
   }
@@ -436,6 +479,5 @@ async function handleRequest(request: Request): Promise<Response> {
 // Export handlers for Vercel Functions
 export { handleRequest as GET, handleRequest as POST, handleRequest as DELETE };
 
-// Named export for reuse by other endpoints (e.g. /mcp-oauth)
-export { handleRequest, getBearerToken };
+export { handleRequest };
 
