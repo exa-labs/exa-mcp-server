@@ -292,6 +292,13 @@ https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanc
 
 Ready-to-use skills for Claude Code. Each skill teaches Claude how to use Exa search for a specific task. Copy the content inside a dropdown and paste it into Claude Code — it handles the rest.
 
+### Community Contributions
+
+- **OpenClaw API-only Exa skill (no MCP):**
+  - Skill files: [`skills/openclaw-exa-api/`](skills/openclaw-exa-api/)
+  - Scripts: [`skills/openclaw-exa-api/scripts/`](skills/openclaw-exa-api/scripts/)
+  - ClawHub: https://clawhub.ai/XieShaocong33Ethan/exa-full
+
 <details>
 <summary><b>Company Research</b></summary>
 
