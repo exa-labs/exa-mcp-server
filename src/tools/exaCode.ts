@@ -23,6 +23,7 @@ If highlights are insufficient, follow up with crawling_exa on the best URLs.`,
       numResults: z.coerce.number().min(1).max(20).optional().describe("Number of search results to return (must be a number, default: 8)"),
     },
     {
+      title: "Get Code Context",
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true

@@ -41,6 +41,7 @@ If highlights are insufficient, follow up with crawling_exa on the best URLs.`,
       includeDomains: z.array(z.string()).optional().describe("List of domains to include in the search. If specified, results will only come from these domains."),
     },
     {
+      title: "Web Search",
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true
