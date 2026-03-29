@@ -1055,6 +1055,23 @@ You should ask the user to restart Claude Code to have the config changes take e
 
 </details>
 
+### The Minimalist Entrepreneur Skills
+
+10 business skills based on [The Minimalist Entrepreneur](https://www.minimalistentrepreneur.com/) by Sahil Lavingia ([tweet](https://x.com/shl/status/2036162956761715096)). Each skill uses Exa search to ground advice in real market data, real communities, and live competitor intelligence.
+
+| Skill | What it does |
+| ----- | ------------ |
+| `find-community` | Find your people — searches for real communities, pain points, gathering places |
+| `validate-idea` | Test before you build — researches competitors, finds real discussions, validates demand |
+| `mvp` | Ship in a weekend — finds no-code tools, MVP examples, templates |
+| `processize` | Manual first — finds examples of manual-first businesses, locates target communities |
+| `first-customers` | Sell to 100 people — finds real prospects via web + LinkedIn search |
+| `pricing` | Charge something — researches competitor pricing pages, benchmarks |
+| `marketing-plan` | Make fans, not headlines — finds trending content, thought leaders in any niche |
+| `grow-sustainably` | Profitability is a superpower — finds automation tools, funding alternatives |
+| `company-values` | Build the house you want to live in — finds culture examples from admired companies |
+| `minimalist-review` | Gut-check any decision — researches comparable founder decisions, cautionary tales |
+
 ## Links
 
 - [Documentation](https://docs.exa.ai/reference/exa-mcp)
