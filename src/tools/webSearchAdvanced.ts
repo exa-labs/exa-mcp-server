@@ -40,8 +40,8 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
       additionalQueries: z.array(z.string()).optional().describe("Additional query variations to expand search coverage"),
 
-      textMaxCharacters: z.coerce.number().optional().describe("Max characters for text extraction per result (must be a number)"),
-      contextMaxCharacters: z.coerce.number().optional().describe("Max characters for context string (must be a number, not included by default)"),
+      textMaxCharacters: z.coerce.number().min(1).optional().describe("Max characters for text extraction per result (must be a positive number)"),
+      contextMaxCharacters: z.coerce.number().min(1).optional().describe("Max characters for context string (must be a positive number, not included by default)"),
 
       enableSummary: z.boolean().optional().describe("Enable summary generation for results"),
       summaryQuery: z.string().optional().describe("Focus query for summary generation"),
