@@ -216,8 +216,8 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * Streamable HTTP transport for the MCP protocol.
  * 
  * Supports API key via header (recommended) or URL query parameter:
- * - Authorization: Bearer YOUR_KEY - Pass API key via header (recommended)
- * - x-api-key: YOUR_KEY - Pass API key via header (alternative)
+ * - x-api-key: YOUR_KEY - Pass API key via header (recommended)
+ * - Authorization: Bearer YOUR_KEY - Pass API key via header (alternative)
  * - ?exaApiKey=YOUR_KEY - Pass API key via URL (backwards compatible)
  * 
  * Other URL query parameters:
@@ -229,7 +229,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * - DEBUG: Enable debug logging (true/false)
  * - ENABLED_TOOLS: Comma-separated list of tools to enable
  * 
- * Priority: Authorization header > x-api-key header > URL query parameter > environment variable.
+ * Priority: x-api-key header > Authorization header > URL query parameter > environment variable.
  * 
  * ARCHITECTURE NOTE:
  * The mcp-handler library creates a single server instance and doesn't pass
@@ -268,7 +268,7 @@ interface RequestConfig {
 
 /**
  * Extract configuration from request headers, URL, or environment variables.
- * Priority: OAuth JWT > plain Bearer API key > query parameter > environment variable.
+ * Priority: x-api-key header > OAuth JWT > plain Bearer API key > query parameter > environment variable.
  */
 async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let exaApiKey = process.env.EXA_API_KEY;
@@ -277,36 +277,36 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let userProvidedApiKey = false;
   let authMethod: 'oauth' | 'api_key' | 'free_tier' = 'free_tier';
 
-  // 1. Check Authorization: Bearer header (highest priority)
-  const bearerToken = getBearerToken(request);
-  if (bearerToken) {
-    // Distinguish JWT (OAuth) from plain API key
-    if (isJwtToken(bearerToken)) {
-      const claims = await verifyOAuthToken(bearerToken);
-      if (claims) {
-        // The api_key_id claim IS the API key (ApiKey.id UUID = the key string)
-        exaApiKey = claims['exa:api_key_id'];
-        userProvidedApiKey = true;
-        authMethod = 'oauth';
-      } else {
-        // JWT verification failed — don't fall through to treating it as an API key
-        console.error('[EXA-MCP] Invalid OAuth JWT token');
-      }
-    } else {
-      // Plain API key in Bearer header
-      exaApiKey = bearerToken;
-      userProvidedApiKey = true;
-      authMethod = 'api_key';
-    }
+  // 1. Check x-api-key header (highest priority)
+  const xApiKey = request.headers.get('x-api-key');
+  if (xApiKey) {
+    exaApiKey = xApiKey;
+    userProvidedApiKey = true;
+    authMethod = 'api_key';
   }
 
-  // 1b. Check x-api-key header (fallback when no Bearer token provided)
-  if (!bearerToken) {
-    const xApiKey = request.headers.get('x-api-key');
-    if (xApiKey) {
-      exaApiKey = xApiKey;
-      userProvidedApiKey = true;
-      authMethod = 'api_key';
+  // 2. Check Authorization: Bearer header (fallback when no x-api-key)
+  if (!xApiKey) {
+    const bearerToken = getBearerToken(request);
+    if (bearerToken) {
+      // Distinguish JWT (OAuth) from plain API key
+      if (isJwtToken(bearerToken)) {
+        const claims = await verifyOAuthToken(bearerToken);
+        if (claims) {
+          // The api_key_id claim IS the API key (ApiKey.id UUID = the key string)
+          exaApiKey = claims['exa:api_key_id'];
+          userProvidedApiKey = true;
+          authMethod = 'oauth';
+        } else {
+          // JWT verification failed — don't fall through to treating it as an API key
+          console.error('[EXA-MCP] Invalid OAuth JWT token');
+        }
+      } else {
+        // Plain API key in Bearer header
+        exaApiKey = bearerToken;
+        userProvidedApiKey = true;
+        authMethod = 'api_key';
+      }
     }
   }
 
@@ -314,8 +314,8 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
     const parsedUrl = new URL(request.url);
     const params = parsedUrl.searchParams;
 
-    // 2. Check ?exaApiKey=YOUR_KEY (fallback for backwards compat, only if no header)
-    if (!bearerToken && params.has('exaApiKey')) {
+    // 3. Check ?exaApiKey=YOUR_KEY (fallback for backwards compat, only if no header)
+    if (!xApiKey && !getBearerToken(request) && params.has('exaApiKey')) {
       const keyFromUrl = params.get('exaApiKey');
       if (keyFromUrl) {
         exaApiKey = keyFromUrl;
@@ -374,8 +374,8 @@ function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; de
 }
 
 function hasAuth(request: Request): boolean {
-  if (getBearerToken(request)) return true;
   if (request.headers.get('x-api-key')) return true;
+  if (getBearerToken(request)) return true;
   try {
     const url = new URL(request.url);
     if (url.searchParams.get('exaApiKey')) return true;
