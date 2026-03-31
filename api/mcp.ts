@@ -217,6 +217,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * 
  * Supports API key via header (recommended) or URL query parameter:
  * - Authorization: Bearer YOUR_KEY - Pass API key via header (recommended)
+ * - x-api-key: YOUR_KEY - Pass API key via header (alternative)
  * - ?exaApiKey=YOUR_KEY - Pass API key via URL (backwards compatible)
  * 
  * Other URL query parameters:
@@ -228,7 +229,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * - DEBUG: Enable debug logging (true/false)
  * - ENABLED_TOOLS: Comma-separated list of tools to enable
  * 
- * Priority: header > URL query parameter > environment variable.
+ * Priority: Authorization header > x-api-key header > URL query parameter > environment variable.
  * 
  * ARCHITECTURE NOTE:
  * The mcp-handler library creates a single server instance and doesn't pass
@@ -299,6 +300,16 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
     }
   }
 
+  // 1b. Check x-api-key header (fallback when no Bearer token provided)
+  if (!bearerToken) {
+    const xApiKey = request.headers.get('x-api-key');
+    if (xApiKey) {
+      exaApiKey = xApiKey;
+      userProvidedApiKey = true;
+      authMethod = 'api_key';
+    }
+  }
+
   try {
     const parsedUrl = new URL(request.url);
     const params = parsedUrl.searchParams;
@@ -364,6 +375,7 @@ function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; de
 
 function hasAuth(request: Request): boolean {
   if (getBearerToken(request)) return true;
+  if (request.headers.get('x-api-key')) return true;
   try {
     const url = new URL(request.url);
     if (url.searchParams.get('exaApiKey')) return true;
