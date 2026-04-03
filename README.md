@@ -220,6 +220,24 @@ Add to your Roo Code MCP config:
 </details>
 
 <details>
+<summary><b>JetBrains AI Assistant</b></summary>
+
+Go to **Settings** > **Tools** > **AI Assistant** > **Model Context Protocol (MCP)** and add:
+
+```json
+{
+  "mcpServers": {
+    "exa": {
+      "url": "https://mcp.exa.ai/mcp"
+    }
+  }
+}
+```
+
+Works with IntelliJ IDEA, PyCharm, WebStorm, and all JetBrains IDEs.
+</details>
+
+<details>
 <summary><b>Other Clients</b></summary>
 
 For clients that support remote MCP:
