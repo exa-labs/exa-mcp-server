@@ -42,7 +42,6 @@ If highlights are insufficient, follow up with crawling_exa on the best URLs.`,
           contents: {
             highlights: { query },
             text: { maxCharacters: 300 },
-            livecrawl: 'fallback' as const,
           }
         };
 

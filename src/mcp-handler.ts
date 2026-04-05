@@ -18,7 +18,7 @@ import { log } from "./utils/logger.js";
 const availableTools = {
   'web_search_exa': { name: 'Web Search (Exa)', description: 'Real-time web search using Exa AI', enabled: true },
   'web_search_advanced_exa': { name: 'Advanced Web Search (Exa)', description: 'Advanced web search with full Exa API control including category filters, domain restrictions, date ranges, highlights, summaries, and subpage crawling', enabled: false },
-  'get_code_context_exa': { name: 'Code Context Search', description: 'Search for code snippets, examples, and documentation from open source repositories', enabled: true },
+  'get_code_context_exa': { name: 'Code Context Search (Deprecated)', description: 'Deprecated: Use web_search_exa instead. Search for code snippets, examples, and documentation from open source repositories', enabled: false },
   'company_research_exa': { name: 'Company Research (Deprecated)', description: 'Deprecated: Use web_search_advanced_exa instead. Research companies and organizations', enabled: false },
   'crawling_exa': { name: 'Web Crawling', description: 'Extract content from specific URLs', enabled: true },
   'deep_researcher_start': { name: 'Deep Researcher Start (Deprecated)', description: 'Deprecated: Start a comprehensive AI research task', enabled: false },

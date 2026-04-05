@@ -274,7 +274,6 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | Tool | Description |
 | ---- | ----------- |
 | `web_search_exa` | Search the web for any topic and get clean, ready-to-use content |
-| `get_code_context_exa` | Find code examples, documentation, and programming solutions from GitHub, Stack Overflow, and docs |
 | `crawling_exa` | Get the full content of a specific webpage from a known URL |
 
 **Off by Default:**
@@ -285,7 +284,7 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 Enable additional tools with the `tools` parameter:
 
 ```
-https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,crawling_exa
+https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,crawling_exa
 ```
 
 ## Agent Skills (Claude Skills)
@@ -441,13 +440,13 @@ Step 1: Install or update Exa MCP
 
 If Exa MCP already exists in your MCP configuration, either uninstall it first and install the new one, or update your existing MCP config with this endpoint. Run this command in your terminal:
 
-claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=get_code_context_exa"
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_exa"
 
 
 Step 2: Add this Claude skill
 
 ---
-name: get-code-context-exa
+name: code-search-exa
 description: Code context using Exa. Finds real snippets and docs from GitHub, StackOverflow, and technical docs. Use when searching for code examples, API syntax, library documentation, or debugging help.
 context: fork
 ---
@@ -456,12 +455,12 @@ context: fork
 
 ## Tool Restriction (Critical)
 
-ONLY use `get_code_context_exa`. Do NOT use other Exa tools.
+ONLY use `web_search_exa`. Do NOT use other Exa tools.
 
 ## Token Isolation (Critical)
 
 Never run Exa in main context. Always spawn Task agents:
-- Agent calls `get_code_context_exa`
+- Agent calls `web_search_exa`
 - Agent extracts the minimum viable snippet(s) + constraints
 - Agent deduplicates near-identical results (mirrors, forks, repeated StackOverflow answers) before presenting
 - Agent returns copyable snippets + brief explanation
@@ -476,12 +475,6 @@ Use this tool for ANY programming-related request:
 - framework "how to" questions
 - debugging when you need authoritative snippets
 
-## Inputs (Supported)
-
-`get_code_context_exa` supports:
-- `query` (string, required)
-- `tokensNum` (number, optional; default ~5000; typical range 1000–50000)
-
 ## Query Writing Patterns (High Signal)
 
 To reduce irrelevant results and cross-language noise:
@@ -489,14 +482,6 @@ To reduce irrelevant results and cross-language noise:
   - Example: use **"Go generics"** instead of just **"generics"**.
 - When applicable, also include **framework + version** (e.g., "Next.js 14", "React 19", "Python 3.12").
 - Include exact identifiers (function/class names, config keys, error messages) when you have them.
-
-## Dynamic Tuning
-
-Token strategy:
-- Focused snippet needed → tokensNum 1000–3000
-- Most tasks → tokensNum 5000
-- Complex integration → tokensNum 10000–20000
-- Only go larger when necessary (avoid dumping large context)
 
 ## Output Format (Recommended)
 
@@ -515,7 +500,7 @@ Before presenting:
   "servers": {
     "exa": {
       "type": "http",
-      "url": "https://mcp.exa.ai/mcp?tools=get_code_context_exa"
+      "url": "https://mcp.exa.ai/mcp?tools=web_search_exa"
     }
   }
 }
