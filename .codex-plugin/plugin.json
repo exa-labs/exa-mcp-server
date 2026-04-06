@@ -1,0 +1,21 @@
+{
+  "name": "exa-mcp-server",
+  "version": "0.1.0",
+  "description": "Exa MCP for web search and web crawling!",
+  "author": {
+    "name": "exa-labs",
+    "url": "https://github.com/exa-labs"
+  },
+  "homepage": "https://github.com/exa-labs/exa-mcp-server",
+  "repository": "https://github.com/exa-labs/exa-mcp-server",
+  "keywords": ["mcp", "codex", "search", "websearch", "exa"],
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Exa MCP Server",
+    "shortDescription": "Exa MCP for web search and web crawling!",
+    "longDescription": "Exa MCP for web search and web crawling!",
+    "category": "API",
+    "websiteURL": "https://github.com/exa-labs/exa-mcp-server"
+  }
+}
