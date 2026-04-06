@@ -31,9 +31,9 @@ function formatCrawlResults(results: any[], errors: CrawlStatus[]): string {
   return lines.join('\n').trim();
 }
 
-export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+export function registerWebFetchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }, toolName?: string): void {
   server.tool(
-    "web_fetch_exa",
+    toolName || "web_fetch_exa",
     `Read a webpage's full content as clean markdown. Use after web_search_exa when highlights are insufficient or to read any URL.
 
 Best for: Extracting full content from known URLs. Batch multiple URLs in one call.
@@ -41,16 +41,13 @@ Returns: Clean text content and metadata from the page(s).`,
     {
       urls: z.array(z.string()).describe("URLs to read. Batch multiple URLs in one call."),
       maxCharacters: z.coerce.number().min(1).optional().describe("Maximum characters to extract per page (must be a positive number, default: 3000)"),
-      maxAgeHours: z.coerce.number().optional().describe("Maximum age of cached content in hours. 0 = always fetch fresh content, omit = use cached content with fresh fetch fallback."),
-      subpages: z.coerce.number().optional().describe("Number of subpages to also crawl from each URL."),
-      subpageTarget: z.string().optional().describe("Keywords to prioritize when selecting subpages"),
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ urls, maxCharacters, maxAgeHours, subpages, subpageTarget }) => {
+    async ({ urls, maxCharacters }) => {
       const requestId = `web_fetch_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'web_fetch_exa');
 
@@ -65,9 +62,6 @@ Returns: Clean text content and metadata from the page(s).`,
             text: {
               maxCharacters: maxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS
             },
-            ...(maxAgeHours !== undefined ? { maxAgeHours } : { livecrawl: 'preferred' }),
-            ...(subpages && { subpages }),
-            ...(subpageTarget && { subpageTarget: [subpageTarget] }),
           }
         };
 

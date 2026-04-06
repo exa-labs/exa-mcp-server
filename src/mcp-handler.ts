@@ -4,7 +4,7 @@ import { trackMCP, createConfig } from 'agnost';
 // Import tool implementations
 import { registerWebSearchTool } from "./tools/webSearch.js";
 import { registerCompanyResearchTool } from "./tools/companyResearch.js";
-import { registerCrawlingTool } from "./tools/crawling.js";
+import { registerWebFetchTool } from "./tools/webFetch.js";
 import { registerPeopleSearchTool } from "./tools/peopleSearch.js";
 import { registerLinkedInSearchTool } from "./tools/linkedInSearch.js";
 import { registerDeepResearchStartTool } from "./tools/deepResearchStart.js";
@@ -26,6 +26,7 @@ const availableTools = {
   'people_search_exa': { name: 'People Search (Deprecated)', description: 'Deprecated: Use web_search_advanced_exa instead. Search for people and professional profiles', enabled: false },
   'linkedin_search_exa': { name: 'LinkedIn Search (Deprecated)', description: 'Deprecated: Use web_search_advanced_exa instead', enabled: false },
   'deep_search_exa': { name: 'Deep Search (Deprecated)', description: 'Deprecated: Use web_search_advanced_exa instead. Deep search with query expansion and synthesized answers (requires API key)', enabled: false },
+  'crawling_exa': { name: 'Web Crawling (Deprecated)', description: 'Deprecated: Use web_fetch_exa instead. Extract content from specific URLs', enabled: false },
 };
 
 export interface McpConfig {
@@ -78,10 +79,16 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     }
     
     if (shouldRegisterTool('web_fetch_exa')) {
-      registerCrawlingTool(server, config);
+      registerWebFetchTool(server, config);
       registeredTools.push('web_fetch_exa');
     }
-    
+
+    // Deprecated: crawling_exa - kept for backwards compatibility, points to web_fetch_exa
+    if (shouldRegisterTool('crawling_exa')) {
+      registerWebFetchTool(server, config, 'crawling_exa');
+      registeredTools.push('crawling_exa');
+    }
+
     if (shouldRegisterTool('people_search_exa')) {
       registerPeopleSearchTool(server, config);
       registeredTools.push('people_search_exa');
