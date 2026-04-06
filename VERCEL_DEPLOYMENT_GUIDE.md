@@ -84,11 +84,11 @@ Your Vercel deployment maintains **complete compatibility** with `https://mcp.ex
 | Feature | Status |
 |---------|--------|
 | **URL Parameters** | |
-| `?tools=web_search_exa,get_code_context_exa` | ✅ Works identically |
+| `?tools=web_search_exa,web_fetch_exa` | ✅ Works identically |
 | `?exaApiKey=YOUR_KEY` | ✅ Works identically |
 | `?debug=true` | ✅ Works identically |
 | **Default Tools** | |
-| `web_search_exa` + `get_code_context_exa` enabled by default | ✅ Preserved |
+| `web_search_exa` + `web_fetch_exa` enabled by default | ✅ Preserved |
 | All 8 tools available | ✅ Unchanged |
 | **Tool Behavior** | |
 | All tool implementations | ✅ Zero changes |
@@ -126,7 +126,7 @@ Your deployment supports the same URL parameters as the hosted version:
 ### Examples:
 ```bash
 # Enable specific tools
-https://your-project.vercel.app/api/mcp?tools=web_search_exa,get_code_context_exa
+https://your-project.vercel.app/api/mcp?tools=web_search_exa,web_fetch_exa
 
 # Pass API key in URL
 https://your-project.vercel.app/api/mcp?exaApiKey=YOUR_KEY
@@ -140,8 +140,7 @@ https://your-project.vercel.app/api/mcp?tools=web_search_exa&exaApiKey=KEY&debug
 
 ### Available Tools:
 - `web_search_exa` (default: ON)
-- `get_code_context_exa` (default: ON)
-- `crawling_exa` (default: OFF)
+- `web_fetch_exa` (default: ON)
 - `company_research_exa` (default: OFF)
 - `people_search_exa` (default: OFF)
 - `linkedin_search_exa` (default: OFF, **deprecated** - use `people_search_exa`)
@@ -159,7 +158,7 @@ URL Parameter > Environment Variable > Default Value
 
 ### Local Testing
 ```bash
-# Test default (should enable web_search_exa + get_code_context_exa)
+# Test default (should enable web_search_exa + web_fetch_exa)
 curl http://localhost:3000/api/mcp
 
 # Test specific tool
@@ -217,7 +216,7 @@ Set these in Vercel dashboard or via CLI:
 |----------|----------|-------------|---------|
 | `EXA_API_KEY` | Yes | Your Exa AI API key | - |
 | `DEBUG` | No | Enable debug logging | `false` |
-| `ENABLED_TOOLS` | No | Comma-separated tool list | `web_search_exa,get_code_context_exa` |
+| `ENABLED_TOOLS` | No | Comma-separated tool list | `web_search_exa,web_fetch_exa` |
 
 **Add via CLI:**
 ```bash
@@ -265,12 +264,12 @@ vercel env add EXA_API_KEY
 
 **Before:**
 ```
-https://mcp.exa.ai/mcp?tools=web_search_exa,get_code_context_exa
+https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa
 ```
 
 **After:**
 ```
-https://your-project.vercel.app/api/mcp?tools=web_search_exa,get_code_context_exa
+https://your-project.vercel.app/api/mcp?tools=web_search_exa,web_fetch_exa
 ```
 
 Everything else works identically!
@@ -298,7 +297,7 @@ You'll know it works when:
 - [x] `npm install` completes without errors
 - [x] Local server runs at `http://localhost:3000`
 - [x] MCP Inspector connects successfully
-- [x] Default tools are `web_search_exa` + `get_code_context_exa`
+- [x] Default tools are `web_search_exa` + `web_fetch_exa`
 - [x] URL parameter `?tools=web_search_exa` works
 - [x] Production deployment succeeds
 - [x] Vercel logs show no errors
