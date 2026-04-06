@@ -3,7 +3,7 @@
   "enabledTools": [
     "web_search_exa",
     "web_search_advanced_exa",
-    "crawling_exa"
+    "web_fetch_exa"
   ],
   "debug": false
 }

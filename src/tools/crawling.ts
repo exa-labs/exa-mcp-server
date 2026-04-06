@@ -33,7 +33,7 @@ function formatCrawlResults(results: any[], errors: CrawlStatus[]): string {
 
 export function registerCrawlingTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
-    "crawling_exa",
+    "web_fetch_exa",
     `Read a webpage's full content as clean markdown. Use after web_search_exa when highlights are insufficient or to read any URL.
 
 Best for: Extracting full content from known URLs. Batch multiple URLs in one call.
@@ -51,8 +51,8 @@ Returns: Clean text content and metadata from the page(s).`,
       idempotentHint: true
     },
     async ({ urls, maxCharacters, maxAgeHours, subpages, subpageTarget }) => {
-      const requestId = `crawling_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'crawling_exa');
+      const requestId = `web_fetch_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const logger = createRequestLogger(requestId, 'web_fetch_exa');
 
       logger.start(urls.join(', '));
 
@@ -132,7 +132,7 @@ Returns: Clean text content and metadata from the page(s).`,
         return result;
       } catch (error) {
         logger.error(error);
-        return formatToolError(error, 'crawling_exa', config?.userProvidedApiKey);
+        return formatToolError(error, 'web_fetch_exa', config?.userProvidedApiKey);
       }
     }
   );

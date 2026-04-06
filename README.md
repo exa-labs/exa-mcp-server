@@ -274,7 +274,7 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | Tool | Description |
 | ---- | ----------- |
 | `web_search_exa` | Search the web for any topic and get clean, ready-to-use content |
-| `crawling_exa` | Get the full content of a specific webpage from a known URL |
+| `web_fetch_exa` | Get the full content of a specific webpage from a known URL |
 
 **Off by Default:**
 | Tool | Description |
@@ -284,7 +284,7 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 Enable additional tools with the `tools` parameter:
 
 ```
-https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,crawling_exa
+https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
 ```
 
 ## Agent Skills (Claude Skills)
