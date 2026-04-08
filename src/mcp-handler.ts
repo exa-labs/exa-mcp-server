@@ -145,25 +145,6 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
       }
     );
 
-    server.prompt(
-      "code_search_help",
-      "Get help finding code examples and documentation",
-      {},
-      async () => {
-        return {
-          messages: [
-            {
-              role: "user",
-              content: {
-                type: "text",
-                text: "I need help with a programming task. Can you search for examples of how to use React hooks for state management?"
-              }
-            }
-          ]
-        };
-      }
-    );
-    
     // Register resources to expose server information
     server.resource(
       "tools_list",
