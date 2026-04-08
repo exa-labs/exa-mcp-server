@@ -39,7 +39,10 @@ export function registerWebFetchTool(server: McpServer, config?: { exaApiKey?: s
 Best for: Extracting full content from known URLs. Batch multiple URLs in one call.
 Returns: Clean text content and metadata from the page(s).`,
     {
-      urls: z.array(z.string()).describe("URLs to read. Batch multiple URLs in one call."),
+      urls: z.preprocess(
+        (val) => typeof val === 'string' ? JSON.parse(val) : val,
+        z.array(z.string())
+      ).describe("URLs to read. Batch multiple URLs in one call."),
       maxCharacters: z.coerce.number().min(1).optional().describe("Maximum characters to extract per page (must be a positive number, default: 3000)"),
     },
     {
