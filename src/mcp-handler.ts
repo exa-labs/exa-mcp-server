@@ -125,6 +125,26 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
       log(`Registered ${registeredTools.length} tools: ${registeredTools.join(', ')}`);
     }
     
+    // Register prompts to help users get started
+    server.prompt(
+      "web_search_help",
+      "Get help with web search using Exa",
+      {},
+      async () => {
+        return {
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: "I want to search the web for current information. Can you help me search for recent news about artificial intelligence breakthroughs?"
+              }
+            }
+          ]
+        };
+      }
+    );
+
     // Register resources to expose server information
     server.resource(
       "tools_list",
