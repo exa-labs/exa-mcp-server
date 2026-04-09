@@ -281,6 +281,19 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | ---- | ----------- |
 | `web_search_advanced_exa` | Advanced web search with full control over filters, domains, dates, and content options |
 
+**Deprecated** (still available for backwards compatibility):
+
+| Tool | Use instead |
+| ---- | ----------- |
+| `get_code_context_exa` | `web_search_exa` |
+| `company_research_exa` | `web_search_advanced_exa` |
+| `crawling_exa` | `web_fetch_exa` |
+| `people_search_exa` | `web_search_advanced_exa` |
+| `linkedin_search_exa` | `web_search_advanced_exa` |
+| `deep_researcher_start` | [Research API](https://docs.exa.ai/reference/research/create-a-task) |
+| `deep_researcher_check` | [Research API](https://docs.exa.ai/reference/research/get-a-task) |
+| `deep_search_exa` | `web_search_advanced_exa` |
+
 Enable additional tools with the `tools` parameter:
 
 ```
