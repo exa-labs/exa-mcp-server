@@ -17,8 +17,8 @@ Best for: When you need specific filters like date ranges, domain restrictions, 
 Not recommended for: Simple searches - use web_search_exa instead.
 Returns: Search results with optional highlights, summaries, and subpage content.`,
     {
-      query: z.string().describe("Search query - can be a question, statement, or keywords"),
-      numResults: z.coerce.number().optional().describe("Number of results (must be a number, 1-100, default: 10)"),
+      query: z.preprocess(v => typeof v === 'number' || typeof v === 'boolean' ? String(v) : v, z.string()).describe("Search query - can be a question, statement, or keywords"),
+      numResults: z.coerce.number().optional().catch(undefined).describe("Number of results (must be a number, 1-100, default: 10)"),
       type: z.enum(['auto', 'fast', 'neural']).optional().describe("Search type - 'auto': balanced (default), 'fast': quick results, 'neural': semantic search"),
 
       category: z.enum(['company', 'research paper', 'news', 'pdf', 'github', 'personal site', 'people', 'financial report']).optional().describe("Filter results to a specific category"),
@@ -36,26 +36,26 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
       userLocation: z.string().optional().describe("ISO country code for geo-targeted results (e.g., 'US', 'GB', 'DE')"),
 
-      moderation: z.boolean().optional().describe("Filter out unsafe/inappropriate content"),
+      moderation: z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()).catch(undefined).describe("Filter out unsafe/inappropriate content"),
 
       additionalQueries: z.array(z.string()).optional().describe("Additional query variations to expand search coverage"),
 
-      textMaxCharacters: z.coerce.number().min(1).optional().describe("Max characters for text extraction per result (must be a positive number)"),
-      contextMaxCharacters: z.coerce.number().min(1).optional().describe("Max characters for context string (must be a positive number, not included by default)"),
+      textMaxCharacters: z.coerce.number().min(1).optional().catch(undefined).describe("Max characters for text extraction per result (must be a positive number)"),
+      contextMaxCharacters: z.coerce.number().min(1).optional().catch(undefined).describe("Max characters for context string (must be a positive number, not included by default)"),
 
-      enableSummary: z.boolean().optional().describe("Enable summary generation for results"),
+      enableSummary: z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()).catch(undefined).describe("Enable summary generation for results"),
       summaryQuery: z.string().optional().describe("Focus query for summary generation"),
 
-      enableHighlights: z.boolean().optional().describe("Enable highlights extraction"),
-      highlightsMaxCharacters: z.coerce.number().optional().describe("Maximum total characters across all highlights per URL (must be a number). Preferred over highlightsNumSentences."),
-      highlightsNumSentences: z.coerce.number().optional().describe("Deprecated: mapped to ~1333 chars/sentence. Use highlightsMaxCharacters instead."),
-      highlightsPerUrl: z.coerce.number().optional().describe("Deprecated: currently ignored server-side. Use highlightsMaxCharacters instead."),
+      enableHighlights: z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()).catch(undefined).describe("Enable highlights extraction"),
+      highlightsMaxCharacters: z.coerce.number().optional().catch(undefined).describe("Maximum total characters across all highlights per URL (must be a number). Preferred over highlightsNumSentences."),
+      highlightsNumSentences: z.coerce.number().optional().catch(undefined).describe("Deprecated: mapped to ~1333 chars/sentence. Use highlightsMaxCharacters instead."),
+      highlightsPerUrl: z.coerce.number().optional().catch(undefined).describe("Deprecated: currently ignored server-side. Use highlightsMaxCharacters instead."),
       highlightsQuery: z.string().optional().describe("Query for highlight relevance"),
 
-      maxAgeHours: z.coerce.number().optional().describe("Maximum age of cached content in hours. 0 = always fetch fresh content, omit = use cached content with fresh fetch fallback (must be a number)"),
-      livecrawlTimeout: z.coerce.number().optional().describe("Timeout in milliseconds for fetching fresh content when maxAgeHours triggers a live fetch (must be a number)"),
+      maxAgeHours: z.coerce.number().optional().catch(undefined).describe("Maximum age of cached content in hours. 0 = always fetch fresh content, omit = use cached content with fresh fetch fallback (must be a number)"),
+      livecrawlTimeout: z.coerce.number().optional().catch(undefined).describe("Timeout in milliseconds for fetching fresh content when maxAgeHours triggers a live fetch (must be a number)"),
 
-      subpages: z.coerce.number().optional().describe("Number of subpages to crawl from each result (must be a number, 1-10)"),
+      subpages: z.coerce.number().optional().catch(undefined).describe("Number of subpages to crawl from each result (must be a number, 1-10)"),
       subpageTarget: z.array(z.string()).optional().describe("Keywords to target when selecting subpages"),
     },
     {
