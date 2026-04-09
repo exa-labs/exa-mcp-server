@@ -39,7 +39,8 @@
     "dev": "npx @smithery/cli@latest dev",
     "dev:vercel": "vercel dev",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
-    "prepublishOnly": "npm run build:stdio"
+    "prepublishOnly": "npm run build:stdio && cp README.md README.github.md && cp npm.readme.md README.md",
+    "postpublish": "mv README.github.md README.md"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
