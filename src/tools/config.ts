@@ -6,6 +6,6 @@ export const API_CONFIG = {
     RESEARCH: '/research/v1',
     CONTEXT: '/context'
   },
-  DEFAULT_NUM_RESULTS: 8,
-  DEFAULT_MAX_CHARACTERS: 2000
+  DEFAULT_NUM_RESULTS: 10,
+  DEFAULT_MAX_CHARACTERS: 3000
 } as const;  
