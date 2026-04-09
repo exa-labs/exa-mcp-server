@@ -62,9 +62,18 @@ claude mcp add --transport http exa https://mcp.exa.ai/mcp
 <details>
 <summary><b>Claude Desktop</b></summary>
 
-Add to your config file:
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+Exa is available as a native Claude Connector — no config files or terminal commands needed.
+
+1. Open Claude Desktop **Settings** (or **Customize**) and go to **Connectors**
+2. Search for **Exa** in the directory
+3. Click **+** to add it
+
+That's it! Claude will now have access to Exa's search tools.
+
+<details>
+<summary>Alternative: manual config</summary>
+
+Add to your config file (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
 
 ```json
 {
@@ -76,6 +85,7 @@ Add to your config file:
   }
 }
 ```
+</details>
 </details>
 
 <details>
