@@ -50,7 +50,6 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           ...(category && { category }),
           contents: {
             highlights: { query: cleanedQuery },
-            text: { maxCharacters: 500 },
           }
         };
 
