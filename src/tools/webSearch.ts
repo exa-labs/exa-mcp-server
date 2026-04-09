@@ -8,19 +8,20 @@ import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost"
 
-export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }, toolName?: string): void {
   server.tool(
-    "web_search_exa",
+    toolName || "web_search_exa",
     `Search the web for any topic and get clean, ready-to-use content.
 
-Best for: Finding current information, news, facts, or answering questions about any topic.
-Returns: Clean text content from top search results, ready for LLM use.
+      Best for: Finding current information, news, facts, people, companies, or answering questions about any topic.
+      Returns: Clean text content from top search results, ready for LLM use.
 
-Query tips: describe the ideal page, not keywords. "blog post comparing React and Vue performance" not "React vs Vue".
-If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
+      Query tips: describe the ideal page, not keywords. "blog post comparing React and Vue performance" not "React vs Vue".
+      Use category:people to specifically search through Linkedin profiles and category:company to search through company pages.
+      If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
     {
-      query: z.string().describe("Natural language search query. Should be a semantically rich description of the ideal page, not just keywords."),
-      numResults: z.coerce.number().min(1).max(20).optional().describe("Number of search results to return (must be a number, default: 5)"),
+      query: z.string().describe("Natural language search query. Should be a semantically rich description of the ideal page, not just keywords. Optionally include category:<type> (company, people) to focus results — e.g. 'category:people John Doe software engineer'."),
+      numResults: z.coerce.number().min(1).max(100).optional().describe("Number of search results to return (must be a number, default: 10)."),
     },
     {
       readOnlyHint: true,
@@ -28,21 +29,28 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
       idempotentHint: true
     },
     async ({ query, numResults }) => {
-      const requestId = `web_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'web_search_exa');
+      const toolId = toolName || 'web_search_exa';
+      const requestId = `${toolId}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const logger = createRequestLogger(requestId, toolId);
 
-      logger.start(query);
+      // Extract category:<type> from query string if present
+      const categoryMatch = query.match(/\bcategory:(company|research\s*paper|news|personal\s*site|people)\b/i);
+      const category = categoryMatch ? categoryMatch[1].toLowerCase().replace(/\s+/g, ' ') as "company" | "research paper" | "news" | "personal site" | "people" : undefined;
+      const cleanedQuery = categoryMatch ? query.replace(categoryMatch[0], '').replace(/\s+/g, ' ').trim() : query;
+
+      logger.start(cleanedQuery);
 
       try {
         const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
 
         const searchRequest: ExaSearchRequest = {
-          query,
+          query: cleanedQuery,
           type: "auto",
-          numResults: numResults || 5,
+          numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
+          ...(category && { category }),
           contents: {
-            highlights: { query },
-            text: { maxCharacters: 300 },
+            highlights: { query: cleanedQuery },
+            text: { maxCharacters: 500 },
           }
         };
 
@@ -108,7 +116,7 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
         return result;
       } catch (error) {
         logger.error(error);
-        return formatToolError(error, 'web_search_exa', config?.userProvidedApiKey);
+        return formatToolError(error, toolId, config?.userProvidedApiKey);
       }
     }
   );
