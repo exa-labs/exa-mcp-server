@@ -215,24 +215,31 @@ Standard `mcpServers` format:
 **Enabled by Default:**
 | Tool | Description |
 | ---- | ----------- |
-| `web_search_exa` | Search the web and get clean content |
-| `get_code_context_exa` | Find code snippets and docs from GitHub and StackOverflow |
-| `company_research_exa` | Research companies by crawling their websites |
+| `web_search_exa` | Search the web for any topic and get clean, ready-to-use content |
+| `web_fetch_exa` | Get the full content of a specific webpage from a known URL |
 
 **Off by Default:**
 | Tool | Description |
 | ---- | ----------- |
-| `web_search_advanced_exa` | Advanced search with filters |
-| `deep_search_exa` | Deep search with query expansion |
-| `crawling_exa` | Get content from a specific URL |
-| `linkedin_search_exa` | Search for people on LinkedIn |
-| `deep_researcher_start` | Start an AI researcher |
-| `deep_researcher_check` | Check research status and get report |
+| `web_search_advanced_exa` | Advanced web search with full control over filters, domains, dates, and content options |
 
-To enable specific tools, use the remote MCP server with the `tools` parameter instead:
+**Deprecated** (still available for backwards compatibility):
+
+| Tool | Use instead |
+| ---- | ----------- |
+| `get_code_context_exa` | `web_search_exa` |
+| `company_research_exa` | `web_search_advanced_exa` |
+| `crawling_exa` | `web_fetch_exa` |
+| `people_search_exa` | `web_search_advanced_exa` |
+| `linkedin_search_exa` | `web_search_advanced_exa` |
+| `deep_researcher_start` | [Research API](https://docs.exa.ai/reference/research/create-a-task) |
+| `deep_researcher_check` | [Research API](https://docs.exa.ai/reference/research/get-a-task) |
+| `deep_search_exa` | `web_search_advanced_exa` |
+
+Enable additional tools with the `tools` parameter:
 
 ```
-https://mcp.exa.ai/mcp?tools=web_search_exa,deep_search_exa,crawling_exa
+https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
 ```
 
 See the [full documentation](https://docs.exa.ai/reference/exa-mcp) for more details on tool configuration.
