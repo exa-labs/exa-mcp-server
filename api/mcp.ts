@@ -89,25 +89,31 @@ Fix: Create API key at https://dashboard.exa.ai/api-keys , then either:
 - Or use the URL: https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
 
 /**
- * Create a JSON-RPC 2.0 error response for rate limiting.
- * MCP uses JSON-RPC 2.0, so we need to return errors in the proper format.
- * Note: We intentionally hide rate limit dimension info (limit set to 0) to prevent
- * users from inferring which limit they hit (QPS vs daily).
+ * Create a rate limit error formatted as an SSE event so MCP clients can parse it.
+ *
+ * MCP Streamable HTTP clients (Claude Code, Cursor, etc.) throw on non-200 status
+ * codes and surface a generic "Error occurred during tool execution" message,
+ * swallowing the actual error text. By returning HTTP 200 with a JSON-RPC error
+ * wrapped in an SSE event, clients parse and display the rate limit message.
  */
-function createRateLimitResponse(retryAfterSeconds: number, reset: number): Response {
+function createRateLimitResponse(requestId: string | number | null, retryAfterSeconds: number, reset: number): Response {
+  const jsonRpcError = JSON.stringify({
+    jsonrpc: '2.0',
+    error: {
+      code: -32000,
+      message: RATE_LIMIT_ERROR_MESSAGE,
+    },
+    id: requestId,
+  });
+
   return new Response(
-    JSON.stringify({
-      jsonrpc: '2.0',
-      error: {
-        code: -32000,
-        message: RATE_LIMIT_ERROR_MESSAGE,
-      },
-      id: null,
-    }),
+    `event: message\ndata: ${jsonRpcError}\n\n`,
     {
-      status: 429,
+      status: 200,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
         'Retry-After': String(retryAfterSeconds),
         'X-RateLimit-Limit': '0',
         'X-RateLimit-Remaining': '0',
@@ -119,15 +125,18 @@ function createRateLimitResponse(retryAfterSeconds: number, reset: number): Resp
 
 /**
  * Check if a JSON-RPC request is a tools/call method that should be rate limited.
- * Returns true only for actual tool invocations, not for protocol methods like
- * tools/list, initialize, ping, resources/list, prompts/list, etc.
+ * Returns the JSON-RPC request ID alongside the check so rate limit errors can
+ * reference the correct request.
  */
-function isRateLimitedMethod(body: string): boolean {
+function parseRateLimitedMethod(body: string): { shouldLimit: boolean; requestId: string | number | null } {
   try {
     const parsed = JSON.parse(body);
-    return parsed.method === 'tools/call';
+    if (parsed.method === 'tools/call') {
+      return { shouldLimit: true, requestId: parsed.id ?? null };
+    }
+    return { shouldLimit: false, requestId: null };
   } catch {
-    return false;
+    return { shouldLimit: false, requestId: null };
   }
 }
 
@@ -175,7 +184,7 @@ async function saveBypassRequestInfo(ip: string, userAgent: string, debug: boole
  * Check rate limits for a given IP.
  * Returns null if within limits, or a Response if rate limited.
  */
-async function checkRateLimits(ip: string, debug: boolean): Promise<Response | null> {
+async function checkRateLimits(ip: string, requestId: string | number | null, debug: boolean): Promise<Response | null> {
   if (!qpsLimiter || !dailyLimiter) {
     return null; // Rate limiting not configured
   }
@@ -188,7 +197,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
         console.log(`[EXA-MCP] QPS rate limit exceeded for IP: ${ip}`);
       }
       const retryAfter = Math.ceil((qpsResult.reset - Date.now()) / 1000);
-      return createRateLimitResponse(retryAfter, qpsResult.reset);
+      return createRateLimitResponse(requestId, retryAfter, qpsResult.reset);
     }
     
     // Check daily limit
@@ -198,7 +207,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
         console.log(`[EXA-MCP] Daily rate limit exceeded for IP: ${ip}`);
       }
       const retryAfter = Math.ceil((dailyResult.reset - Date.now()) / 1000);
-      return createRateLimitResponse(retryAfter, dailyResult.reset);
+      return createRateLimitResponse(requestId, retryAfter, dailyResult.reset);
     }
     
     return null; // Within limits
@@ -454,7 +463,8 @@ async function handleRequest(request: Request, options?: { forceOAuth?: boolean 
     const body = await clonedRequest.text();
     
     // Only rate limit actual tool calls, not protocol methods
-    if (isRateLimitedMethod(body)) {
+    const { shouldLimit, requestId } = parseRateLimitedMethod(body);
+    if (shouldLimit) {
       // Initialize rate limiters on first request (lazy init)
       initializeRateLimiters();
       
@@ -464,7 +474,7 @@ async function handleRequest(request: Request, options?: { forceOAuth?: boolean 
         console.log(`[EXA-MCP] Client IP: ${clientIp}, method: tools/call`);
       }
       
-      const rateLimitResponse = await checkRateLimits(clientIp, config.debug);
+      const rateLimitResponse = await checkRateLimits(clientIp, requestId, config.debug);
       if (rateLimitResponse) {
         return rateLimitResponse;
       }
