@@ -47,8 +47,9 @@ Returns: Search results with optional highlights, summaries, and subpage content
       summaryQuery: z.string().optional().describe("Focus query for summary generation"),
 
       enableHighlights: z.boolean().optional().describe("Enable highlights extraction"),
-      highlightsNumSentences: z.coerce.number().optional().describe("Number of sentences per highlight (must be a number)"),
-      highlightsPerUrl: z.coerce.number().optional().describe("Number of highlights per URL (must be a number)"),
+      highlightsMaxCharacters: z.coerce.number().optional().describe("Maximum total characters across all highlights per URL (must be a number). Preferred over highlightsNumSentences."),
+      highlightsNumSentences: z.coerce.number().optional().describe("Deprecated: mapped to ~1333 chars/sentence. Use highlightsMaxCharacters instead."),
+      highlightsPerUrl: z.coerce.number().optional().describe("Deprecated: currently ignored server-side. Use highlightsMaxCharacters instead."),
       highlightsQuery: z.string().optional().describe("Query for highlight relevance"),
 
       maxAgeHours: z.coerce.number().optional().describe("Maximum age of cached content in hours. 0 = always fetch fresh content, omit = use cached content with fresh fetch fallback (must be a number)"),
@@ -87,6 +88,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
         if (params.enableHighlights) {
           contents.highlights = {
+            maxCharacters: params.highlightsMaxCharacters,
             numSentences: params.highlightsNumSentences,
             highlightsPerUrl: params.highlightsPerUrl,
             query: params.highlightsQuery,
