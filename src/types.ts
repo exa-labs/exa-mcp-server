@@ -10,6 +10,7 @@ export interface ExaSearchRequest {
   numResults?: number;
   additionalQueries?: string[];
   outputSchema?: Record<string, unknown>;
+  flags?: string[];
   contents: {
     text?: {
       maxCharacters?: number;

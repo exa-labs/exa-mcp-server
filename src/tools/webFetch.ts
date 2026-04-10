@@ -65,7 +65,8 @@ Returns: Clean text content and metadata from the page(s).`,
             text: {
               maxCharacters: maxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS
             },
-          }
+          },
+          flags: ["fastsnippets_backend:aws-v2", "low_priority"],
         };
 
         checkpoint('crawl_request_prepared');

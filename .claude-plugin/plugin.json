@@ -6,5 +6,11 @@
     "name": "Exa",
     "email": "hello@exa.ai"
   },
-  "repository": "https://github.com/exa-labs/exa-mcp-server"
+  "repository": "https://github.com/exa-labs/exa-mcp-server",
+  "mcpServers": {
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp"
+    }
+  }
 }

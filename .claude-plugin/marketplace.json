@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Official Exa AI plugin providing web search, code search, company research, and deep research capabilities",
-    "version": "1.0.0"
+    "version": "3.2.0"
   },
   "plugins": [
     {
@@ -33,7 +33,6 @@
         "crawling"
       ],
       "category": "productivity",
-      "strict": false,
       "mcpServers": {
         "exa": {
           "type": "http",
