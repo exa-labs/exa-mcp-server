@@ -37,7 +37,9 @@
         "exa": {
           "type": "http",
           "url": "https://mcp.exa.ai/mcp",
-          "headers": {}
+          "headers": {
+            "x-exa-source": "claude-code-plugin"
+          }
         }
       }
     }
