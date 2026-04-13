@@ -52,7 +52,6 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           contents: {
             highlights: { query: cleanedQuery },
           },
-          flags: ["fastsnippets_backend:aws-v2", "low_priority"],
         };
 
         checkpoint('web_search_request_prepared');
