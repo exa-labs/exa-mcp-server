@@ -18,9 +18,25 @@ Read the user's query and determine two things:
 
 **How complex is this?**
 - **Simple** (1-3 searches, no cross-referencing): Handle it yourself. Read `references/searching.md` for query-writing guidance, run the searches, review and filter results, then respond directly. No subagents needed.
-- **Moderate** (4-8 searches total): Delegate to 1 subagent to keep your context window clean.
 - **Advanced** (clear topic, clear filters, a few parallel searches): Light subagent use. One round of parallel subagents, then compile.
 - **Complex** (cross-referencing across entity types, multi-hop chains, exhaustive coverage, semantic filtering): Full multi-pass with parallel subagents.
+
+**Confirm when ambiguous:**
+If the query could reasonably be handled as Simple OR as Advanced/Complex, pause and ask the user before proceeding. Present:
+1. Your interpretation of the query
+2. The two (or more) plausible complexity levels
+3. What each level would look like in practice (e.g., "I can do a quick 1-2 search lookup, or I can fan out across 3-4 subagents to get deeper coverage")
+4. Let the user choose
+
+Examples of ambiguous queries:
+- "What are the best LLM fine-tuning frameworks?" — could be a quick opinionated list (Simple) or an exhaustive evaluated comparison (Complex)
+- "Find competitors to Acme Corp" — could be a quick search for known competitors (Simple) or a deep sweep across funding databases, press, and niche directories (Complex)
+- "What's the latest on WebGPU?" — could be one news search (Simple) or a multi-angle survey of specs, browser support, community adoption, and benchmarks (Advanced)
+
+Do NOT ask for confirmation when:
+- The query is clearly simple (fact lookups, single-entity questions)
+- The query is clearly complex (explicit multi-constraint, "find everything", "exhaustive", "comprehensive")
+- The user has already specified depth ("do a deep dive", "quick answer")
 
 Do not over-execute on simple queries. A fact lookup does not need fanout. Do not under-execute on complex queries. A multi-constraint list-building task needs parallel coverage.
 
@@ -126,7 +142,12 @@ After subagents return:
 
 **Format the output:**
 
-For list results (20+ items): write a CSV file to `./results/<topic>-<YYYY-MM-DD>.csv` and present a summary in chat with key findings, breakdown by segment, and a pointer to the file.
+For list results (20+ items): before compiling, ask the user how they want the output delivered. Present options:
+1. **CSV file** -- full results written to a file, with a summary and key findings in chat
+2. **In-chat list** -- all results presented directly in chat as a compact list (can be long)
+3. **Summary only** -- top findings and patterns in chat, no full list
+
+Then format accordingly. If the user doesn't have a preference, default to CSV + summary.
 
 For focused results (under 20 items): present directly in chat as a compact list:
 ```
