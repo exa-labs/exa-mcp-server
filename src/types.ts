@@ -10,7 +10,6 @@ export interface ExaSearchRequest {
   numResults?: number;
   additionalQueries?: string[];
   outputSchema?: Record<string, unknown>;
-  flags?: string[];
   contents: {
     text?: {
       maxCharacters?: number;
@@ -231,7 +230,6 @@ export interface DeepResearchErrorResponse {
 export interface ExaCodeRequest {
   query: string;
   tokensNum: number;
-  flags?: string[];
 }
 
 export interface ExaCodeResponse {
