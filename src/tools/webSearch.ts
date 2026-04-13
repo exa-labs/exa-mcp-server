@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG } from "./config.js";
+import { API_CONFIG, integrationHeaders } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
@@ -63,7 +63,7 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           'POST',
           searchRequest,
           undefined,
-          { 'x-exa-integration': 'web-search-mcp' }
+          integrationHeaders('web-search-mcp', config)
         ));
 
         checkpoint('exa_search_response_received');

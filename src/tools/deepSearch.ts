@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG } from "./config.js";
+import { API_CONFIG, integrationHeaders } from "./config.js";
 import { ExaDeepSearchRequest, ExaDeepSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
@@ -79,7 +79,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           'POST',
           searchRequest,
           undefined,
-          { 'x-exa-integration': 'deep-search-mcp' }
+          integrationHeaders('deep-search-mcp', config)
         ));
 
         checkpoint('deep_search_response_received');

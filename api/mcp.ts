@@ -264,6 +264,7 @@ interface RequestConfig {
   debug: boolean;
   userProvidedApiKey: boolean;
   authMethod: 'oauth' | 'api_key' | 'free_tier';
+  exaSource?: string;
 }
 
 /**
@@ -354,7 +355,9 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
       .filter(t => t.length > 0);
   }
 
-  return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod };
+  const exaSource = request.headers.get('x-exa-source') || undefined;
+
+  return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod, exaSource };
 }
 
 /**
@@ -363,7 +366,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
  * configuration (tools and API key). This prevents API key leakage between
  * different users who might pass different keys via URL.
  */
-function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean }) {
+function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string }) {
   return createMcpHandler(
     (server: any) => {
       initializeMcpServer(server, config);
