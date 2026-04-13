@@ -1,5 +1,5 @@
 {
-  "name": "exa-mcp-server",
+  "name": "exa",
   "owner": {
     "name": "Exa",
     "email": "hello@exa.ai"
@@ -10,7 +10,7 @@
   },
   "plugins": [
     {
-      "name": "exa-mcp-server",
+      "name": "exa",
       "source": "./",
       "description": "A Model Context Protocol server with Exa for web search, code search, and web crawling. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities.",
       "version": "3.2.3",
@@ -34,7 +34,7 @@
       ],
       "category": "productivity",
       "mcpServers": {
-        "exa-mcp-server": {
+        "exa": {
           "type": "http",
           "url": "https://mcp.exa.ai/mcp?client=claude-code-plugin",
           "headers": {
