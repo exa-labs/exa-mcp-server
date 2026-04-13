@@ -36,7 +36,7 @@
       "mcpServers": {
         "exa-mcp-server": {
           "type": "http",
-          "url": "https://mcp.exa.ai/mcp",
+          "url": "https://mcp.exa.ai/mcp?client=claude-code-plugin",
           "headers": {
             "x-exa-source": "claude-code-plugin"
           }
