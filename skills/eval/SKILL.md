@@ -23,16 +23,17 @@ Example: `/eval find me AI researchers with blogs about information retrieval`
 ### Flow
 
 1. User runs `/eval <query>`
-2. Skill dispatches two subagents in parallel:
+2. **Record start time**: Run `date +%s` via Bash and save the output as `START_TIME`.
+3. Dispatch two subagents in parallel:
    - **Baseline agent**: Uses only Claude's native `WebSearch` tool. No Exa tools. Told to research the topic thoroughly and return comprehensive markdown with sources.
    - **Skill agent**: Reads `skills/exa/SKILL.md` and follows the full exa orchestration (fan-out subagents, dedup, synthesis) using Exa MCP tools. Returns markdown results.
-3. Before dispatching, record the start time (e.g. `Date.now()` or `date +%s` equivalent). When both return, note the end time and compute the total elapsed search time in seconds.
-4. When both return, the skill:
+4. **Record end time**: When both agents return, run `date +%s` via Bash and save the output as `END_TIME`. Compute `ELAPSED = END_TIME - START_TIME` (in seconds).
+5. When both return, the skill:
    - Creates output directory: `results/evals/<query-slug>-<YYYY-MM-DD>/`
    - Writes `baseline.md` (raw baseline output)
    - Writes `skill.md` (raw skill output)
-   - Generates `comparison.html` (self-contained HTML comparison page, includes total search time)
-5. Opens `comparison.html` in the browser via `open` command
+   - Generates `comparison.html` — self-contained HTML comparison page. **The header MUST include the total search time**, displayed as "Completed in Xs" (e.g. "Completed in 47s") using the `ELAPSED` value computed in step 4.
+6. Opens `comparison.html` in the browser via `open` command
 
 ### Subagent Prompts
 
