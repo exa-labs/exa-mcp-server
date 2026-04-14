@@ -17,28 +17,29 @@ If the query involves time ("last week", "recent", "past 6 months"), calculate e
 Read the user's query and determine two things:
 
 **How complex is this?**
-- **Simple** (1-3 searches, no cross-referencing): Handle it yourself. Read `references/searching.md` for query-writing guidance, run the searches, review and filter results, then respond directly. No subagents needed.
+- **Extremely Simple** (e.g. reading the contents of 1-2 pages): Handle it yourself. Read `references/searching.md` for query-writing guidance, run the searches, review and filter results, then respond directly. No subagents needed.
+- **Moderate** (when a fast or low-effort search is requested): Delegate to 1 subagent to keep your context window clean.
 - **Advanced** (clear topic, clear filters, a few parallel searches): Light subagent use. One round of parallel subagents, then compile.
 - **Complex** (cross-referencing across entity types, multi-hop chains, exhaustive coverage, semantic filtering): Full multi-pass with parallel subagents.
 
 **Confirm when ambiguous:**
-If the query could reasonably be handled as Simple OR as Advanced/Complex, pause and ask the user before proceeding. Present:
+If the query could reasonably be handled as Extremely Simple/Moderate OR as Advanced/Complex, pause and ask the user before proceeding. Present:
 1. Your interpretation of the query
 2. The two (or more) plausible complexity levels
 3. What each level would look like in practice (e.g., "I can do a quick 1-2 search lookup, or I can fan out across 3-4 subagents to get deeper coverage")
 4. Let the user choose
 
 Examples of ambiguous queries:
-- "What are the best LLM fine-tuning frameworks?" — could be a quick opinionated list (Simple) or an exhaustive evaluated comparison (Complex)
-- "Find competitors to Acme Corp" — could be a quick search for known competitors (Simple) or a deep sweep across funding databases, press, and niche directories (Complex)
-- "What's the latest on WebGPU?" — could be one news search (Simple) or a multi-angle survey of specs, browser support, community adoption, and benchmarks (Advanced)
+- "What are the best LLM fine-tuning frameworks?" — could be a quick opinionated list (Moderate) or an exhaustive evaluated comparison (Complex)
+- "Find competitors to Acme Corp" — could be a quick search for known competitors (Moderate) or a deep sweep across funding databases, press, and niche directories (Complex)
+- "What's the latest on WebGPU?" — could be one news search (Extremely Simple) or a multi-angle survey of specs, browser support, community adoption, and benchmarks (Advanced)
 
 Do NOT ask for confirmation when:
-- The query is clearly simple (fact lookups, single-entity questions)
+- The query is clearly extremely simple (fact lookups, single-entity questions)
 - The query is clearly complex (explicit multi-constraint, "find everything", "exhaustive", "comprehensive")
 - The user has already specified depth ("do a deep dive", "quick answer")
 
-Do not over-execute on simple queries. A fact lookup does not need fanout. Do not under-execute on complex queries. A multi-constraint list-building task needs parallel coverage.
+Note: if the user explicitly asks for something (e.g. "100" of something), continue to work until you've achieved it.
 
 **What work needs to happen?** Identify which of these apply (most queries use 3-5):
 
@@ -98,7 +99,7 @@ Point to whichever of these also apply:
 
 ### How to split work across subagents
 
-If running parallel subagents, decompose the primary task/question into **sub-questions**.
+If running parallel subagents, decompose the primary task/question into **sub-questions** to cover different search territories.
 
 For example, "best open-source LLM fine-tuning frameworks for production use" can be decomposed into multiple parallel sub-questions:
 1. "What open-source LLM fine-tuning frameworks do production engineers recommend, and what do they say about using them in real deployments?"
@@ -137,27 +138,18 @@ After subagents return:
 
 **Validate coverage:**
 - Are there obvious gaps? (missing time periods, missing geographic regions, missing entity types)
-- For each gap found, run targeted follow-up searches (via subagent if multiple queries are needed, direct if simple)
+- For each gap found, run targeted follow-up searches (via subagent if multiple queries are needed, direct if extremely simple)
 - For "find everything" queries, check if results from different subagents overlap heavily (good sign) or are completely disjoint (may indicate missed angles)
 
 **Format the output:**
 
-For list results (20+ items): before compiling, ask the user how they want the output delivered. Present options:
-1. **CSV file** -- full results written to a file, with a summary and key findings in chat
-2. **In-chat list** -- all results presented directly in chat as a compact list (can be long)
-3. **Summary only** -- top findings and patterns in chat, no full list
+Format output beautifully, filling up no more than one scroll length of the claude code screen. Include hyperlinked text where relevant. Below it, you may also include things (in a short, easy-to-read format) that:
+- ("Result") directly answer the original user request (in few words; make every word count)
+- ("Process") include anything worth noting about your process and what you consider to be high-signal in this domain vs. what you filtered out.
+- ("Patterns") any patterns identified that are non-obvious, require n-th order thinking, and are not included or alluded to in the rest of the output but might be interesting to the user.
+- ("Notes") based on everything you know about the user and their work beyond this task, mention anything notable/useful you found that is not included or alluded to in the rest of the output.
 
-Then format accordingly. If the user doesn't have a preference, default to CSV + summary.
-
-For focused results (under 20 items): present directly in chat as a compact list:
-```
-- **[Name/Title]** -- one-line summary, key detail, key detail
-  [URL]
-```
-
-For research/narrative: organize by theme, lead with the answer, cite sources inline. See `references/synthesis.md` if you need to read it yourself.
-
-For enriched lists: return as a table with the user's original entities as rows and the requested fields as columns, with source citations per cell where possible.
+If it's impossible to fit the full output in a single screen, write a file in the most relevant/useful file format (.csv, .md) to `./exa-results/<topic>-<YYYY-MM-DD>` and include a pointer to the full file below the 1-screen output.
 
 **General output rules:**
 - No emojis unless the user requested them
@@ -184,9 +176,9 @@ Source quality matters most for "best of", ranking, expert-finding, and best-pra
 
 **At the orchestrator level**, when compiling subagent results:
 
-1. **Convergence across high-signal sources**: Convergence alone isn't meaningful -- three low-quality sources agreeing is just shared noise. What matters is when 3+ independent, high-signal sources (practitioners, people with skin in the game) converge on the same finding.
+1. **Convergence across high-signal sources**: Convergence alone isn't meaningful (3 low-quality sources agreeing is just shared noise). What matters is when multiple independent, high-signal sources (practitioners, people with skin in the game) converge on the same finding.
 2. **Practitioner vs commentator**: Weight practitioners (people doing the work) higher than commentators (people writing about the work).
-3. **Via negativa**: Before synthesizing, define who to exclude -- sources with misaligned incentives, no skin in the game, or unfalsifiable claims. Filtering out noise is more valuable than seeking brilliance.
+3. **Via negativa**: Before synthesizing, define who to exclude (sources with misaligned incentives, no skin in the game, or unfalsifiable claims). Filtering out noise is more valuable than seeking brilliance.
 4. **Red-team your compiled results**: What perspectives are missing? What biases might be distorting the aggregate? If a gap emerges, run a targeted follow-up.
 5. **Ideas over entities**: For expert-finding and best-practices queries, the primary output is convergent truths, not a ranked list of names. Lead with what the best sources agree on, then cite who said it.
 
@@ -196,5 +188,5 @@ Source quality matters most for "best of", ranking, expert-finding, and best-pra
 - **Under-execution on hard queries**: If the query has 4+ constraints, temporal joins, or semantic filtering, a single search will not cut it. Fan out.
 - **Synonym queries**: Running "overrated AI tools" and "overhyped AI tools" as separate subagent queries wastes tokens. These hit the same embedding region. Diversify by angle instead.
 - **Forgetting to deduplicate**: Multiple subagents will return overlapping results. Always deduplicate before synthesis.
-- **Treating Exa results as validated**: Exa returns similarity, not truth. A result appearing in search output does not mean it meets the user's criteria. You must validate.
+- **Treating Exa results as validated**: Exa returns similarity, not yet validated. A result appearing in search output does not mean it meets the user's criteria. You must validate.
 - **Date drift**: Always calculate dates from the current environment date. Never reuse dates from these instructions or from previous queries.

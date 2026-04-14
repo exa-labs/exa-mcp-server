@@ -20,7 +20,7 @@ Exa uses vector embeddings, not keywords. It finds pages semantically similar to
 | Company doing Y | "Y company" | "category:company startup building Y for enterprise" |
 | Person at company | "person at company" | "category:people senior engineer at Acme" |
 
-Write queries as natural phrases.
+Write queries as natural grammatical phrases.
 
 **`numResults` sizing -- match to query precision:**
 
