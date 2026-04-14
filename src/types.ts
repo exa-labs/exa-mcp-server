@@ -230,7 +230,6 @@ export interface DeepResearchErrorResponse {
 export interface ExaCodeRequest {
   query: string;
   tokensNum: number;
-  flags?: string[];
 }
 
 export interface ExaCodeResponse {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG } from "./config.js";
+import { API_CONFIG, integrationHeaders } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
@@ -56,7 +56,7 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
           'POST',
           searchRequest,
           undefined,
-          { 'x-exa-integration': 'exa-code-mcp' }
+          integrationHeaders('exa-code-mcp', config)
         ));
 
         checkpoint('code_context_response_received');

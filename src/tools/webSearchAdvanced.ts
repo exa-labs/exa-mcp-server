@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG } from "./config.js";
+import { API_CONFIG, integrationHeaders } from "./config.js";
 import { ExaAdvancedSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
@@ -166,7 +166,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
           'POST',
           searchRequest,
           undefined,
-          { 'x-exa-integration': 'web-search-advanced-mcp' }
+          integrationHeaders('web-search-advanced-mcp', config)
         ));
 
         checkpoint('exa_advanced_search_response_received');

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG } from "./config.js";
+import { API_CONFIG, integrationHeaders } from "./config.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeContentsResponse } from "../utils/exaResponseSanitizer.js";
@@ -65,7 +65,7 @@ Returns: Clean text content and metadata from the page(s).`,
             text: {
               maxCharacters: maxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS
             },
-          }
+          },
         };
 
         checkpoint('crawl_request_prepared');
@@ -76,7 +76,7 @@ Returns: Clean text content and metadata from the page(s).`,
           'POST',
           crawlRequest,
           undefined,
-          { 'x-exa-integration': 'crawling-mcp' }
+          integrationHeaders('crawling-mcp', config)
         ));
 
         checkpoint('crawl_response_received');

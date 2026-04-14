@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG } from "./config.js";
+import { API_CONFIG, integrationHeaders } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
@@ -14,10 +14,11 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
     `Search the web for any topic and get clean, ready-to-use content.
 
       Best for: Finding current information, news, facts, people, companies, or answering questions about any topic.
-      Returns: Clean text content from top search results, ready for LLM use.
+      Returns: Clean text content from top search results.
 
-      Query tips: describe the ideal page, not keywords. "blog post comparing React and Vue performance" not "React vs Vue".
-      Use category:people to specifically search through Linkedin profiles and category:company to search through company pages.
+      Query tips: 
+      describe the ideal page, not keywords. "blog post comparing React and Vue performance" not "React vs Vue".
+      Use category:people / category:company to search through Linkedin profiles / companies respectively.
       If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
     {
       query: z.string().describe("Natural language search query. Should be a semantically rich description of the ideal page, not just keywords. Optionally include category:<type> (company, people) to focus results — e.g. 'category:people John Doe software engineer'."),
@@ -50,7 +51,7 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           ...(category && { category }),
           contents: {
             highlights: { query: cleanedQuery },
-          }
+          },
         };
 
         checkpoint('web_search_request_prepared');
@@ -61,7 +62,7 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           'POST',
           searchRequest,
           undefined,
-          { 'x-exa-integration': 'web-search-mcp' }
+          integrationHeaders('web-search-mcp', config)
         ));
 
         checkpoint('exa_search_response_received');

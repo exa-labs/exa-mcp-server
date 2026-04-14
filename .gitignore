@@ -33,3 +33,6 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Research output
+results/

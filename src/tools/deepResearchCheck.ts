@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Exa, ExaError } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG } from "./config.js";
+import { API_CONFIG, integrationHeaders } from "./config.js";
 import { DeepResearchCheckResponse, DeepResearchErrorResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
@@ -50,7 +50,7 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
           'GET',
           undefined,
           undefined,
-          { 'x-exa-integration': 'deep-research-mcp' }
+          integrationHeaders('deep-research-mcp', config)
         ));
 
         checkpoint('deep_research_check_response_received');

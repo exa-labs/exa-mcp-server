@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG } from "./config.js";
+import { API_CONFIG, integrationHeaders } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
@@ -54,7 +54,7 @@ Returns: Profile information and links.`,
           'POST',
           searchRequest,
           undefined,
-          { 'x-exa-integration': 'people-search-mcp' }
+          integrationHeaders('people-search-mcp', config)
         ));
 
         checkpoint('people_search_response_received');
