@@ -497,6 +497,7 @@ async function handleRequest(request: Request, options?: { forceOAuth?: boolean 
     method: request.method,
     headers: sanitizedHeaders,
     body: request.body,
+    signal: request.signal,
     // @ts-expect-error duplex is required for streaming request bodies in undici/Node
     duplex: 'half',
   });
