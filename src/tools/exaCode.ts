@@ -19,8 +19,8 @@ Returns: Relevant code and documentation.
 Query tips: describe what you're looking for specifically. "Python requests library POST with JSON body" not "python http".
 If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
     {
-      query: z.string().describe("Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"),
-      numResults: z.coerce.number().min(1).max(20).optional().describe("Number of search results to return (must be a number, default: 8)"),
+      query: z.preprocess(v => typeof v === 'number' || typeof v === 'boolean' ? String(v) : v, z.string().trim().min(1)).describe("Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"),
+      numResults: z.coerce.number().min(1).max(20).optional().catch(undefined).describe("Number of search results to return (must be a number, default: 8)"),
     },
     {
       readOnlyHint: true,
