@@ -1,7 +1,6 @@
 ---
 name: search
 description: "Deep research skill using Exa search with fan-out candidate generation, domain-specific search patterns, and batched sub-agent processing. Use this skill whenever the user asks for thorough research, deep dives, comprehensive analysis, literature reviews, competitive analysis, market research, exhaustive sweeps, or any query where a single search would be insufficient. Also trigger when the user says 'research this', 'find everything about', 'find every', 'do a deep dive on', 'comprehensive overview of', or wants synthesized findings from many sources. Routes to specialized patterns for people, companies, experts, academic papers, hidden relationships, code documentation, and more. If the user wants more than a surface-level answer and the topic benefits from consulting dozens of sources, use this skill."
-context: fork
 ---
 
 # Exa Research Orchestrator
