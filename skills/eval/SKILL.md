@@ -26,12 +26,13 @@ Example: `/eval find me AI researchers with blogs about information retrieval`
 2. Skill dispatches two subagents in parallel:
    - **Baseline agent**: Uses only Claude's native `WebSearch` tool. No Exa tools. Told to research the topic thoroughly and return comprehensive markdown with sources.
    - **Skill agent**: Reads `skills/exa/SKILL.md` and follows the full exa orchestration (fan-out subagents, dedup, synthesis) using Exa MCP tools. Returns markdown results.
-3. When both return, the skill:
+3. Before dispatching, record the start time (e.g. `Date.now()` or `date +%s` equivalent). When both return, note the end time and compute the total elapsed search time in seconds.
+4. When both return, the skill:
    - Creates output directory: `results/evals/<query-slug>-<YYYY-MM-DD>/`
    - Writes `baseline.md` (raw baseline output)
    - Writes `skill.md` (raw skill output)
-   - Generates `comparison.html` (self-contained HTML comparison page)
-4. Opens `comparison.html` in the browser via `open` command
+   - Generates `comparison.html` (self-contained HTML comparison page, includes total search time)
+5. Opens `comparison.html` in the browser via `open` command
 
 ### Subagent Prompts
 
@@ -63,7 +64,7 @@ results/evals/
 **Query slug**: derived from the query — lowercase, spaces to hyphens, strip special chars, truncate to 50 chars.
 
 **comparison.html** is a fully self-contained HTML file (no external dependencies):
-- Header: query text, timestamp, date
+- Header: query text, timestamp, date, total search time (e.g. "Completed in 47s")
 - Two-column layout: "Claude Native Search" (left) vs "Exa Research Skill" (right)
 - Both columns render their markdown content as HTML
 - Includes a simple markdown-to-HTML renderer inline (handles headers, lists, bold, links, code blocks)
