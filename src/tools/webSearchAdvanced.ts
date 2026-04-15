@@ -19,7 +19,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
     {
       query: z.string().describe("Search query - can be a question, statement, or keywords"),
       numResults: z.coerce.number().optional().describe("Number of results (must be a number, 1-100, default: 10)"),
-      type: z.enum(['auto', 'fast', 'neural']).optional().describe("Search type - 'auto': balanced (default), 'fast': quick results, 'neural': semantic search"),
+      type: z.enum(['auto', 'fast', 'instant']).optional().describe("Search type - 'auto': balanced (default), 'fast': quick results, 'instant': fastest results"),
 
       category: z.enum(['company', 'research paper', 'news', 'pdf', 'github', 'personal site', 'people', 'financial report']).optional().describe("Filter results to a specific category"),
 
