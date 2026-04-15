@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Official Exa AI plugin providing web search, code search, company research, and deep research capabilities",
-    "version": "3.3.5"
+    "version": "3.3.6"
   },
   "plugins": [
     {
       "name": "exa",
       "source": "./",
       "description": "A Model Context Protocol server with Exa for web search, code search, and web crawling. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities.",
-      "version": "3.3.5",
+      "version": "3.3.6",
       "author": {
         "name": "Exa",
         "email": "hello@exa.ai"
@@ -36,7 +36,7 @@
       "mcpServers": {
         "exa": {
           "type": "sse",
-          "url": "https://mcp.exa.ai/mcp/oauth?client=claude-code-plugin",
+          "url": "https://mcp.exa.ai/mcp?client=claude-code-plugin",
           "headers": {
             "x-exa-source": "claude-code-plugin"
           }
