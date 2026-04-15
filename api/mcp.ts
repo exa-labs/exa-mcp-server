@@ -427,8 +427,8 @@ async function handleRequest(request: Request, options?: { forceOAuth?: boolean 
   const userAgentMatchesOAuth = oauthUserAgents.some(ua => userAgent.includes(ua));
 
   // Check if request is from a plugin client (force OAuth for plugin users)
-  const url = new URL(request.url);
-  const isPluginClient = url.searchParams.get('client')?.includes('plugin') ?? false;
+  const requestUrl = new URL(request.url);
+  const isPluginClient = requestUrl.searchParams.get('client')?.includes('plugin') ?? false;
 
   // Gate: require auth for /mcp/oauth endpoint, matching user agents, or plugin clients (unless bypassed)
   const requireOAuth = options?.forceOAuth || userAgentMatchesOAuth || isPluginClient;
