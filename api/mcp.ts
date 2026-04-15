@@ -82,11 +82,18 @@ function getClientIp(request: Request): string {
   return cfConnectingIp ?? xRealIp ?? xForwardedForFirst ?? 'unknown';
 }
 
-const RATE_LIMIT_ERROR_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
+const RATE_LIMIT_ERROR_MESSAGE = `You've hit Exa's free MCP rate limit. Sign in or add an API key for unlimited access.
 
-Fix: Create API key at https://dashboard.exa.ai/api-keys , then either:
-- Set the header: Authorization: Bearer YOUR_EXA_API_KEY
-- Or use the URL: https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
+Option 1 (recommended): Sign in with your Exa account
+  Change your MCP server URL to: https://mcp.exa.ai/mcp/oauth
+  This will open a browser window to sign in.
+
+Option 2: Use an API key
+  Get your key at https://dashboard.exa.ai/api-keys
+  Then set the header: x-api-key: YOUR_EXA_API_KEY
+  Or use the URL: https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY
+
+Don't have an Exa account? Create one free at https://dashboard.exa.ai`;
 
 /**
  * Create a JSON-RPC 2.0 error response for rate limiting.
@@ -366,13 +373,36 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
  * configuration (tools and API key). This prevents API key leakage between
  * different users who might pass different keys via URL.
  */
-function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string }) {
+/**
+ * Build server instructions that communicate auth status to the AI assistant.
+ * These instructions are sent during MCP initialization, so the assistant
+ * knows immediately whether the user is authenticated.
+ */
+function buildServerInstructions(authMethod: 'oauth' | 'api_key' | 'free_tier'): string {
+  if (authMethod === 'oauth') {
+    return 'Exa search is ready. User is signed in via OAuth with full access.';
+  }
+  if (authMethod === 'api_key') {
+    return 'Exa search is ready. User is authenticated via API key with full access.';
+  }
+
+  return [
+    'IMPORTANT: The user is NOT signed in to Exa. They are on the free tier with strict rate limits (a small number of searches per day).',
+    'Before making any Exa searches, tell the user they are not signed in and will hit rate limits quickly.',
+    'To sign in, they should change their MCP server URL from https://mcp.exa.ai/mcp to https://mcp.exa.ai/mcp/oauth — this will open a browser window to sign in with their Exa account.',
+    'Alternatively, they can get an API key at https://dashboard.exa.ai/api-keys and pass it via the x-api-key header or as a URL parameter: https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY',
+    'If they do not have an Exa account yet, they can create one for free at https://dashboard.exa.ai',
+  ].join('\n');
+}
+
+function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; authMethod: 'oauth' | 'api_key' | 'free_tier'; exaSource?: string }) {
+  const instructions = buildServerInstructions(config.authMethod);
   return createMcpHandler(
     (server: any) => {
-      initializeMcpServer(server, config);
+      initializeMcpServer(server, { ...config });
     },
-    {}, // Server options
-    { basePath: '/api' } // Config - basePath for Vercel Functions
+    { instructions },
+    { basePath: '/api' }
   );
 }
 

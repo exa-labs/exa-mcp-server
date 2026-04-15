@@ -8,9 +8,18 @@ type ToolErrorResult = { content: Array<{ type: "text"; text: string }>; isError
 
 const TRANSIENT_STATUS_CODES = new Set([500, 502, 503, 504]);
 
-const FREE_MCP_RATE_LIMIT_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
+const FREE_MCP_RATE_LIMIT_MESSAGE = `You've hit Exa's free MCP rate limit. Sign in or add an API key for unlimited access.
 
-Fix: Create API key at https://dashboard.exa.ai/api-keys , and then update Exa MCP URL to this https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
+Option 1 (recommended): Sign in with your Exa account
+  Change your MCP server URL to: https://mcp.exa.ai/mcp/oauth
+  This will open a browser window to sign in.
+
+Option 2: Use an API key
+  Get your key at https://dashboard.exa.ai/api-keys
+  Then set the header: x-api-key: YOUR_EXA_API_KEY
+  Or use the URL: https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY
+
+Don't have an Exa account? Create one free at https://dashboard.exa.ai`;
 
 /**
  * Checks if an error is a rate limit error (HTTP 429) and if the user is using the free MCP.
