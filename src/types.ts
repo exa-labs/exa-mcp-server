@@ -32,7 +32,7 @@ export interface ExaSearchRequest {
 
 export interface ExaAdvancedSearchRequest {
   query: string;
-  type: 'auto' | 'fast' | 'neural';
+  type: 'auto' | 'fast' | 'instant';
   numResults?: number;
   category?: 'company' | 'research paper' | 'news' | 'pdf' | 'github' | 'personal site' | 'people' | 'financial report';
   includeDomains?: string[];

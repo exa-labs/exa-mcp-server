@@ -715,7 +715,7 @@ The `financial report` category has one known restriction:
 ### Core
 - `query` (required)
 - `numResults`
-- `type` ("auto", "fast", "deep", "neural")
+- `type` ("auto", "fast", "deep", "instant")
 
 ### Domain filtering
 - `includeDomains` (e.g., ["sec.gov", "investor.apple.com"])
@@ -852,7 +852,7 @@ The `research paper` category supports ALL available parameters:
 ### Core
 - `query` (required)
 - `numResults`
-- `type` ("auto", "fast", "deep", "neural")
+- `type` ("auto", "fast", "deep", "instant")
 
 ### Domain filtering
 - `includeDomains` (e.g., ["arxiv.org", "openreview.net"])
@@ -970,7 +970,7 @@ The `personal site` category supports ALL available parameters:
 ### Core
 - `query` (required)
 - `numResults`
-- `type` ("auto", "fast", "deep", "neural")
+- `type` ("auto", "fast", "deep", "instant")
 
 ### Domain filtering
 - `includeDomains`
