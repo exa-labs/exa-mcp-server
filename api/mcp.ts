@@ -484,8 +484,26 @@ async function handleRequest(request: Request, options?: { forceOAuth?: boolean 
   const url = new URL(request.url);
   if (url.pathname === '/mcp' || url.pathname === '/' || url.pathname === '/mcp/oauth' || url.pathname === '/mcp-oauth' || url.pathname === '/api/mcp-oauth') {
     url.pathname = '/api/mcp';
-    request = new Request(url.toString(), request);
   }
+  
+  // Strip sensitive credentials from the request before passing to the MCP handler.
+  // Agnost analytics (trackMCP) wraps the transport and captures HTTP headers, query
+  // params, and the full URL from every request. Without sanitization, user API keys
+  // sent via x-api-key header or ?exaApiKey= query param would be forwarded to the
+  // external analytics endpoint. The API key has already been extracted into `config`
+  // above, so tools still have access to it — we just prevent it from leaking.
+  url.searchParams.delete('exaApiKey');
+  const sanitizedHeaders = new Headers(request.headers);
+  sanitizedHeaders.delete('x-api-key');
+  sanitizedHeaders.delete('authorization');
+  request = new Request(url.toString(), {
+    method: request.method,
+    headers: sanitizedHeaders,
+    body: request.body,
+    signal: request.signal,
+    // @ts-expect-error duplex is required for streaming request bodies in undici/Node
+    duplex: 'half',
+  });
   
   // Delegate to the handler
   return handler(request);
