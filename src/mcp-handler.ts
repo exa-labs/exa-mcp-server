@@ -35,6 +35,7 @@ export interface McpConfig {
   debug?: boolean;
   userProvidedApiKey?: boolean;
   exaSource?: string;
+  authMethod?: 'oauth' | 'api_key' | 'free_tier';
 }
 
 /**
@@ -142,6 +143,48 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
               }
             }
           ]
+        };
+      }
+    );
+
+    // Register auth status resource so clients can check authentication state
+    const authMethod = config.authMethod || 'free_tier';
+    server.resource(
+      "auth_status",
+      "exa://auth/status",
+      {
+        mimeType: "application/json",
+        description: "Current authentication status for this Exa MCP session"
+      },
+      async () => {
+        const authenticated = authMethod !== 'free_tier';
+        const status = {
+          authenticated,
+          authMethod,
+          ...(authenticated
+            ? { message: `Authenticated via ${authMethod === 'oauth' ? 'OAuth' : 'API key'}. You have full access to Exa search.` }
+            : {
+                message: 'You are using Exa\'s free tier with rate limits. Sign in for unlimited access.',
+                signInOptions: [
+                  {
+                    method: 'oauth',
+                    description: 'Sign in with your Exa account (recommended)',
+                    instructions: 'Change your MCP server URL to https://mcp.exa.ai/mcp/oauth — your MCP client will open a browser window to sign in.',
+                  },
+                  {
+                    method: 'api_key',
+                    description: 'Use an API key',
+                    instructions: 'Get your API key at https://dashboard.exa.ai/api-keys and set the header: x-api-key: YOUR_KEY',
+                  },
+                ],
+              }),
+        };
+        return {
+          contents: [{
+            uri: "exa://auth/status",
+            text: JSON.stringify(status, null, 2),
+            mimeType: "application/json"
+          }]
         };
       }
     );
