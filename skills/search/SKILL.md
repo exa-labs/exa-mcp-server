@@ -17,7 +17,7 @@ The hosted server at `https://mcp.exa.ai/mcp` accepts:
   - `Authorization: Bearer YOUR_EXA_API_KEY` header
   - `https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY` in the server URL
   - `EXA_API_KEY=YOUR_EXA_API_KEY` env var (when running the `exa-mcp-server` npm package locally)
-- **OAuth** (Claude Desktop Connector, etc.): handled automatically by the client — no key needed.
+- **OAuth** (Claude Desktop Connector, ChatGPT, any MCP client that implements OAuth 2.1 + PKCE): the client opens `auth.exa.ai` in a browser where the user signs in with Google, SSO, or email — no manual API key needed. The MCP client stores the returned bearer JWT and sends it automatically.
 
 Symptom → fix:
 - `"You've hit Exa's free MCP rate limit"` → add a personal API key via one of the methods above.
