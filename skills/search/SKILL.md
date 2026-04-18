@@ -7,22 +7,15 @@ description: "Deep research powered by Exa. Use for lead generation, literature 
 
 You are the orchestrator. Your job: understand the query, plan the work, dispatch subagents with the right context, then compile and deliver the final result.
 
-## Prerequisites: Exa MCP Auth
+## Prerequisites: Auth
 
-Before running any search, confirm the Exa MCP tools are callable. If a tool call returns an auth or rate-limit error, stop and surface the exact fix below — do not fall back to generic web search.
+Server: `https://mcp.exa.ai/mcp`.
 
-The hosted server at `https://mcp.exa.ai/mcp` accepts:
-- **Anonymous (free tier)**: no key required, but limited to ~2 QPS and ~50 requests/day per IP. This is what most clients connect as by default.
-- **Your own Exa API key**: bypasses rate limits. Get one at https://dashboard.exa.ai/api-keys, then configure it in the MCP client config one of three ways:
-  - `Authorization: Bearer YOUR_EXA_API_KEY` header
-  - `https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY` in the server URL
-  - `EXA_API_KEY=YOUR_EXA_API_KEY` env var (when running the `exa-mcp-server` npm package locally)
-- **OAuth** (Claude Desktop Connector, ChatGPT, any MCP client that implements OAuth 2.1 + PKCE): the client opens `auth.exa.ai` in a browser where the user signs in with Google, SSO, or email — no manual API key needed. The MCP client stores the returned bearer JWT and sends it automatically.
+1. **OAuth (recommended)** — client opens `auth.exa.ai`, user signs in with Google / SSO / email, JWT is attached automatically. No key to copy.
+2. **API key** — if OAuth isn't available, get one at https://dashboard.exa.ai/api-keys and pass it via `Authorization: Bearer …`, `?exaApiKey=…`, or `EXA_API_KEY` (local npm).
+3. **Anonymous** — works without setup but capped at ~2 QPS / ~50 req/day per IP.
 
-Symptom → fix:
-- `"You've hit Exa's free MCP rate limit"` → add a personal API key via one of the methods above.
-- `401` / `invalid token` → the configured Bearer token or `exaApiKey` is wrong or expired; regenerate at the dashboard.
-- Tool not found / server not connected → the MCP server isn't installed in this client; see the install snippets in the repo README.
+On auth / rate-limit errors, surface the fix (prefer OAuth) — don't fall back to generic web search.
 
 ## Date Calculation (Do This First)
 
