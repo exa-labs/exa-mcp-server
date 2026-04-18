@@ -7,6 +7,23 @@ description: "Deep research powered by Exa. Use for lead generation, literature 
 
 You are the orchestrator. Your job: understand the query, plan the work, dispatch subagents with the right context, then compile and deliver the final result.
 
+## Prerequisites: Exa MCP Auth
+
+Before running any search, confirm the Exa MCP tools are callable. If a tool call returns an auth or rate-limit error, stop and surface the exact fix below — do not fall back to generic web search.
+
+The hosted server at `https://mcp.exa.ai/mcp` accepts:
+- **Anonymous (free tier)**: no key required, but limited to ~2 QPS and ~50 requests/day per IP. This is what most clients connect as by default.
+- **Your own Exa API key**: bypasses rate limits. Get one at https://dashboard.exa.ai/api-keys, then configure it in the MCP client config one of three ways:
+  - `Authorization: Bearer YOUR_EXA_API_KEY` header
+  - `https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY` in the server URL
+  - `EXA_API_KEY=YOUR_EXA_API_KEY` env var (when running the `exa-mcp-server` npm package locally)
+- **OAuth** (Claude Desktop Connector, etc.): handled automatically by the client — no key needed.
+
+Symptom → fix:
+- `"You've hit Exa's free MCP rate limit"` → add a personal API key via one of the methods above.
+- `401` / `invalid token` → the configured Bearer token or `exaApiKey` is wrong or expired; regenerate at the dashboard.
+- Tool not found / server not connected → the MCP server isn't installed in this client; see the install snippets in the repo README.
+
 ## Date Calculation (Do This First)
 
 If the query involves time ("last week", "recent", "past 6 months"), calculate exact dates from today's date in your environment context. Write out the calculation explicitly before doing anything else. Never eyeball dates or reuse dates from examples.
