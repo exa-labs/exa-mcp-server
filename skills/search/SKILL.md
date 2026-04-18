@@ -152,7 +152,9 @@ After subagents return:
 
 **Format the output:**
 
-Format output beautifully, filling up no more than one scroll length of the claude code screen. Include hyperlinked text where relevant. Below it, you may also include things (in a short, easy-to-read format) that:
+At the top of your output, write: "I reviewed {X} pages across {Y} subagents. Here's what was found:" (Each numResult per search per subagent = 1 page.)
+
+Then: Format output beautifully, filling up no more than one scroll length of the claude code screen. Include hyperlinked text where relevant. Below it, you may also include things (in a short, easy-to-read format) that:
 - ("Result") directly answer the original user request (in few words; make every word count)
 - ("Process") include anything worth noting about your process and what you consider to be high-signal in this domain vs. what you filtered out.
 - ("Patterns") any patterns identified that are non-obvious, require n-th order thinking, and are not included or alluded to in the rest of the output but might be interesting to the user.
