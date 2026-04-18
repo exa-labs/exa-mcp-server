@@ -13,7 +13,7 @@ Server: `https://mcp.exa.ai/mcp`.
 
 1. **OAuth (recommended)** — client opens `auth.exa.ai`, user signs in with Google / SSO / email, JWT is attached automatically. No key to copy.
 2. **API key** — if OAuth isn't available, get one at https://dashboard.exa.ai/api-keys and pass it via `Authorization: Bearer …`, `?exaApiKey=…`, or `EXA_API_KEY` (local npm).
-3. **Anonymous** — works without setup but capped at ~2 QPS / ~50 req/day per IP.
+3. **Anonymous** — works without setup but rate-limited.
 
 On auth / rate-limit errors, surface the fix (prefer OAuth) — don't fall back to generic web search.
 
