@@ -50,7 +50,7 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           ...(category && { category }),
           contents: {
-            highlights: { query: cleanedQuery },
+            highlights: { query: cleanedQuery, maxCharacters: 2000 },
           },
         };
 
