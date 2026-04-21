@@ -8,6 +8,10 @@ Connect AI assistants to Exa's search capabilities: web search, code search, and
 
 **[Full Documentation](https://docs.exa.ai/reference/exa-mcp)** | **[npm Package](https://www.npmjs.com/package/exa-mcp-server)** | **[Get Your Exa API Key](https://dashboard.exa.ai/api-keys)**
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/exa-labs-exa-mcp-server).
+
 ## Installation
 
 Connect to Exa's hosted MCP server:
