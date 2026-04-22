@@ -91,8 +91,12 @@ Then do the following:
 [specific queries to run, if you are prescribing them]
 [validation criteria -- what makes a result qualify, so the subagent filters before returning]
 
-Return: [output format -- e.g. "compact JSON with name, url, snippet per result" or "markdown table with columns X, Y, Z"]
+Return: [output format -- e.g. "compact JSON with name, url, snippet per result" or "markdown table with columns X, Y, Z"].
+
+End with EXACTLY: `sources_reviewed: N` where N = sum of `numResults` across every `web_search_exa` call (incl. retries). E.g. calls with numResults 10, 10, 5 → `sources_reviewed: 25`.
 ```
+
+**Pass the `sources_reviewed` instruction line to every subagent verbatim — don't paraphrase.**
 ### Which reference files to point subagents to
 
 Always point subagents to `references/searching.md`. It contains Exa query guidance and an index of domain-specific pattern files that the subagent will select from based on its task.
@@ -152,7 +156,7 @@ After subagents return:
 
 **Format the output:**
 
-At the top of your output, write: "I reviewed {X} pages across {Y} subagents. Here's what was found:" (Each numResult per search per subagent = 1 page.)
+If you used subagents, open with: "I used Exa to review {X} sources across {Y} subagents. Here's what was found:" (X = sum of `sources_reviewed` across all subagents and passes plus any direct searches you ran; Y = total subagents dispatched. Pluralize naturally.)
 
 Then: Format output beautifully, filling up no more than one scroll length of the claude code screen. Include hyperlinked text where relevant. Below it, you may also include things (in a short, easy-to-read format) that:
 - ("Result") directly answer the original user request (in few words; make every word count)
@@ -164,8 +168,8 @@ If it's impossible to fit the full output in a single screen, write a file in th
 
 **General output rules:**
 - No emojis unless the user requested them
-- Cite sources with URLs
-- Prefer compact lists over tables (tables only when data is uniform with short values)
+- Include in-line 1-word or multi-word hyperlinks throughout outputs where hyperlinking is a value-add.
+- Prefer tables over lists (fall back to lists only when fields are non-uniform or values are too long to fit cleanly)
 
 ## Multi-Pass Queries
 
