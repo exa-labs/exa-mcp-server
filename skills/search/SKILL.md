@@ -91,8 +91,12 @@ Then do the following:
 [specific queries to run, if you are prescribing them]
 [validation criteria -- what makes a result qualify, so the subagent filters before returning]
 
-Return: [output format -- e.g. "compact JSON with name, url, snippet per result" or "markdown table with columns X, Y, Z"], plus `sources_reviewed` (sum of numResults across your searches, including retries).
+Return: [output format -- e.g. "compact JSON with name, url, snippet per result" or "markdown table with columns X, Y, Z"].
+
+End with EXACTLY: `sources_reviewed: N` where N = sum of `numResults` across every `web_search_exa` call (incl. retries). E.g. calls with numResults 10, 10, 5 → `sources_reviewed: 25`.
 ```
+
+**Pass the `sources_reviewed` instruction line to every subagent verbatim — don't paraphrase.**
 ### Which reference files to point subagents to
 
 Always point subagents to `references/searching.md`. It contains Exa query guidance and an index of domain-specific pattern files that the subagent will select from based on its task.
