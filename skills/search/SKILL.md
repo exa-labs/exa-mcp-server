@@ -91,7 +91,7 @@ Then do the following:
 [specific queries to run, if you are prescribing them]
 [validation criteria -- what makes a result qualify, so the subagent filters before returning]
 
-Return: [output format -- e.g. "compact JSON with name, url, snippet per result" or "markdown table with columns X, Y, Z"]
+Return: [output format -- e.g. "compact JSON with name, url, snippet per result" or "markdown table with columns X, Y, Z"], plus `sources_reviewed` (sum of numResults across your searches, including retries).
 ```
 ### Which reference files to point subagents to
 
@@ -152,7 +152,7 @@ After subagents return:
 
 **Format the output:**
 
-At the top of your output, write: "I reviewed {X} pages across {Y} subagents. Here's what was found:" (Each numResult per search per subagent = 1 page.)
+If you used subagents, open with: "I used Exa to review {X} sources across {Y} subagents. Here's what was found:" (X = sum of `sources_reviewed` across all subagents and passes plus any direct searches you ran; Y = total subagents dispatched. Pluralize naturally.)
 
 Then: Format output beautifully, filling up no more than one scroll length of the claude code screen. Include hyperlinked text where relevant. Below it, you may also include things (in a short, easy-to-read format) that:
 - ("Result") directly answer the original user request (in few words; make every word count)
