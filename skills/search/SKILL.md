@@ -168,8 +168,8 @@ If it's impossible to fit the full output in a single screen, write a file in th
 
 **General output rules:**
 - No emojis unless the user requested them
-- Cite sources with URLs
-- Prefer compact lists over tables (tables only when data is uniform with short values)
+- Include in-line 1-word or multi-word hyperlinks throughout outputs where hyperlinking is a value-add.
+- Prefer tables over lists (fall back to lists only when fields are non-uniform or values are too long to fit cleanly)
 
 ## Multi-Pass Queries
 
