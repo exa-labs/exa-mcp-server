@@ -232,10 +232,6 @@ function sanitizeTopLevelResponse(value: unknown): Record<string, unknown> {
 
   const sanitized: Record<string, unknown> = {};
 
-  if (typeof value.requestId === "string") {
-    sanitized.requestId = value.requestId;
-  }
-
   if (typeof value.autopromptString === "string") {
     sanitized.autopromptString = value.autopromptString;
   }
@@ -271,11 +267,6 @@ function sanitizeTopLevelResponse(value: unknown): Record<string, unknown> {
     sanitized.searchTime = value.searchTime;
   }
 
-  const costDollars = stripSensitiveKeys(value.costDollars);
-  if (isRecord(costDollars)) {
-    sanitized.costDollars = costDollars;
-  }
-
   return sanitized;
 }
 
@@ -301,10 +292,6 @@ export function sanitizeDeepSearchStructuredResponse(response: ExaDeepSearchResp
 
   if ("searchTime" in sanitized) {
     structured.searchTime = sanitized.searchTime;
-  }
-
-  if ("costDollars" in sanitized) {
-    structured.costDollars = sanitized.costDollars;
   }
 
   return structured;
