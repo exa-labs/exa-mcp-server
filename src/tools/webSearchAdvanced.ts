@@ -61,6 +61,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
     {
       readOnlyHint: true,
       destructiveHint: false,
+      openWorldHint: false,
       idempotentHint: true
     },
     async (params) => {
