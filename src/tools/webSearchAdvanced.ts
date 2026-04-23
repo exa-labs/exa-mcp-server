@@ -185,6 +185,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
         }
 
         const sanitized = sanitizeSearchResponse(response);
+        const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
         const resultText = JSON.stringify(sanitized);
         logger.log(`Response prepared with ${resultText.length} characters`);
 
@@ -192,6 +193,9 @@ Returns: Search results with optional highlights, summaries, and subpage content
           content: [{
             type: "text" as const,
             text: resultText,
+            _meta: {
+              searchTime: searchTime
+            }
           }]
         };
 
