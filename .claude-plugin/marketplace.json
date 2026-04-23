@@ -41,7 +41,8 @@
             "x-exa-source": "claude-code-plugin"
           }
         }
-      }
+      },
+      "skills": ["./skills/search"]
     }
   ]
 }
