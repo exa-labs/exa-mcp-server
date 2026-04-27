@@ -35,6 +35,7 @@ export interface McpConfig {
   debug?: boolean;
   userProvidedApiKey?: boolean;
   exaSource?: string;
+  defaultSearchType?: 'auto' | 'fast';
 }
 
 /**
