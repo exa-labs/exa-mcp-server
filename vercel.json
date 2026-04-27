@@ -27,6 +27,10 @@
       "destination": "/api/well-known-oauth-protected-resource"
     },
     {
+      "source": "/.well-known/openai-apps-challenge",
+      "destination": "/api/well-known-openai-apps-challenge"
+    },
+    {
       "source": "/mcp/oauth",
       "destination": "/api/mcp-oauth"
     }
