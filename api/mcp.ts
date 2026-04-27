@@ -265,6 +265,7 @@ interface RequestConfig {
   userProvidedApiKey: boolean;
   authMethod: 'oauth' | 'api_key' | 'free_tier';
   exaSource?: string;
+  defaultSearchType?: 'auto' | 'fast';
 }
 
 /**
@@ -277,6 +278,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let debug = process.env.DEBUG === 'true';
   let userProvidedApiKey = false;
   let authMethod: 'oauth' | 'api_key' | 'free_tier' = 'free_tier';
+  let defaultSearchType: 'auto' | 'fast' | undefined;
 
   // 1. Check x-api-key header (highest priority)
   const xApiKey = request.headers.get('x-api-key');
@@ -340,6 +342,14 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
     if (params.has('debug')) {
       debug = params.get('debug') === 'true';
     }
+
+    // Support ?defaultSearchType=auto|fast
+    if (params.has('defaultSearchType')) {
+      const dst = params.get('defaultSearchType');
+      if (dst === 'auto' || dst === 'fast') {
+        defaultSearchType = dst;
+      }
+    }
   } catch (error) {
     // URL parsing failed, will use env vars
     if (debug) {
@@ -357,7 +367,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
 
   const exaSource = request.headers.get('x-exa-source') || undefined;
 
-  return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod, exaSource };
+  return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod, exaSource, defaultSearchType };
 }
 
 /**

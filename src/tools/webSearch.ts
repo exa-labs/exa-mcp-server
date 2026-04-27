@@ -8,7 +8,7 @@ import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost"
 
-export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }, toolName?: string): void {
+export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean; defaultSearchType?: 'auto' | 'fast' }, toolName?: string): void {
   server.tool(
     toolName || "web_search_exa",
     `Search the web for any topic and get clean, ready-to-use content.
@@ -47,7 +47,7 @@ export function registerWebSearchTool(server: McpServer, config?: { exaApiKey?: 
 
         const searchRequest: ExaSearchRequest = {
           query: cleanedQuery,
-          type: "auto",
+          type: config?.defaultSearchType || "auto",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           ...(category && { category }),
           contents: {
