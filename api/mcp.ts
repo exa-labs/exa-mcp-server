@@ -420,10 +420,70 @@ function create401Response(): Response {
 }
 
 /**
+ * CORS headers applied to every MCP response so browser-based clients
+ * (e.g. the MCP Inspector running on huggingface.co) can connect without a
+ * server-side proxy. The `*` origin is appropriate because authentication is
+ * carried in headers/query params and never via cookies.
+ *
+ * Exposed headers let the JS client read `mcp-session-id` for stateful
+ * Streamable HTTP sessions and `www-authenticate` for OAuth discovery.
+ */
+const CORS_ALLOW_HEADERS = [
+  'Content-Type',
+  'Authorization',
+  'x-api-key',
+  'mcp-session-id',
+  'mcp-protocol-version',
+  'accept',
+  'last-event-id',
+].join(', ');
+
+const CORS_EXPOSE_HEADERS = [
+  'mcp-session-id',
+  'mcp-protocol-version',
+  'www-authenticate',
+  'retry-after',
+  'x-ratelimit-limit',
+  'x-ratelimit-remaining',
+  'x-ratelimit-reset',
+].join(', ');
+
+const CORS_HEADERS: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': CORS_ALLOW_HEADERS,
+  'Access-Control-Expose-Headers': CORS_EXPOSE_HEADERS,
+  'Access-Control-Max-Age': '86400',
+};
+
+function corsPreflightResponse(): Response {
+  return new Response(null, { status: 204, headers: { ...CORS_HEADERS } });
+}
+
+function withCors(response: Response): Response {
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(CORS_HEADERS)) {
+    headers.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+/**
  * Main request handler that extracts config from URL and creates
  * a fresh handler for each request
  */
 async function handleRequest(request: Request, options?: { forceOAuth?: boolean }): Promise<Response> {
+  if (request.method === 'OPTIONS') {
+    return corsPreflightResponse();
+  }
+  return withCors(await handleRequestInner(request, options));
+}
+
+async function handleRequestInner(request: Request, options?: { forceOAuth?: boolean }): Promise<Response> {
   const debug = process.env.DEBUG === 'true';
 
   // Check user-agent bypass BEFORE the 401 gate so bypass clients never see auth prompts
@@ -524,7 +584,12 @@ async function handleRequest(request: Request, options?: { forceOAuth?: boolean 
 }
 
 // Export handlers for Vercel Functions
-export { handleRequest as GET, handleRequest as POST, handleRequest as DELETE };
+export {
+  handleRequest as GET,
+  handleRequest as POST,
+  handleRequest as DELETE,
+  handleRequest as OPTIONS,
+};
 
 export { handleRequest };
 
