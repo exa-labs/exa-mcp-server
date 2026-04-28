@@ -2,7 +2,7 @@
 export interface ExaSearchRequest {
   query: string;
   type: 'auto' | 'fast' | 'deep' | 'deep-reasoning';
-  category?: 'company' | 'research paper' | 'news' | 'pdf' | 'github' | 'tweet' | 'personal site' | 'people' | 'financial report';
+  category?: 'company' | 'research paper' | 'news' | 'pdf' | 'github' | 'personal site' | 'people' | 'financial report';
   includeDomains?: string[];
   excludeDomains?: string[];
   startPublishedDate?: string;
@@ -14,13 +14,17 @@ export interface ExaSearchRequest {
     text?: {
       maxCharacters?: number;
     } | boolean;
-    context?: {
+    highlights?: {
       maxCharacters?: number;
+      numSentences?: number;
+      highlightsPerUrl?: number;
+      query?: string;
     } | boolean;
     summary?: {
       query?: string;
     } | boolean;
     livecrawl?: 'fallback' | 'preferred';
+    maxAgeHours?: number;
     subpages?: number;
     subpageTarget?: string[];
   };
@@ -28,9 +32,9 @@ export interface ExaSearchRequest {
 
 export interface ExaAdvancedSearchRequest {
   query: string;
-  type: 'auto' | 'fast' | 'neural';
+  type: 'auto' | 'fast' | 'instant';
   numResults?: number;
-  category?: 'company' | 'research paper' | 'news' | 'pdf' | 'github' | 'tweet' | 'personal site' | 'people' | 'financial report';
+  category?: 'company' | 'research paper' | 'news' | 'pdf' | 'github' | 'personal site' | 'people' | 'financial report';
   includeDomains?: string[];
   excludeDomains?: string[];
   startPublishedDate?: string;
@@ -53,11 +57,13 @@ export interface ExaAdvancedSearchRequest {
       query?: string;
     } | boolean;
     highlights?: {
+      maxCharacters?: number;
       numSentences?: number;
       highlightsPerUrl?: number;
       query?: string;
     };
     livecrawl?: 'never' | 'fallback' | 'always' | 'preferred';
+    maxAgeHours?: number;
     livecrawlTimeout?: number;
     subpages?: number;
     subpageTarget?: string[];
@@ -65,23 +71,42 @@ export interface ExaAdvancedSearchRequest {
 }
 
 export interface ExaSearchResult {
-  id: string;
-  title: string;
-  url: string;
-  publishedDate: string;
-  author: string;
-  text: string;
+  id?: string;
+  title?: string | null;
+  url?: string;
+  publishedDate?: string;
+  author?: string;
+  text?: string;
   summary?: string;
   highlights?: string[];
   highlightScores?: number[];
   image?: string;
   favicon?: string;
   score?: number;
+  entities?: Record<string, unknown>[];
+  extras?: {
+    links?: string[];
+    imageLinks?: string[];
+  };
+  subpages?: ExaSearchResult[];
+}
+
+export interface ExaSearchStatus {
+  id: string;
+  status: string;
+  source: string;
+}
+
+export interface ExaCostDollars {
+  total: number;
+  search?: Record<string, number>;
+  contents?: Record<string, number>;
 }
 
 export interface ExaSearchResponse {
   requestId: string;
   autopromptString?: string;
+  autoDate?: string;
   resolvedSearchType: string;
   context?: string;
   output?: {
@@ -95,13 +120,10 @@ export interface ExaSearchResponse {
       confidence: string;
     }>;
   };
+  statuses?: ExaSearchStatus[];
   results: ExaSearchResult[];
   searchTime?: number;
-  costDollars?: {
-    total: number;
-    search?: Record<string, number>;
-    contents?: Record<string, number>;
-  };
+  costDollars?: ExaCostDollars;
 }
 
 // Deep Search API Types
@@ -125,6 +147,7 @@ export interface ExaDeepSearchRequest {
 export interface ExaDeepSearchResponse {
   requestId: string;
   autopromptString?: string;
+  autoDate?: string;
   resolvedSearchType: string;
   output?: {
     content: string | Record<string, unknown>;
@@ -137,13 +160,17 @@ export interface ExaDeepSearchResponse {
       confidence: string;
     }>;
   };
+  statuses?: ExaSearchStatus[];
   results: ExaSearchResult[];
   searchTime?: number;
-  costDollars?: {
-    total: number;
-    search?: Record<string, number>;
-    contents?: Record<string, number>;
-  };
+  costDollars?: ExaCostDollars;
+}
+
+export interface ExaContentsResponse {
+  requestId?: string;
+  results?: ExaSearchResult[];
+  statuses?: ExaSearchStatus[];
+  costDollars?: ExaCostDollars;
 }
 
 // Deep Research API Types (v1)
@@ -203,7 +230,6 @@ export interface DeepResearchErrorResponse {
 export interface ExaCodeRequest {
   query: string;
   tokensNum: number;
-  flags?: string[];
 }
 
 export interface ExaCodeResponse {

@@ -3,6 +3,10 @@
     "api/mcp.ts": {
       "maxDuration": 60,
       "memory": 1024
+    },
+    "api/mcp-oauth.ts": {
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "rewrites": [
@@ -17,6 +21,18 @@
     {
       "source": "/.well-known/mcp-config",
       "destination": "/api/well-known-mcp-config"
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource",
+      "destination": "/api/well-known-oauth-protected-resource"
+    },
+    {
+      "source": "/.well-known/openai-apps-challenge",
+      "destination": "/api/well-known-openai-apps-challenge"
+    },
+    {
+      "source": "/mcp/oauth",
+      "destination": "/api/mcp-oauth"
     }
   ],
   "buildCommand": "npm run build:vercel",

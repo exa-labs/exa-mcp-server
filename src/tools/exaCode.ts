@@ -1,66 +1,69 @@
 import { z } from "zod";
-import axios from "axios";
+import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG } from "./config.js";
-import { ExaCodeRequest, ExaCodeResponse } from "../types.js";
+import { API_CONFIG, integrationHeaders } from "./config.js";
+import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { handleRateLimitError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
+import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
 export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "get_code_context_exa",
-    `Find code examples, documentation, and programming solutions. Searches GitHub, Stack Overflow, and official docs.
+    `Find code examples, documentation, and programming solutions. 
 
 Best for: Any programming question - API usage, library examples, code snippets, debugging help.
-Returns: Relevant code and documentation, formatted for easy reading.`,
+Returns: Relevant code and documentation.
+
+Query tips: describe what you're looking for specifically. "Python requests library POST with JSON body" not "python http".
+If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
     {
       query: z.string().describe("Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"),
-      tokensNum: z.coerce.number().min(1000).max(50000).default(5000).describe("Number of tokens to return (must be a number, 1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation.")
+      numResults: z.coerce.number().min(1).max(20).optional().describe("Number of search results to return (must be a number, default: 8)"),
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true
     },
-    async ({ query, tokensNum }) => {
+    async ({ query, numResults }) => {
       const requestId = `get_code_context_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const logger = createRequestLogger(requestId, 'get_code_context_exa');
-      
+
       logger.start(`Searching for code context: ${query}`);
-      
+
       try {
-        // Create a fresh axios instance for each request
-        const axiosInstance = axios.create({
-          baseURL: API_CONFIG.BASE_URL,
-          headers: {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
-            'x-exa-integration': 'exa-code-mcp'
-          },
-          timeout: 30000
-        });
+        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
 
-        const exaCodeRequest: ExaCodeRequest = {
+        const searchRequest: ExaSearchRequest = {
           query,
-          tokensNum
+          type: "fast",
+          numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
+          contents: {
+            highlights: {
+              query,
+            },
+            text: { maxCharacters: 300 },
+          }
         };
-        
-        checkpoint('code_context_request_prepared');
-        logger.log("Sending code context request to Exa API");
-        
-        const response = await axiosInstance.post<ExaCodeResponse>(
-          API_CONFIG.ENDPOINTS.CONTEXT,
-          exaCodeRequest,
-          { timeout: 30000 }
-        );
-        
-        checkpoint('code_context_response_received');
-        logger.log("Received code context response from Exa API");
 
-        if (!response.data) {
-          logger.log("Warning: Empty response from Exa Code API");
+        checkpoint('code_context_request_prepared');
+        logger.log("Sending code search request to Exa API");
+
+        const response = await retryWithBackoff(() => exa.request<ExaSearchResponse>(
+          API_CONFIG.ENDPOINTS.SEARCH,
+          'POST',
+          searchRequest,
+          undefined,
+          integrationHeaders('exa-code-mcp', config)
+        ));
+
+        checkpoint('code_context_response_received');
+        logger.log("Received code search response from Exa API");
+
+        if (!response || !response.results || response.results.length === 0) {
+          logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint('code_context_complete');
           return {
             content: [{
@@ -70,55 +73,42 @@ Returns: Relevant code and documentation, formatted for easy reading.`,
           };
         }
 
-        logger.log(`Code search completed with ${response.data.resultsCount || 0} results`);
-        
-        // Return the actual code content from the response field
-        const codeContent = typeof response.data.response === 'string' 
-          ? response.data.response 
-          : JSON.stringify(response.data.response, null, 2);
-        
+        logger.log(`Received ${response.results.length} results with highlights`);
+
+        const sanitized = sanitizeSearchResponse(response);
+        const results = Array.isArray(sanitized.results) ? sanitized.results : [];
+
+        const formattedResults = results.map((r) => {
+          const lines = [
+            `Title: ${r.title || 'N/A'}`,
+            `URL: ${r.url}`,
+          ];
+          if (Array.isArray(r.highlights) && r.highlights.length > 0) {
+            lines.push(`Code/Highlights:\n${r.highlights.join('\n')}`);
+          } else if (r.text) {
+            lines.push(`Text: ${r.text}`);
+          }
+          return lines.join('\n');
+        }).join('\n\n---\n\n');
+
+        const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
+
         const result = {
           content: [{
             type: "text" as const,
-            text: codeContent
+            text: formattedResults,
+            _meta: {
+              searchTime: searchTime
+            }
           }]
         };
-        
+
         checkpoint('code_context_complete');
         logger.complete();
         return result;
       } catch (error) {
         logger.error(error);
-        
-        // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'get_code_context_exa');
-        if (rateLimitResult) {
-          return rateLimitResult;
-        }
-        
-        if (axios.isAxiosError(error)) {
-          // Handle Axios errors specifically
-          const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
-          
-          logger.log(`Axios error (${statusCode}): ${errorMessage}`);
-          return {
-            content: [{
-              type: "text" as const,
-              text: `Code search error (${statusCode}): ${errorMessage}. Please check your query and try again.`
-            }],
-            isError: true,
-          };
-        }
-        
-        // Handle generic errors
-        return {
-          content: [{
-            type: "text" as const,
-            text: `Code search error: ${error instanceof Error ? error.message : String(error)}`
-          }],
-          isError: true,
-        };
+        return formatToolError(error, 'get_code_context_exa', config?.userProvidedApiKey);
       }
     }
   );

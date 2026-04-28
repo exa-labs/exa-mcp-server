@@ -1,6 +1,6 @@
 {
   "name": "exa-mcp-server",
-  "version": "3.1.9",
+  "version": "3.2.1",
   "description": "A Model Context Protocol server with Exa for web search and web crawling. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities. Supports customizable result counts, live crawling options, and returns content from the most relevant websites.",
   "mcpName": "io.github.exa-labs/exa-mcp-server",
   "type": "module",
@@ -10,10 +10,10 @@
     "url": "git+https://github.com/exa-labs/exa-mcp-server.git"
   },
   "bin": {
-    "exa-mcp-server": ".smithery/stdio/index.cjs"
+    "exa-mcp-server": "smithery/stdio/index.cjs"
   },
   "files": [
-    ".smithery"
+    "smithery"
   ],
   "keywords": [
     "mcp",
@@ -31,8 +31,8 @@
   "author": "Exa Labs",
   "scripts": {
     "build": "npm run build:shttp && npm run build:stdio",
-    "build:stdio": "smithery build src/index.ts --transport stdio -o .smithery/stdio/index.cjs && echo '#!/usr/bin/env node' | cat - .smithery/stdio/index.cjs > temp && mv temp .smithery/stdio/index.cjs && chmod +x .smithery/stdio/index.cjs",
-    "build:shttp": "smithery build src/index.ts --transport shttp -o .smithery/shttp/index.cjs",
+    "build:stdio": "smithery build src/index.ts --transport stdio -o smithery/stdio/index.cjs && echo '#!/usr/bin/env node' | cat - smithery/stdio/index.cjs > temp && mv temp smithery/stdio/index.cjs && chmod +x smithery/stdio/index.cjs",
+    "build:shttp": "smithery build src/index.ts --transport shttp -o smithery/shttp/index.cjs",
     "build:vercel": "npm install typescript && ./node_modules/.bin/tsc",
     "prepare": "npm run build:stdio",
     "watch": "./node_modules/.bin/tsc --watch",
@@ -44,7 +44,9 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "agnost": "^0.1.10",
-    "axios": "^1.7.8",
+    "axios": "^1.13.6",
+    "exa-js": "^2.8.0",
+    "jose": "^6.2.2",
     "mcp-handler": "^1.0.4",
     "whoami": "^0.0.3",
     "zod": "^3.22.4"

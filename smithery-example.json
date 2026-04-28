@@ -2,11 +2,8 @@
   "exaApiKey": "your-exa-api-key-here",
   "enabledTools": [
     "web_search_exa",
-    "company_research_exa",
-    "crawling_exa",
-    "people_search_exa",
-    "deep_researcher_start",
-    "deep_researcher_check"
+    "web_search_advanced_exa",
+    "web_fetch_exa"
   ],
   "debug": false
-} 
+}

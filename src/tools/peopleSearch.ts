@@ -1,16 +1,17 @@
 import { z } from "zod";
-import axios from "axios";
+import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG } from "./config.js";
+import { API_CONFIG, integrationHeaders } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { handleRateLimitError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
+import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
 export function registerPeopleSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
   server.tool(
     "people_search_exa",
-    `Find people and their professional profiles.
+    `[Deprecated: Use web_search_advanced_exa instead] Find people and their professional profiles.
 
 Best for: Finding professionals, executives, or anyone with a public profile.
 Returns: Profile information and links.`,
@@ -30,17 +31,7 @@ Returns: Profile information and links.`,
       logger.start(`${query}`);
       
       try {
-        // Create a fresh axios instance for each request
-        const axiosInstance = axios.create({
-          baseURL: API_CONFIG.BASE_URL,
-          headers: {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
-            'x-exa-integration': 'people-search-mcp'
-          },
-          timeout: 25000
-        });
+        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
 
         let searchQuery = query;
         searchQuery = `${query} profile`;
@@ -51,25 +42,25 @@ Returns: Profile information and links.`,
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           category: "people",
           contents: {
-            text: {
-              maxCharacters: API_CONFIG.DEFAULT_MAX_CHARACTERS
-            },
+            highlights: true,
           },
         };
         
         checkpoint('people_search_request_prepared');
         logger.log("Sending request to Exa API for people search");
         
-        const response = await axiosInstance.post<ExaSearchResponse>(
+        const response = await retryWithBackoff(() => exa.request<ExaSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
+          'POST',
           searchRequest,
-          { timeout: 25000 }
-        );
-        
+          undefined,
+          integrationHeaders('people-search-mcp', config)
+        ));
+
         checkpoint('people_search_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data || !response.data.results) {
+        if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint('people_search_complete');
           return {
@@ -80,12 +71,32 @@ Returns: Profile information and links.`,
           };
         }
 
-        logger.log(`Found ${response.data.results.length} results`);
-        
+        logger.log(`Found ${response.results.length} results`);
+
+        const sanitized = sanitizeSearchResponse(response);
+        const results = Array.isArray(sanitized.results) ? sanitized.results : [];
+
+        const formattedResults = results.map((r) => {
+          const highlights = Array.isArray(r.highlights) ? r.highlights.join('\n') : '';
+          const lines = [
+            `Title: ${r.title || 'N/A'}`,
+            `URL: ${r.url}`,
+            `Published: ${r.publishedDate || 'N/A'}`,
+            `Author: ${r.author || 'N/A'}`,
+            `Highlights:\n${highlights}`,
+          ];
+          return lines.join('\n');
+        }).join('\n\n---\n\n');
+
+        const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
+
         const result = {
           content: [{
             type: "text" as const,
-            text: JSON.stringify(response.data, null, 2)
+            text: formattedResults,
+            _meta: {
+              searchTime: searchTime
+            }
           }]
         };
         
@@ -94,36 +105,7 @@ Returns: Profile information and links.`,
         return result;
       } catch (error) {
         logger.error(error);
-        
-        // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'people_search_exa');
-        if (rateLimitResult) {
-          return rateLimitResult;
-        }
-        
-        if (axios.isAxiosError(error)) {
-          // Handle Axios errors specifically
-          const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
-          
-          logger.log(`Axios error (${statusCode}): ${errorMessage}`);
-          return {
-            content: [{
-              type: "text" as const,
-              text: `People search error (${statusCode}): ${errorMessage}`
-            }],
-            isError: true,
-          };
-        }
-        
-        // Handle generic errors
-        return {
-          content: [{
-            type: "text" as const,
-            text: `People search error: ${error instanceof Error ? error.message : String(error)}`
-          }],
-          isError: true,
-        };
+        return formatToolError(error, 'people_search_exa', config?.userProvidedApiKey);
       }
     }
   );

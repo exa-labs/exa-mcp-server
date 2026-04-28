@@ -1,0 +1,19 @@
+{
+  "name": "exa",
+  "description": "Exa AI web search, deep research, and content extraction. Provides MCP tools and research skills for comprehensive web search, people discovery, company research, academic papers, and more.",
+  "version": "3.3.9",
+  "author": {
+    "name": "Exa",
+    "email": "hello@exa.ai"
+  },
+  "repository": "https://github.com/exa-labs/exa-mcp-server",
+  "mcpServers": {
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp?client=claude-code-plugin",
+      "headers": {
+        "x-exa-source": "claude-code-plugin"
+      }
+    }
+  }
+}

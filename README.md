@@ -62,9 +62,18 @@ claude mcp add --transport http exa https://mcp.exa.ai/mcp
 <details>
 <summary><b>Claude Desktop</b></summary>
 
-Add to your config file:
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+Exa is available as a native Claude Connector — no config files or terminal commands needed.
+
+1. Open Claude Desktop **Settings** (or **Customize**) and go to **Connectors**
+2. Search for **Exa** in the directory
+3. Click **+** to add it
+
+That's it! Claude will now have access to Exa's search tools.
+
+<details>
+<summary>Alternative: manual config</summary>
+
+Add to your config file (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
 
 ```json
 {
@@ -76,6 +85,7 @@ Add to your config file:
   }
 }
 ```
+</details>
 </details>
 
 <details>
@@ -274,23 +284,30 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | Tool | Description |
 | ---- | ----------- |
 | `web_search_exa` | Search the web for any topic and get clean, ready-to-use content |
-| `get_code_context_exa` | Find code examples, documentation, and programming solutions from GitHub, Stack Overflow, and docs |
-| `company_research_exa` | Research any company to get business information, news, and insights |
+| `web_fetch_exa` | Get the full content of a specific webpage from a known URL |
 
 **Off by Default:**
 | Tool | Description |
 | ---- | ----------- |
 | `web_search_advanced_exa` | Advanced web search with full control over filters, domains, dates, and content options |
-| `crawling_exa` | Get the full content of a specific webpage from a known URL |
-| `people_search_exa` | Find people and their professional profiles |
-| `deep_researcher_start` | Start an AI research agent that searches, reads, and writes a detailed report |
-| `deep_researcher_check` | Check status and get results from a deep research task |
-| `deep_search_exa` | Deep search with query expansion and synthesized answers. Requires your own API key — it will not appear in the tools list without one. |
 
-Enable all tools with the `tools` parameter:
+**Deprecated** (still available for backwards compatibility):
+
+| Tool | Use instead |
+| ---- | ----------- |
+| `get_code_context_exa` | `web_search_exa` |
+| `company_research_exa` | `web_search_advanced_exa` |
+| `crawling_exa` | `web_fetch_exa` |
+| `people_search_exa` | `web_search_advanced_exa` |
+| `linkedin_search_exa` | `web_search_advanced_exa` |
+| `deep_researcher_start` | [Research API](https://docs.exa.ai/reference/research/create-a-task) |
+| `deep_researcher_check` | [Research API](https://docs.exa.ai/reference/research/get-a-task) |
+| `deep_search_exa` | `web_search_advanced_exa` |
+
+Enable additional tools with the `tools` parameter:
 
 ```
-https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,crawling_exa,company_research_exa,people_search_exa,deep_researcher_start,deep_researcher_check,deep_search_exa
+https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
 ```
 
 ## Agent Skills (Claude Skills)
@@ -314,7 +331,7 @@ Step 2: Add this Claude skill
 
 ---
 name: company-research
-description: Company research using Exa search. Finds company info, competitors, news, tweets, financials, LinkedIn profiles, builds company lists. Use when researching companies, doing competitor analysis, market research, or building company lists.
+description: Company research using Exa search. Finds company info, competitors, news, financials, LinkedIn profiles, builds company lists. Use when researching companies, doing competitor analysis, market research, or building company lists.
 context: fork
 ---
 
@@ -352,11 +369,10 @@ Exa returns different results for different phrasings. For coverage:
 Use appropriate Exa `category` depending on what you need:
 - `company` → homepages, rich metadata (headcount, location, funding, revenue)
 - `news` → press coverage, announcements
-- `tweet` → social presence, public commentary
 - `people` → LinkedIn profiles (public data)
 - No category (`type: "auto"`) → general web results, deep dives, broader context
 
-Start with `category: "company"` for discovery, then use other categories or no category with `livecrawl: "fallback"` for deeper research.
+Start with `category: "company"` for discovery, then use other categories or no category for deeper research.
 
 ### Category-Specific Filter Restrictions
 
@@ -398,7 +414,6 @@ web_search_advanced_exa {
 web_search_advanced_exa {
   "query": "Anthropic funding rounds valuation 2024",
   "type": "deep",
-  "livecrawl": "fallback",
   "numResults": 10,
   "includeDomains": ["techcrunch.com", "crunchbase.com", "bloomberg.com"]
 }
@@ -448,13 +463,13 @@ Step 1: Install or update Exa MCP
 
 If Exa MCP already exists in your MCP configuration, either uninstall it first and install the new one, or update your existing MCP config with this endpoint. Run this command in your terminal:
 
-claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=get_code_context_exa"
+claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_exa"
 
 
 Step 2: Add this Claude skill
 
 ---
-name: get-code-context-exa
+name: code-search-exa
 description: Code context using Exa. Finds real snippets and docs from GitHub, StackOverflow, and technical docs. Use when searching for code examples, API syntax, library documentation, or debugging help.
 context: fork
 ---
@@ -463,12 +478,12 @@ context: fork
 
 ## Tool Restriction (Critical)
 
-ONLY use `get_code_context_exa`. Do NOT use other Exa tools.
+ONLY use `web_search_exa`. Do NOT use other Exa tools.
 
 ## Token Isolation (Critical)
 
 Never run Exa in main context. Always spawn Task agents:
-- Agent calls `get_code_context_exa`
+- Agent calls `web_search_exa`
 - Agent extracts the minimum viable snippet(s) + constraints
 - Agent deduplicates near-identical results (mirrors, forks, repeated StackOverflow answers) before presenting
 - Agent returns copyable snippets + brief explanation
@@ -483,12 +498,6 @@ Use this tool for ANY programming-related request:
 - framework "how to" questions
 - debugging when you need authoritative snippets
 
-## Inputs (Supported)
-
-`get_code_context_exa` supports:
-- `query` (string, required)
-- `tokensNum` (number, optional; default ~5000; typical range 1000–50000)
-
 ## Query Writing Patterns (High Signal)
 
 To reduce irrelevant results and cross-language noise:
@@ -496,14 +505,6 @@ To reduce irrelevant results and cross-language noise:
   - Example: use **"Go generics"** instead of just **"generics"**.
 - When applicable, also include **framework + version** (e.g., "Next.js 14", "React 19", "Python 3.12").
 - Include exact identifiers (function/class names, config keys, error messages) when you have them.
-
-## Dynamic Tuning
-
-Token strategy:
-- Focused snippet needed → tokensNum 1000–3000
-- Most tasks → tokensNum 5000
-- Complex integration → tokensNum 10000–20000
-- Only go larger when necessary (avoid dumping large context)
 
 ## Output Format (Recommended)
 
@@ -522,7 +523,7 @@ Before presenting:
   "servers": {
     "exa": {
       "type": "http",
-      "url": "https://mcp.exa.ai/mcp?tools=get_code_context_exa"
+      "url": "https://mcp.exa.ai/mcp?tools=web_search_exa"
     }
   }
 }
@@ -594,7 +595,7 @@ Use appropriate Exa `category` depending on what you need:
 - `news` → press mentions, interviews, speaker bios
 - No category (`type: "auto"`) → general web results, broader context
 
-Start with `category: "people"` for profile discovery, then use other categories or no category with `livecrawl: "fallback"` for deeper research on specific individuals.
+Start with `category: "people"` for profile discovery, then use other categories or no category for deeper research on specific individuals.
 
 ### Category-Specific Filter Restrictions
 
@@ -647,7 +648,6 @@ web_search_advanced_exa {
 web_search_advanced_exa {
   "query": "Dario Amodei Anthropic CEO background",
   "type": "auto",
-  "livecrawl": "fallback",
   "numResults": 15
 }
 ```
@@ -715,7 +715,7 @@ The `financial report` category has one known restriction:
 ### Core
 - `query` (required)
 - `numResults`
-- `type` ("auto", "fast", "deep", "neural")
+- `type` ("auto", "fast", "deep", "instant")
 
 ### Domain filtering
 - `includeDomains` (e.g., ["sec.gov", "investor.apple.com"])
@@ -736,7 +736,7 @@ The `financial report` category has one known restriction:
 
 ### Additional
 - `additionalQueries`
-- `livecrawl` / `livecrawlTimeout`
+- `maxAgeHours` / `livecrawlTimeout`
 - `subpages` / `subpageTarget`
 
 ## Token Isolation (Critical)
@@ -852,7 +852,7 @@ The `research paper` category supports ALL available parameters:
 ### Core
 - `query` (required)
 - `numResults`
-- `type` ("auto", "fast", "deep", "neural")
+- `type` ("auto", "fast", "deep", "instant")
 
 ### Domain filtering
 - `includeDomains` (e.g., ["arxiv.org", "openreview.net"])
@@ -877,7 +877,7 @@ The `research paper` category supports ALL available parameters:
 - `userLocation`
 - `moderation`
 - `additionalQueries`
-- `livecrawl` / `livecrawlTimeout`
+- `maxAgeHours` / `livecrawlTimeout`
 - `subpages` / `subpageTarget`
 
 ## Token Isolation (Critical)
@@ -970,7 +970,7 @@ The `personal site` category supports ALL available parameters:
 ### Core
 - `query` (required)
 - `numResults`
-- `type` ("auto", "fast", "deep", "neural")
+- `type` ("auto", "fast", "deep", "instant")
 
 ### Domain filtering
 - `includeDomains`
@@ -993,7 +993,7 @@ The `personal site` category supports ALL available parameters:
 
 ### Additional
 - `additionalQueries`
-- `livecrawl` / `livecrawlTimeout`
+- `maxAgeHours` / `livecrawlTimeout`
 - `subpages` / `subpageTarget` - useful for exploring portfolio sites
 
 ## Token Isolation (Critical)
@@ -1054,133 +1054,6 @@ Return:
 1) Results (title, author/site name, date, key insights)
 2) Sources (URLs)
 3) Notes (author expertise, potential biases, depth of coverage)
-
-
-Step 3: Ask User to Restart Claude Code
-
-You should ask the user to restart Claude Code to have the config changes take effect.
-````
-
-</details>
-
-<details>
-<summary><b>X/Twitter Search</b></summary>
-
-Copy the content below and paste it into Claude Code. It will set up the MCP connection and skill for you.
-
-````
-Step 1: Install or update Exa MCP
-
-If Exa MCP already exists in your MCP configuration, either uninstall it first and install the new one, or update your existing MCP config with this endpoint. Run this command in your terminal:
-
-claude mcp add --transport http exa "https://mcp.exa.ai/mcp?tools=web_search_advanced_exa"
-
-
-Step 2: Add this Claude skill
-
----
-name: web-search-advanced-tweet
-description: Search tweets and Twitter/X content using Exa advanced search. Limited filter support - text and domain filters are NOT supported. Use when searching for tweets, Twitter/X discussions, or social media sentiment.
-context: fork
----
-
-# Web Search Advanced - Tweet Category
-
-## Tool Restriction (Critical)
-
-ONLY use `web_search_advanced_exa` with `category: "tweet"`. Do NOT use other categories or tools.
-
-## Filter Restrictions (Critical)
-
-The `tweet` category has **LIMITED filter support**. The following parameters are **NOT supported** and will cause 400 errors:
-
-- `includeText` - NOT SUPPORTED
-- `excludeText` - NOT SUPPORTED
-- `includeDomains` - NOT SUPPORTED
-- `excludeDomains` - NOT SUPPORTED
-- `moderation` - NOT SUPPORTED (causes 500 server error)
-
-## Supported Parameters
-
-### Core
-- `query` (required)
-- `numResults`
-- `type` ("auto", "fast", "deep", "neural")
-
-### Date filtering (ISO 8601) - Use these instead of text filters!
-- `startPublishedDate` / `endPublishedDate`
-- `startCrawlDate` / `endCrawlDate`
-
-### Content extraction
-- `textMaxCharacters` / `contextMaxCharacters`
-- `enableHighlights` / `highlightsNumSentences` / `highlightsPerUrl` / `highlightsQuery`
-- `enableSummary` / `summaryQuery`
-
-### Additional
-- `additionalQueries` - useful for hashtag variations
-- `livecrawl` / `livecrawlTimeout` - use "preferred" for recent tweets
-
-## Token Isolation (Critical)
-
-Never run Exa searches in main context. Always spawn Task agents:
-- Agent calls `web_search_advanced_exa` with `category: "tweet"`
-- Agent merges + deduplicates results before presenting
-- Agent returns distilled output (brief markdown or compact JSON)
-- Main context stays clean regardless of search volume
-
-## When to Use
-
-Use this category when you need:
-- Social discussions on a topic
-- Product announcements from company accounts
-- Developer opinions and experiences
-- Trending topics and community sentiment
-- Expert takes and threads
-
-## Examples
-
-Recent tweets on a topic:
-```
-web_search_advanced_exa {
-  "query": "Claude Code MCP experience",
-  "category": "tweet",
-  "startPublishedDate": "2025-01-01",
-  "numResults": 20,
-  "type": "auto",
-  "livecrawl": "preferred"
-}
-```
-
-Search with specific keywords (put keywords in query, not includeText):
-```
-web_search_advanced_exa {
-  "query": "launching announcing new open source release",
-  "category": "tweet",
-  "startPublishedDate": "2025-12-01",
-  "numResults": 15,
-  "type": "auto"
-}
-```
-
-Developer sentiment (use specific query terms instead of excludeText):
-```
-web_search_advanced_exa {
-  "query": "developer experience DX frustrating painful",
-  "category": "tweet",
-  "numResults": 20,
-  "type": "deep",
-  "livecrawl": "preferred"
-}
-```
-
-## Output Format
-
-Return:
-1) Results (tweet content, author handle, date, engagement if visible)
-2) Sources (Tweet URLs)
-3) Notes (sentiment summary, notable accounts, threads vs single tweets)
-
-Important: Be aware that tweet content can be informal, sarcastic, or context-dependent.
 
 
 Step 3: Ask User to Restart Claude Code

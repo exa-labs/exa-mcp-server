@@ -17,7 +17,8 @@ export const configSchema = z.object({
     z.array(z.string()),
     z.string()
   ]).optional().describe("List of tools to enable (comma-separated string or array) - alias for enabledTools"),
-  debug: z.boolean().default(false).describe("Enable debug logging")
+  debug: z.boolean().default(false).describe("Enable debug logging"),
+  defaultSearchType: z.enum(["auto", "fast"]).optional().describe("Default search type for web_search_exa when not specified per-call")
 });
 
 // Export stateless flag for MCP
@@ -66,7 +67,8 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
     const normalizedConfig = {
       exaApiKey: config.exaApiKey,
       enabledTools: parsedEnabledTools,
-      debug: config.debug
+      debug: config.debug,
+      defaultSearchType: config.defaultSearchType
     };
     
     if (config.debug) {
@@ -80,7 +82,7 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
     const server = new McpServer({
       name: "exa-search-server",
       title: "Exa",
-      version: "3.1.9"
+      version: "3.2.1"
     });
     
     log("Server initialized with modern MCP SDK and Smithery CLI support");

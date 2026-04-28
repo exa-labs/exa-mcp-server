@@ -1,10 +1,11 @@
 import { z } from "zod";
-import axios from "axios";
+import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG } from "./config.js";
+import { API_CONFIG, integrationHeaders } from "./config.js";
 import { ExaAdvancedSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { handleRateLimitError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
+import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { checkpoint } from "agnost";
 
 export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -18,9 +19,9 @@ Returns: Search results with optional highlights, summaries, and subpage content
     {
       query: z.string().describe("Search query - can be a question, statement, or keywords"),
       numResults: z.coerce.number().optional().describe("Number of results (must be a number, 1-100, default: 10)"),
-      type: z.enum(['auto', 'fast', 'neural']).optional().describe("Search type - 'auto': balanced (default), 'fast': quick results, 'neural': semantic search"),
+      type: z.enum(['auto', 'fast', 'instant']).optional().describe("Search type - 'auto': high quality and works with all filters (recommended), 'fast': quick results, 'instant': fastest results"),
 
-      category: z.enum(['company', 'research paper', 'news', 'pdf', 'github', 'tweet', 'personal site', 'people', 'financial report']).optional().describe("Filter results to a specific category"),
+      category: z.enum(['company', 'research paper', 'news', 'pdf', 'github', 'personal site', 'people', 'financial report']).optional().describe("Filter results to a specific category"),
 
       includeDomains: z.array(z.string()).optional().describe("Only include results from these domains (e.g., ['arxiv.org', 'github.com'])"),
       excludeDomains: z.array(z.string()).optional().describe("Exclude results from these domains"),
@@ -39,19 +40,20 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
       additionalQueries: z.array(z.string()).optional().describe("Additional query variations to expand search coverage"),
 
-      textMaxCharacters: z.coerce.number().optional().describe("Max characters for text extraction per result (must be a number)"),
-      contextMaxCharacters: z.coerce.number().optional().describe("Max characters for context string (must be a number, not included by default)"),
+      textMaxCharacters: z.coerce.number().min(1).optional().describe("Max characters for text extraction per result (must be a positive number)"),
+      contextMaxCharacters: z.coerce.number().min(1).optional().describe("Max characters for context string (must be a positive number, not included by default)"),
 
       enableSummary: z.boolean().optional().describe("Enable summary generation for results"),
       summaryQuery: z.string().optional().describe("Focus query for summary generation"),
 
       enableHighlights: z.boolean().optional().describe("Enable highlights extraction"),
-      highlightsNumSentences: z.coerce.number().optional().describe("Number of sentences per highlight (must be a number)"),
-      highlightsPerUrl: z.coerce.number().optional().describe("Number of highlights per URL (must be a number)"),
+      highlightsMaxCharacters: z.coerce.number().optional().describe("Maximum total characters across all highlights per URL (must be a number). Preferred over highlightsNumSentences."),
+      highlightsNumSentences: z.coerce.number().optional().describe("Deprecated: mapped to ~1333 chars/sentence. Use highlightsMaxCharacters instead."),
+      highlightsPerUrl: z.coerce.number().optional().describe("Deprecated: currently ignored server-side. Use highlightsMaxCharacters instead."),
       highlightsQuery: z.string().optional().describe("Query for highlight relevance"),
 
-      livecrawl: z.enum(['never', 'fallback', 'always', 'preferred']).optional().describe("Live crawl mode - 'never': only cached, 'fallback': cached then live, 'always': always live, 'preferred': prefer live (default: 'fallback')"),
-      livecrawlTimeout: z.coerce.number().optional().describe("Timeout for live crawl in milliseconds (must be a number)"),
+      maxAgeHours: z.coerce.number().optional().describe("Maximum age of cached content in hours. 0 = always fetch fresh content, omit = use cached content with fresh fetch fallback (must be a number)"),
+      livecrawlTimeout: z.coerce.number().optional().describe("Timeout in milliseconds for fetching fresh content when maxAgeHours triggers a live fetch (must be a number)"),
 
       subpages: z.coerce.number().optional().describe("Number of subpages to crawl from each result (must be a number, 1-10)"),
       subpageTarget: z.array(z.string()).optional().describe("Keywords to target when selecting subpages"),
@@ -59,6 +61,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
     {
       readOnlyHint: true,
       destructiveHint: false,
+      openWorldHint: false,
       idempotentHint: true
     },
     async (params) => {
@@ -68,28 +71,16 @@ Returns: Search results with optional highlights, summaries, and subpage content
       logger.start(params.query);
 
       try {
-        const axiosInstance = axios.create({
-          baseURL: API_CONFIG.BASE_URL,
-          headers: {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'x-api-key': config?.exaApiKey || process.env.EXA_API_KEY || '',
-            'x-exa-integration': 'web-search-advanced-mcp'
-          },
-          timeout: params.livecrawlTimeout || 30000
-        });
+        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
 
         const contents: ExaAdvancedSearchRequest['contents'] = {
           text: params.textMaxCharacters ? { maxCharacters: params.textMaxCharacters } : true,
-          livecrawl: params.livecrawl || 'fallback',
+          ...(params.maxAgeHours !== undefined ? { maxAgeHours: params.maxAgeHours } : { livecrawl: 'fallback' as const }),
+          ...(params.livecrawlTimeout && { livecrawlTimeout: params.livecrawlTimeout }),
         };
 
         if (params.contextMaxCharacters) {
           contents.context = { maxCharacters: params.contextMaxCharacters };
-        }
-
-        if (params.livecrawlTimeout) {
-          contents.livecrawlTimeout = params.livecrawlTimeout;
         }
 
         if (params.enableSummary) {
@@ -98,6 +89,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
         if (params.enableHighlights) {
           contents.highlights = {
+            maxCharacters: params.highlightsMaxCharacters,
             numSentences: params.highlightsNumSentences,
             highlightsPerUrl: params.highlightsPerUrl,
             query: params.highlightsQuery,
@@ -170,16 +162,18 @@ Returns: Search results with optional highlights, summaries, and subpage content
         checkpoint('web_search_advanced_request_prepared');
         logger.log("Sending advanced search request to Exa API");
 
-        const response = await axiosInstance.post<ExaSearchResponse>(
+        const response = await retryWithBackoff(() => exa.request<ExaSearchResponse>(
           API_CONFIG.ENDPOINTS.SEARCH,
+          'POST',
           searchRequest,
-          { timeout: params.livecrawlTimeout || 30000 }
-        );
+          undefined,
+          integrationHeaders('web-search-advanced-mcp', config)
+        ));
 
         checkpoint('exa_advanced_search_response_received');
         logger.log("Received response from Exa API");
 
-        if (!response.data) {
+        if (!response) {
           logger.log("Warning: Empty response from Exa API");
           checkpoint('web_search_advanced_complete');
           return {
@@ -190,13 +184,18 @@ Returns: Search results with optional highlights, summaries, and subpage content
           };
         }
 
-        const resultText = JSON.stringify(response.data);
+        const sanitized = sanitizeSearchResponse(response);
+        const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
+        const resultText = JSON.stringify(sanitized);
         logger.log(`Response prepared with ${resultText.length} characters`);
 
         const result = {
           content: [{
             type: "text" as const,
-            text: resultText
+            text: resultText,
+            _meta: {
+              searchTime: searchTime
+            }
           }]
         };
 
@@ -205,34 +204,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
         return result;
       } catch (error) {
         logger.error(error);
-
-        // Check for rate limit error on free MCP
-        const rateLimitResult = handleRateLimitError(error, config?.userProvidedApiKey, 'web_search_advanced_exa');
-        if (rateLimitResult) {
-          return rateLimitResult;
-        }
-
-        if (axios.isAxiosError(error)) {
-          const statusCode = error.response?.status || 'unknown';
-          const errorMessage = error.response?.data?.message || error.message;
-
-          logger.log(`Axios error (${statusCode}): ${errorMessage}`);
-          return {
-            content: [{
-              type: "text" as const,
-              text: `Advanced search error (${statusCode}): ${errorMessage}`
-            }],
-            isError: true,
-          };
-        }
-
-        return {
-          content: [{
-            type: "text" as const,
-            text: `Advanced search error: ${error instanceof Error ? error.message : String(error)}`
-          }],
-          isError: true,
-        };
+        return formatToolError(error, 'web_search_advanced_exa', config?.userProvidedApiKey);
       }
     }
   );
