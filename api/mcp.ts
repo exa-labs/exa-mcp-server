@@ -459,6 +459,7 @@ async function handleRequest(request: Request, options?: { forceOAuth?: boolean 
   // Use separate API key for bypass users and save their IP/user-agent for tracking
   if (bypassRateLimit) {
     config.exaApiKey = bypassApiKey;
+    config.userProvidedApiKey = false;
     const clientIp = getClientIp(request);
     saveBypassRequestInfo(clientIp, userAgent, config.debug);
   }
