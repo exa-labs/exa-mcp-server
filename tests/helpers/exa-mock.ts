@@ -15,17 +15,21 @@
  */
 import { vi } from "vitest";
 
+/**
+ * Mirrors the real `exa-js` ExaError: positional `(message, statusCode, timestamp?, path?)`
+ * with `timestamp` auto-defaulting to `new Date().toISOString()`.
+ */
 export class ExaError extends Error {
   statusCode: number;
-  timestamp?: string;
-  requestId?: string;
+  timestamp: string;
+  path?: string;
 
-  constructor(message: string, statusCode: number, opts?: { timestamp?: string; requestId?: string }) {
+  constructor(message: string, statusCode: number, timestamp?: string, path?: string) {
     super(message);
     this.name = "ExaError";
     this.statusCode = statusCode;
-    this.timestamp = opts?.timestamp;
-    this.requestId = opts?.requestId;
+    this.timestamp = timestamp ?? new Date().toISOString();
+    this.path = path;
   }
 }
 

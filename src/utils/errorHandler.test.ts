@@ -86,8 +86,7 @@ describe("handleRateLimitError", () => {
 
 describe("formatToolError", () => {
   it("formats ExaError with statusCode and timestamp", () => {
-    const err = new ExaError("boom", 502);
-    (err as ExaError & { timestamp?: string }).timestamp = "2025-04-29T00:00:00Z";
+    const err = new ExaError("boom", 502, "2025-04-29T00:00:00Z");
 
     const result = formatToolError(err, "web_search_exa", true);
     expect(result.isError).toBe(true);
