@@ -6,6 +6,29 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { isJwtToken, verifyOAuthToken } from '../src/utils/auth.js';
 
+// Origin: '*' is safe — auth is per-request via headers/query, never cookies.
+const CORS_HEADERS: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers':
+    'Accept, Content-Type, Authorization, x-api-key, x-exa-source, Mcp-Session-Id, MCP-Protocol-Version, Last-Event-ID',
+  'Access-Control-Expose-Headers': 'Mcp-Session-Id',
+  'Access-Control-Max-Age': '86400',
+  'Vary': 'Origin',
+};
+
+function withCors(response: Response): Response {
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(CORS_HEADERS)) {
+    headers.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 /**
  * IP-based rate limiting configuration for free MCP users.
  * Users who provide their own API key via ?exaApiKey= bypass rate limiting.
@@ -112,6 +135,7 @@ function createRateLimitResponse(retryAfterSeconds: number, reset: number): Resp
         'X-RateLimit-Limit': '0',
         'X-RateLimit-Remaining': '0',
         'X-RateLimit-Reset': String(reset),
+        ...CORS_HEADERS,
       },
     }
   );
@@ -414,16 +438,34 @@ function create401Response(): Response {
         'WWW-Authenticate':
           'Bearer resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource"',
         'Content-Type': 'application/json',
+        ...CORS_HEADERS,
       },
     },
   );
+}
+
+// Wrap so uncaught throws still return CORS headers — otherwise browsers see an opaque CORS error masking the real failure.
+async function handleRequest(request: Request, options?: { forceOAuth?: boolean }): Promise<Response> {
+  try {
+    return await processRequest(request, options);
+  } catch (error) {
+    console.error('[EXA-MCP] Unhandled error in handleRequest:', error);
+    return withCors(new Response(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        error: { code: -32603, message: 'Internal server error' },
+        id: null,
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
+    ));
+  }
 }
 
 /**
  * Main request handler that extracts config from URL and creates
  * a fresh handler for each request
  */
-async function handleRequest(request: Request, options?: { forceOAuth?: boolean }): Promise<Response> {
+async function processRequest(request: Request, options?: { forceOAuth?: boolean }): Promise<Response> {
   const debug = process.env.DEBUG === 'true';
 
   // Check user-agent bypass BEFORE the 401 gate so bypass clients never see auth prompts
@@ -520,12 +562,20 @@ async function handleRequest(request: Request, options?: { forceOAuth?: boolean 
     duplex: 'half',
   });
   
-  // Delegate to the handler
-  return handler(request);
+  return withCors(await handler(request));
+}
+
+function handleOptions(): Response {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
 
 // Export handlers for Vercel Functions
-export { handleRequest as GET, handleRequest as POST, handleRequest as DELETE };
+export {
+  handleRequest as GET,
+  handleRequest as POST,
+  handleRequest as DELETE,
+  handleOptions as OPTIONS,
+};
 
-export { handleRequest };
+export { handleRequest, handleOptions };
 
