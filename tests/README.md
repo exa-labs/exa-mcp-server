@@ -1,7 +1,7 @@
 # Tests
 
-Vitest-based test suite for `exa-mcp-server`. Covers the prod tool surface, the
-sanitizer/error/auth utilities, and the Smithery config-parsing entry point.
+Vitest-based test suite for `exa-mcp-server`. Covers the prod tool surface and
+the sanitizer / error-handling / auth / config utilities.
 
 ## Running
 
@@ -35,15 +35,14 @@ src/
 │   ├── exaResponseSanitizer.test.ts
 │   ├── errorHandler.test.ts
 │   └── auth.test.ts
-├── tools/config.test.ts
-└── index.test.ts                  Smithery entry — config parsing.
+└── tools/config.test.ts
 ```
 
 ## How tests are organized
 
 **Layer 1 — Unit tests** sit next to the source file (`src/**/*.test.ts`). They
 target pure functions with no I/O: response sanitization, retry/backoff,
-JWT parsing, header construction, Smithery config normalization.
+JWT parsing, and integration-header construction.
 
 **Layer 2 — In-memory MCP integration tests** (`tests/integration/**/*.test.ts`)
 drive the real `initializeMcpServer()` through the SDK `Client` connected via
