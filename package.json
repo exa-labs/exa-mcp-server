@@ -39,7 +39,11 @@
     "dev": "npx @smithery/cli@latest dev",
     "dev:vercel": "vercel dev",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
-    "prepublishOnly": "npm run build:stdio"
+    "prepublishOnly": "npm run build:stdio",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
@@ -56,9 +60,11 @@
     "@types/node": "^20.11.24",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.1",
+    "@vitest/coverage-v8": "^4.1.5",
     "tsx": "^4.7.0",
     "typescript": "^5.9.3",
-    "vercel": "^37.0.0"
+    "vercel": "^37.0.0",
+    "vitest": "^4.1.5"
   },
   "engines": {
     "node": ">=18.0.0"
