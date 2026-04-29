@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "agnost": "^0.1.10",
+    "agnost": "^0.1.11",
     "axios": "^1.13.6",
     "exa-js": "^2.8.0",
     "jose": "^6.2.2",

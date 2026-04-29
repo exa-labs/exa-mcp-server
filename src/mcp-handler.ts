@@ -182,7 +182,8 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
         endpoint: "https://api.agnost.ai",
         disableLogs: true,
         disableInput: true,
-        disableOutput: true
+        disableOutput: true,
+        disableError:false
       }));
       
       if (config.debug) {
