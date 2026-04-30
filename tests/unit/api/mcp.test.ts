@@ -5,6 +5,9 @@ const {
   createMcpHandlerMock,
   initializeMcpServerMock,
   isJwtTokenMock,
+  rateLimitInstances,
+  RatelimitMock,
+  RedisMock,
   verifyOAuthTokenMock,
 } = vi.hoisted(() => {
   const capturedRequests: Request[] = [];
@@ -17,6 +20,19 @@ const {
     };
   });
   const isJwtTokenMock = vi.fn((token: string) => token === "jwt-token" || token === "invalid-jwt");
+  const rateLimitInstances: Array<{ limit: ReturnType<typeof vi.fn> }> = [];
+  class RatelimitMock {
+    static slidingWindow = vi.fn((limit: number, window: string) => ({ limit, window, type: "sliding" }));
+    static fixedWindow = vi.fn((limit: number, window: string) => ({ limit, window, type: "fixed" }));
+
+    constructor() {
+      return rateLimitInstances.shift() ?? { limit: vi.fn().mockResolvedValue({ success: true }) };
+    }
+  }
+  class RedisMock {
+    zadd = vi.fn();
+    expire = vi.fn();
+  }
   const verifyOAuthTokenMock = vi.fn();
 
   return {
@@ -24,6 +40,9 @@ const {
     createMcpHandlerMock,
     initializeMcpServerMock,
     isJwtTokenMock,
+    rateLimitInstances,
+    RatelimitMock,
+    RedisMock,
     verifyOAuthTokenMock,
   };
 });
@@ -41,6 +60,30 @@ vi.mock("../../../src/utils/auth.js", () => ({
   verifyOAuthToken: verifyOAuthTokenMock,
 }));
 
+vi.mock("@upstash/ratelimit", () => ({
+  Ratelimit: RatelimitMock,
+}));
+
+vi.mock("@upstash/redis", () => ({
+  Redis: RedisMock,
+}));
+
+const expectedMcpCorsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "Accept, Content-Type, Authorization, x-api-key, x-exa-source, Mcp-Session-Id, MCP-Protocol-Version, Last-Event-ID",
+  "Access-Control-Expose-Headers": "Mcp-Session-Id",
+  "Access-Control-Max-Age": "86400",
+  Vary: "Origin",
+};
+
+function expectMcpCorsHeaders(response: Response) {
+  for (const [header, value] of Object.entries(expectedMcpCorsHeaders)) {
+    expect(response.headers.get(header)).toBe(value);
+  }
+}
+
 async function callHandleRequest(request: Request, options?: { forceOAuth?: boolean }) {
   const { handleRequest } = await import("../../../api/mcp.js");
   const response = await handleRequest(request, options);
@@ -50,11 +93,12 @@ async function callHandleRequest(request: Request, options?: { forceOAuth?: bool
   return { response, config, forwardedRequest };
 }
 
-describe("api/mcp API key configuration", () => {
+describe("api/mcp handler", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
     capturedRequests.length = 0;
+    rateLimitInstances.length = 0;
     isJwtTokenMock.mockImplementation((token: string) => token === "jwt-token" || token === "invalid-jwt");
     verifyOAuthTokenMock.mockResolvedValue(null);
     vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -64,8 +108,12 @@ describe("api/mcp API key configuration", () => {
     delete process.env.ENABLED_TOOLS;
     delete process.env.EXA_API_KEY;
     delete process.env.EXA_API_KEY_BYPASS;
+    delete process.env.KV_REST_API_TOKEN;
+    delete process.env.KV_REST_API_URL;
     delete process.env.OAUTH_USER_AGENTS;
     delete process.env.RATE_LIMIT_BYPASS;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    delete process.env.UPSTASH_REDIS_REST_URL;
   });
 
   it("falls back to EXA_API_KEY without marking it as user-provided", async () => {
@@ -204,5 +252,78 @@ describe("api/mcp API key configuration", () => {
       userProvidedApiKey: false,
       authMethod: "free_tier",
     });
+  });
+
+  it("adds CORS headers to successful MCP responses", async () => {
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        headers: {
+          Origin: "https://client.example",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toBe("ok");
+    expectMcpCorsHeaders(response);
+  });
+
+  it("returns CORS headers for MCP preflight requests", async () => {
+    const { handleOptions } = await import("../../../api/mcp.js");
+
+    const response = handleOptions();
+
+    expect(response.status).toBe(204);
+    expectMcpCorsHeaders(response);
+    expect(createMcpHandlerMock).not.toHaveBeenCalled();
+  });
+
+  it("includes CORS headers on OAuth challenge responses", async () => {
+    const { response } = await callHandleRequest(new Request("https://mcp.exa.ai/mcp/oauth"), {
+      forceOAuth: true,
+    });
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource"',
+    );
+    expectMcpCorsHeaders(response);
+  });
+
+  it("includes CORS headers on rate limit responses", async () => {
+    process.env.KV_REST_API_URL = "https://redis.example";
+    process.env.KV_REST_API_TOKEN = "redis-token";
+    const reset = Date.now() + 10_000;
+    rateLimitInstances.push(
+      { limit: vi.fn().mockResolvedValue({ success: false, reset }) },
+      { limit: vi.fn().mockResolvedValue({ success: true, reset }) },
+    );
+
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call" }),
+      }),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).not.toBeNull();
+    expectMcpCorsHeaders(response);
+    expect(createMcpHandlerMock).not.toHaveBeenCalled();
+  });
+
+  it("includes CORS headers when the MCP handler throws", async () => {
+    createMcpHandlerMock.mockImplementationOnce(() => async () => {
+      throw new Error("transport failed");
+    });
+
+    const { response } = await callHandleRequest(new Request("https://mcp.exa.ai/mcp"));
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get("Content-Type")).toContain("application/json");
+    expectMcpCorsHeaders(response);
   });
 });
