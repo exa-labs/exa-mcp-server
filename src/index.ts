@@ -68,7 +68,8 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
       exaApiKey: config.exaApiKey,
       enabledTools: parsedEnabledTools,
       debug: config.debug,
-      defaultSearchType: config.defaultSearchType
+      defaultSearchType: config.defaultSearchType,
+      userProvidedApiKey: Boolean(config.exaApiKey),
     };
     
     if (config.debug) {

@@ -34,6 +34,13 @@
     "build:stdio": "smithery build src/index.ts --transport stdio -o smithery/stdio/index.cjs && echo '#!/usr/bin/env node' | cat - smithery/stdio/index.cjs > temp && mv temp smithery/stdio/index.cjs && chmod +x smithery/stdio/index.cjs",
     "build:shttp": "smithery build src/index.ts --transport shttp -o smithery/shttp/index.cjs",
     "build:vercel": "npm install typescript && ./node_modules/.bin/tsc",
+    "setup": "npm ci",
+    "start": "npm run dev",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "ci": "npm run typecheck && npm run test",
     "prepare": "npm run build:stdio",
     "watch": "./node_modules/.bin/tsc --watch",
     "dev": "npx @smithery/cli@latest dev",
@@ -56,12 +63,14 @@
     "@types/node": "^20.11.24",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.1",
+    "@vitest/coverage-v8": "4.1.5",
     "tsx": "^4.7.0",
     "typescript": "^5.9.3",
-    "vercel": "^37.0.0"
+    "vercel": "^37.0.0",
+    "vitest": "4.1.5"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "overrides": {
     "tar": "^7.5.7"
