@@ -260,9 +260,8 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * the request to the initializeServer callback. To support per-request
  * configuration via URL params (like ?tools=... and ?exaApiKey=...), we
  * create a fresh handler for each request. This ensures:
- * 1. Feature parity with the production Smithery-based deployment at mcp.exa.ai
- * 2. Each request gets its own configuration (no API key leakage between users)
- * 3. Users can specify different tools and API keys per request
+ * 1. Each request gets its own configuration (no API key leakage between users)
+ * 2. Users can specify different tools and API keys per request
  */
 
 /** Extract bearer token from Authorization header. */

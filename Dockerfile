@@ -1,5 +1,5 @@
-# Use the official Node.js 18 image as a parent image
-FROM node:18-alpine AS builder
+# Use the official Node.js 20 image as a parent image
+FROM node:20-alpine AS builder
 
 # Set the working directory in the container to /app
 WORKDIR /app
@@ -18,12 +18,12 @@ COPY tsconfig.json ./
 RUN npm run build
 
 # Use a minimal node image as the base image for running
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 
 WORKDIR /app
 
 # Copy compiled code from the builder stage
-COPY --from=builder /app/smithery ./smithery
+COPY --from=builder /app/dist ./dist
 COPY package.json package-lock.json ./
 
 # Install only production dependencies
@@ -36,4 +36,4 @@ ENV EXA_API_KEY=your-api-key-here
 EXPOSE 3000
 
 # Run the application
-ENTRYPOINT ["node", "smithery/index.cjs"]
+ENTRYPOINT ["node", "dist/stdio.cjs"]

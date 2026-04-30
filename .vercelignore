@@ -1,5 +1,5 @@
-# Smithery build artifacts
-smithery/
+# Bundled stdio build artifacts (not needed by the Vercel function)
+dist/
 
 # Node modules
 node_modules/

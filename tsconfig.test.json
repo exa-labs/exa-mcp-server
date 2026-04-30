@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.json",
   "include": ["src/**/*", "api/**/*", "tests/**/*", "vitest.config.ts"],
-  "exclude": ["node_modules", "smithery", "build", "dist", "coverage"]
+  "exclude": ["node_modules", "build", "dist", "coverage"]
 }

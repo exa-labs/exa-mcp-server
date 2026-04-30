@@ -1,9 +1,8 @@
 /**
- * Well-known endpoint for MCP configuration schema
- * 
- * Exposes a JSON Schema at /.well-known/mcp-config for Smithery and other MCP clients
- * to discover available configuration options. This enables configuration forms in
- * Smithery's UI and allows clients to pass configuration via URL parameters.
+ * Well-known endpoint for MCP configuration schema.
+ *
+ * Exposes a JSON Schema at /.well-known/mcp-config so MCP clients can discover
+ * the available configuration options and pass them via URL parameters.
  */
 
 const AVAILABLE_TOOLS = [
