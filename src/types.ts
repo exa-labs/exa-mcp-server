@@ -95,6 +95,10 @@ export interface ExaSearchStatus {
   id: string;
   status: string;
   source: string;
+  error?: {
+    tag: string;
+    httpStatusCode?: number | null;
+  };
 }
 
 export interface ExaCostDollars {
@@ -170,6 +174,7 @@ export interface ExaContentsResponse {
   requestId?: string;
   results?: ExaSearchResult[];
   statuses?: ExaSearchStatus[];
+  searchTime?: number;
   costDollars?: ExaCostDollars;
 }
 

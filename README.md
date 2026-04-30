@@ -278,6 +278,25 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 ```
 </details>
 
+## Development
+
+Requires Node.js 20 or newer.
+
+Setup:
+```bash
+npm run setup
+```
+
+Run locally:
+```bash
+npm start
+```
+
+Run tests:
+```bash
+npm run ci
+```
+
 ## Available Tools
 
 **Enabled by Default:**
