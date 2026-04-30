@@ -39,9 +39,9 @@ export interface McpConfig {
 }
 
 /**
- * Initialize and configure the MCP server with all tools, prompts, and resources
- * This function is called by both Vercel Functions and Smithery transports
- * 
+ * Initialize and configure the MCP server with all tools, prompts, and resources.
+ * Called by both the Vercel Function (api/mcp.ts) and the stdio entry (src/stdio.ts).
+ *
  * @param server - The MCP server instance (can be from McpServer or mcp-handler)
  * @param config - Configuration object with API key and tool settings
  */

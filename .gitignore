@@ -5,7 +5,6 @@ node_modules/
 build/
 coverage/
 dist/
-smithery/
 
 # Environment variables
 .env
