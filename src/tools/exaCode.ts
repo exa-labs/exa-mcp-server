@@ -6,6 +6,7 @@ import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
+import { lenientString, lenientOptionalNumber } from "./validation.js";
 import { checkpoint } from "agnost";
 
 export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -19,8 +20,8 @@ Returns: Relevant code and documentation.
 Query tips: describe what you're looking for specifically. "Python requests library POST with JSON body" not "python http".
 If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
     {
-      query: z.string().describe("Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"),
-      numResults: z.coerce.number().min(1).max(20).optional().describe("Number of search results to return (must be a number, default: 8)"),
+      query: lenientString().describe("Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"),
+      numResults: lenientOptionalNumber().describe("Number of search results to return (must be a number, default: 8)"),
     },
     {
       readOnlyHint: true,
