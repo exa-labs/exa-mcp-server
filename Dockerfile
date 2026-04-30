@@ -1,5 +1,5 @@
-# Use the official Node.js 18 image as a parent image
-FROM node:18-alpine AS builder
+# Use the official Node.js 20 image as a parent image
+FROM node:20-alpine AS builder
 
 # Set the working directory in the container to /app
 WORKDIR /app
@@ -18,7 +18,7 @@ COPY tsconfig.json ./
 RUN npm run build
 
 # Use a minimal node image as the base image for running
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 
 WORKDIR /app
 
