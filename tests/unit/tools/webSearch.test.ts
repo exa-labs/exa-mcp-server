@@ -60,7 +60,7 @@ describe("registerWebSearchTool", () => {
         numResults: 2,
         category: "news",
         contents: {
-          highlights: { query: "AI breakthroughs", maxCharacters: 2000 },
+          highlights: true,
         },
       },
       undefined,
