@@ -35,6 +35,7 @@ export interface McpConfig {
   debug?: boolean;
   userProvidedApiKey?: boolean;
   exaSource?: string;
+  mcpSessionId?: string;
   defaultSearchType?: 'auto' | 'fast';
 }
 
@@ -205,4 +206,3 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     throw error;
   }
 }
-

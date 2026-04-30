@@ -101,6 +101,21 @@ describe("api/mcp API key configuration", () => {
     expect(new URL(forwardedRequest?.url ?? "").searchParams.has("exaApiKey")).toBe(false);
   });
 
+  it("passes the MCP session id through request config and sanitized MCP request", async () => {
+    const { config, forwardedRequest } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        headers: {
+          "MCP-Session-Id": "session-123",
+        },
+      }),
+    );
+
+    expect(config).toMatchObject({
+      mcpSessionId: "session-123",
+    });
+    expect(forwardedRequest?.headers.get("MCP-Session-Id")).toBe("session-123");
+  });
+
   it("uses a plain Authorization bearer token before query parameters", async () => {
     const { config, forwardedRequest } = await callHandleRequest(
       new Request("https://mcp.exa.ai/mcp?exaApiKey=query-key", {
