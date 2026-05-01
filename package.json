@@ -46,6 +46,8 @@
     "dev": "npx @smithery/cli@latest dev",
     "dev:vercel": "vercel dev",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
+    "prepack": "cp README.md /tmp/.exa-mcp-readme-backup && cp npm.readme.md README.md",
+    "postpack": "cp /tmp/.exa-mcp-readme-backup README.md && rm -f /tmp/.exa-mcp-readme-backup",
     "prepublishOnly": "npm run build:stdio"
   },
   "dependencies": {
