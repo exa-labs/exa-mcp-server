@@ -31,7 +31,7 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
       If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
     {
       query: lenientString().describe("Natural language search query. Should be a semantically rich description of the ideal page, not just keywords. Optionally include category:<type> (company, people) to focus results — e.g. 'category:people John Doe software engineer'."),
-      numResults: lenientOptionalNumber().describe("Number of search results to return (must be a number, default: 10)."),
+      numResults: lenientOptionalNumber().describe("Number of search results to return (default: 10)."),
     },
     {
       readOnlyHint: true,

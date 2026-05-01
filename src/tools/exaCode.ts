@@ -21,7 +21,7 @@ Query tips: describe what you're looking for specifically. "Python requests libr
 If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
     {
       query: lenientString().describe("Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"),
-      numResults: lenientOptionalNumber().describe("Number of search results to return (must be a number, default: 8)"),
+      numResults: lenientOptionalNumber().describe("Number of search results to return (default: 8)"),
     },
     {
       readOnlyHint: true,

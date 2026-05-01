@@ -19,7 +19,7 @@ Not recommended for: Simple searches - use web_search_exa instead.
 Returns: Search results with optional highlights, summaries, and subpage content.`,
     {
       query: lenientString().describe("Search query - can be a question, statement, or keywords"),
-      numResults: lenientOptionalNumber().describe("Number of results (must be a number, 1-100, default: 10)"),
+      numResults: lenientOptionalNumber().describe("Number of results (1-100, default: 10)"),
       type: z.enum(['auto', 'fast', 'instant']).optional().describe("Search type - 'auto': high quality and works with all filters (recommended), 'fast': quick results, 'instant': fastest results"),
 
       category: z.enum(['company', 'research paper', 'news', 'pdf', 'github', 'personal site', 'people', 'financial report']).optional().describe("Filter results to a specific category"),
@@ -41,22 +41,22 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
       additionalQueries: z.array(z.string()).optional().describe("Additional query variations to expand search coverage"),
 
-      textMaxCharacters: lenientOptionalPositiveNumber().describe("Max characters for text extraction per result (must be a positive number)"),
-      contextMaxCharacters: lenientOptionalPositiveNumber().describe("Max characters for context string (must be a positive number, not included by default)"),
+      textMaxCharacters: lenientOptionalPositiveNumber().describe("Max characters for text extraction per result"),
+      contextMaxCharacters: lenientOptionalPositiveNumber().describe("Max characters for context string (not included by default)"),
 
       enableSummary: lenientOptionalBoolean().describe("Enable summary generation for results"),
       summaryQuery: z.string().optional().describe("Focus query for summary generation"),
 
       enableHighlights: lenientOptionalBoolean().describe("Enable highlights extraction"),
-      highlightsMaxCharacters: lenientOptionalNumber().describe("Maximum total characters across all highlights per URL (must be a number). Preferred over highlightsNumSentences."),
+      highlightsMaxCharacters: lenientOptionalNumber().describe("Maximum total characters across all highlights per URL. Preferred over highlightsNumSentences."),
       highlightsNumSentences: lenientOptionalNumber().describe("Deprecated: mapped to ~1333 chars/sentence. Use highlightsMaxCharacters instead."),
       highlightsPerUrl: lenientOptionalNumber().describe("Deprecated: currently ignored server-side. Use highlightsMaxCharacters instead."),
       highlightsQuery: z.string().optional().describe("Query for highlight relevance"),
 
-      maxAgeHours: lenientOptionalNumber().describe("Maximum age of cached content in hours. 0 = always fetch fresh content, omit = use cached content with fresh fetch fallback (must be a number)"),
-      livecrawlTimeout: lenientOptionalNumber().describe("Timeout in milliseconds for fetching fresh content when maxAgeHours triggers a live fetch (must be a number)"),
+      maxAgeHours: lenientOptionalNumber().describe("Maximum age of cached content in hours. 0 = always fetch fresh content, omit = use cached content with fresh fetch fallback"),
+      livecrawlTimeout: lenientOptionalNumber().describe("Timeout in milliseconds for fetching fresh content when maxAgeHours triggers a live fetch"),
 
-      subpages: lenientOptionalNumber().describe("Number of subpages to crawl from each result (must be a number, 1-10)"),
+      subpages: lenientOptionalNumber().describe("Number of subpages to crawl from each result (1-10)"),
       subpageTarget: z.array(z.string()).optional().describe("Keywords to target when selecting subpages"),
     },
     {

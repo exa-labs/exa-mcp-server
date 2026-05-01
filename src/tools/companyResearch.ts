@@ -18,7 +18,7 @@ Best for: Learning about a company's products, services, recent news, or industr
 Returns: Company information from trusted business sources.`,
     {
       companyName: z.string().describe("Name of the company to research"),
-      numResults: lenientOptionalNumber().describe("Number of search results to return (must be a number, default: 3)")
+      numResults: lenientOptionalNumber().describe("Number of search results to return (default: 3)")
     },
     {
       readOnlyHint: true,

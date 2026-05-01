@@ -18,7 +18,7 @@ Best for: Finding professionals, executives, or anyone with a public profile.
 Returns: Profile information and links.`,
     {
       query: lenientString().describe("Search query for finding people"),
-      numResults: lenientOptionalNumber().describe("Number of profile results to return (must be a number, default: 5)")
+      numResults: lenientOptionalNumber().describe("Number of profile results to return (default: 5)")
     },
     {
       readOnlyHint: true,

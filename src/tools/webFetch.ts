@@ -49,7 +49,7 @@ Returns: Clean text content and metadata from the page(s).`,
         },
         z.array(z.string())
       ).describe("URLs to read. Batch multiple URLs in one call."),
-      maxCharacters: lenientOptionalPositiveNumber().describe("Maximum characters to extract per page (must be a positive number, default: 3000)"),
+      maxCharacters: lenientOptionalPositiveNumber().describe("Maximum characters to extract per page (default: 3000)"),
     },
     {
       readOnlyHint: true,
