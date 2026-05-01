@@ -6,6 +6,7 @@ import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
+import { lenientString, lenientOptionalNumber } from "./validation.js";
 import { checkpoint } from "agnost";
 
 export function registerPeopleSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
@@ -16,8 +17,8 @@ export function registerPeopleSearchTool(server: McpServer, config?: { exaApiKey
 Best for: Finding professionals, executives, or anyone with a public profile.
 Returns: Profile information and links.`,
     {
-      query: z.string().describe("Search query for finding people"),
-      numResults: z.coerce.number().optional().describe("Number of profile results to return (must be a number, default: 5)")
+      query: lenientString().describe("Search query for finding people"),
+      numResults: lenientOptionalNumber().describe("Number of profile results to return (default: 5)")
     },
     {
       readOnlyHint: true,
