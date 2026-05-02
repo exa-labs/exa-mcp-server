@@ -49,13 +49,12 @@
     "prepublishOnly": "npm run build:stdio"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "agnost": "^0.1.11",
-    "axios": "^1.13.6",
-    "exa-js": "^2.8.0",
-    "jose": "^6.2.2",
-    "mcp-handler": "^1.0.4",
-    "whoami": "^0.0.3",
+    "axios": "^1.15.2",
+    "exa-js": "^2.12.1",
+    "jose": "^6.2.3",
+    "mcp-handler": "^1.1.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
@@ -73,6 +72,11 @@
     "node": ">=20.0.0"
   },
   "overrides": {
-    "tar": "^7.5.7"
+    "ajv": "^8.20.0",
+    "follow-redirects": "^1.16.0",
+    "path-to-regexp": "^8.4.2",
+    "qs": "^6.15.1",
+    "tar": "^7.5.7",
+    "uuid": "^14.0.0"
   }
 }
