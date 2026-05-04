@@ -220,4 +220,24 @@ describe("api/mcp API key configuration", () => {
       authMethod: "free_tier",
     });
   });
+
+  it("does not swap to the bypass API key when the user provides their own key", async () => {
+    process.env.RATE_LIMIT_BYPASS = "BypassClient";
+    process.env.EXA_API_KEY_BYPASS = "bypass-key";
+
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        headers: {
+          "user-agent": "BypassClient/1.0",
+          "x-api-key": "user-key",
+        },
+      }),
+    );
+
+    expect(config).toMatchObject({
+      exaApiKey: "user-key",
+      userProvidedApiKey: true,
+      authMethod: "api_key",
+    });
+  });
 });
