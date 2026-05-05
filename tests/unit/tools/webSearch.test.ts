@@ -43,6 +43,7 @@ describe("registerWebSearchTool", () => {
     registerWebSearchTool(server as any, {
       exaApiKey: "test-key",
       defaultSearchType: "fast",
+      mcpSessionId: "session-123",
     });
 
     const result = await server.getTool("web_search_exa").handler({
@@ -60,11 +61,11 @@ describe("registerWebSearchTool", () => {
         numResults: 2,
         category: "news",
         contents: {
-          highlights: { query: "AI breakthroughs", maxCharacters: 2000 },
+          highlights: true,
         },
       },
       undefined,
-      { "x-exa-integration": "web-search-mcp" },
+      { "x-exa-integration": "web-search-mcp", "x-exa-mcp-session-id": "session-123" },
     );
     expect(result).toMatchObject({
       content: [
