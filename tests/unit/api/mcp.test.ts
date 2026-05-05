@@ -120,7 +120,7 @@ describe("api/mcp API key configuration", () => {
     expect(new URL(forwardedRequest?.url ?? "").searchParams.has("exaApiKey")).toBe(false);
   });
 
-  it("uses an OAuth JWT api key claim from Authorization bearer tokens", async () => {
+  it("uses an OAuth JWT api key claim before query parameters", async () => {
     verifyOAuthTokenMock.mockResolvedValue({
       sub: "user-1",
       "exa:team_id": "team-1",
@@ -129,7 +129,7 @@ describe("api/mcp API key configuration", () => {
     });
 
     const { config } = await callHandleRequest(
-      new Request("https://mcp.exa.ai/mcp", {
+      new Request("https://mcp.exa.ai/mcp?exaApiKey=query-key", {
         headers: {
           authorization: "Bearer jwt-token",
         },
@@ -164,7 +164,29 @@ describe("api/mcp API key configuration", () => {
     });
   });
 
-  it("uses exaApiKey query parameters when no key header is present", async () => {
+  it("falls back to legacy exaApiKey query parameters when OAuth JWT verification fails", async () => {
+    process.env.EXA_API_KEY = "env-key";
+    verifyOAuthTokenMock.mockResolvedValue(null);
+
+    const { config, forwardedRequest } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?exaApiKey=query-key", {
+        headers: {
+          authorization: "Bearer invalid-jwt",
+        },
+      }),
+    );
+
+    expect(verifyOAuthTokenMock).toHaveBeenCalledWith("invalid-jwt");
+    expect(config).toMatchObject({
+      exaApiKey: "query-key",
+      userProvidedApiKey: true,
+      authMethod: "api_key",
+    });
+    expect(forwardedRequest?.headers.get("authorization")).toBeNull();
+    expect(new URL(forwardedRequest?.url ?? "").searchParams.has("exaApiKey")).toBe(false);
+  });
+
+  it("still accepts legacy exaApiKey query parameters when no key header is present", async () => {
     const { config, forwardedRequest } = await callHandleRequest(
       new Request("https://mcp.exa.ai/mcp?exaApiKey=query-key"),
     );

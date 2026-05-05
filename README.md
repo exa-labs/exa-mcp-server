@@ -326,8 +326,10 @@ npm run ci
 Enable additional tools with the `tools` parameter:
 
 ```
-https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
+https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
 ```
+
+For API-key authentication, prefer the `Authorization: Bearer YOUR_EXA_API_KEY` or `x-api-key: YOUR_EXA_API_KEY` header.
 
 ## Agent Skills (Claude Skills)
 

@@ -6,7 +6,7 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { isJwtToken, verifyOAuthToken } from '../src/utils/auth.js';
 
-// Origin: '*' is safe — auth is per-request via headers/query, never cookies.
+// Origin: '*' is safe — auth is per-request via headers or legacy query params, never cookies.
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
@@ -31,7 +31,7 @@ function withCors(response: Response): Response {
 
 /**
  * IP-based rate limiting configuration for free MCP users.
- * Users who provide their own API key via ?exaApiKey= bypass rate limiting.
+ * Users who provide their own API key via headers or legacy ?exaApiKey= bypass rate limiting.
  * 
  * Rate limiting only applies to actual tool calls (tools/call method), not to
  * basic MCP protocol methods like tools/list, initialize, ping, etc.
@@ -109,7 +109,7 @@ const RATE_LIMIT_ERROR_MESSAGE = `You've hit Exa's free MCP rate limit. To conti
 
 Fix: Create API key at https://dashboard.exa.ai/api-keys , then either:
 - Set the header: Authorization: Bearer YOUR_EXA_API_KEY
-- Or use the URL: https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
+- Or set the header: x-api-key: YOUR_EXA_API_KEY`;
 
 /**
  * Create a JSON-RPC 2.0 error response for rate limiting.
@@ -239,10 +239,11 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * This handler is automatically deployed as a Vercel Function and provides
  * Streamable HTTP transport for the MCP protocol.
  * 
- * Supports API key via header (recommended) or URL query parameter:
+ * Supports API key via header:
  * - x-api-key: YOUR_KEY - Pass API key via header (recommended)
  * - Authorization: Bearer YOUR_KEY - Pass API key via header (alternative)
- * - ?exaApiKey=YOUR_KEY - Pass API key via URL (backwards compatible)
+ *
+ * A legacy ?exaApiKey=YOUR_KEY query parameter is still accepted for existing clients.
  * 
  * Other URL query parameters:
  * - ?tools=web_search_exa,web_fetch_exa - Enable specific tools
@@ -253,12 +254,12 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
  * - DEBUG: Enable debug logging (true/false)
  * - ENABLED_TOOLS: Comma-separated list of tools to enable
  * 
- * Priority: x-api-key header > Authorization header > URL query parameter > environment variable.
+ * Priority: x-api-key header > Authorization header > legacy URL query parameter > environment variable.
  * 
  * ARCHITECTURE NOTE:
  * The mcp-handler library creates a single server instance and doesn't pass
  * the request to the initializeServer callback. To support per-request
- * configuration via URL params (like ?tools=... and ?exaApiKey=...), we
+ * configuration via URL params (like ?tools=... and legacy ?exaApiKey=...), we
  * create a fresh handler for each request. This ensures:
  * 1. Feature parity with the production Smithery-based deployment at mcp.exa.ai
  * 2. Each request gets its own configuration (no API key leakage between users)
@@ -277,11 +278,6 @@ function getBearerToken(request: Request): string | undefined {
   return undefined;
 }
 
-/**
- * Extract configuration from request headers, URL, or environment variables.
- * Priority: header > query parameter > environment variable.
- */
-
 interface RequestConfig {
   exaApiKey?: string;
   enabledTools?: string[];
@@ -294,7 +290,7 @@ interface RequestConfig {
 
 /**
  * Extract configuration from request headers, URL, or environment variables.
- * Priority: x-api-key header > OAuth JWT > plain Bearer API key > query parameter > environment variable.
+ * Priority: x-api-key header > valid OAuth JWT > plain Bearer API key > legacy query parameter > environment variable.
  */
 async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let exaApiKey = process.env.EXA_API_KEY;
@@ -303,6 +299,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let userProvidedApiKey = false;
   let authMethod: 'oauth' | 'api_key' | 'free_tier' = 'free_tier';
   let defaultSearchType: 'auto' | 'fast' | undefined;
+  let resolvedHeaderCredential = false;
 
   // 1. Check x-api-key header (highest priority)
   const xApiKey = request.headers.get('x-api-key');
@@ -310,6 +307,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
     exaApiKey = xApiKey;
     userProvidedApiKey = true;
     authMethod = 'api_key';
+    resolvedHeaderCredential = true;
   }
 
   // 2. Check Authorization: Bearer header (fallback when no x-api-key)
@@ -324,8 +322,9 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
           exaApiKey = claims['exa:api_key_id'];
           userProvidedApiKey = true;
           authMethod = 'oauth';
+          resolvedHeaderCredential = true;
         } else {
-          // JWT verification failed — don't fall through to treating it as an API key
+          // JWT verification failed; don't treat it as an API key, but allow lower-priority auth.
           console.error('[EXA-MCP] Invalid OAuth JWT token');
         }
       } else {
@@ -333,6 +332,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
         exaApiKey = bearerToken;
         userProvidedApiKey = true;
         authMethod = 'api_key';
+        resolvedHeaderCredential = true;
       }
     }
   }
@@ -341,8 +341,9 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
     const parsedUrl = new URL(request.url);
     const params = parsedUrl.searchParams;
 
-    // 3. Check ?exaApiKey=YOUR_KEY (fallback for backwards compat, only if no header)
-    if (!xApiKey && !getBearerToken(request) && params.has('exaApiKey')) {
+    // 3. Check legacy ?exaApiKey=YOUR_KEY (fallback for backwards compatibility,
+    // only if no higher-priority credential resolved)
+    if (!resolvedHeaderCredential && params.has('exaApiKey')) {
       const keyFromUrl = params.get('exaApiKey');
       if (keyFromUrl) {
         exaApiKey = keyFromUrl;
@@ -546,7 +547,7 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   // Strip sensitive credentials from the request before passing to the MCP handler.
   // Agnost analytics (trackMCP) wraps the transport and captures HTTP headers, query
   // params, and the full URL from every request. Without sanitization, user API keys
-  // sent via x-api-key header or ?exaApiKey= query param would be forwarded to the
+  // sent via x-api-key header or legacy ?exaApiKey= query param would be forwarded to the
   // external analytics endpoint. The API key has already been extracted into `config`
   // above, so tools still have access to it — we just prevent it from leaking.
   url.searchParams.delete('exaApiKey');
@@ -578,4 +579,3 @@ export {
 };
 
 export { handleRequest, handleOptions };
-

@@ -20,11 +20,6 @@ const configSchema = {
   "x-query-style": "dot+bracket",
   "type": "object",
   "properties": {
-    "exaApiKey": {
-      "type": "string",
-      "title": "Exa API Key",
-      "description": "Your Exa AI API key for search operations (optional - server has a fallback key). Get one at https://exa.ai"
-    },
     "tools": {
       "type": "string",
       "title": "Enabled Tools",
