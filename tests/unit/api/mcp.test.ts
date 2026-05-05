@@ -101,6 +101,61 @@ describe("api/mcp API key configuration", () => {
     expect(new URL(forwardedRequest?.url ?? "").searchParams.has("exaApiKey")).toBe(false);
   });
 
+  it("passes the MCP session id through request config and sanitized MCP request", async () => {
+    const { config, forwardedRequest } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        headers: {
+          "MCP-Session-Id": "session-123",
+        },
+      }),
+    );
+
+    expect(config).toMatchObject({
+      mcpSessionId: "session-123",
+    });
+    expect(forwardedRequest?.headers.get("MCP-Session-Id")).toBe("session-123");
+  });
+
+  it("assigns a stateless MCP session id on initialize responses", async () => {
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {},
+        }),
+      }),
+    );
+
+    expect(response.headers.get("Mcp-Session-Id")).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+  });
+
+  it("does not assign an MCP session id on non-initialize responses", async () => {
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/list",
+          params: {},
+        }),
+      }),
+    );
+
+    expect(response.headers.get("Mcp-Session-Id")).toBeNull();
+  });
+
   it("uses a plain Authorization bearer token before query parameters", async () => {
     const { config, forwardedRequest } = await callHandleRequest(
       new Request("https://mcp.exa.ai/mcp?exaApiKey=query-key", {
@@ -225,6 +280,26 @@ describe("api/mcp API key configuration", () => {
       exaApiKey: "bypass-key",
       userProvidedApiKey: false,
       authMethod: "free_tier",
+    });
+  });
+
+  it("does not swap to the bypass API key when the user provides their own key", async () => {
+    process.env.RATE_LIMIT_BYPASS = "BypassClient";
+    process.env.EXA_API_KEY_BYPASS = "bypass-key";
+
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        headers: {
+          "user-agent": "BypassClient/1.0",
+          "x-api-key": "user-key",
+        },
+      }),
+    );
+
+    expect(config).toMatchObject({
+      exaApiKey: "user-key",
+      userProvidedApiKey: true,
+      authMethod: "api_key",
     });
   });
 });

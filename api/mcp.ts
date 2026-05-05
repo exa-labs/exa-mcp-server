@@ -1,5 +1,6 @@
 process.env.AGNOST_LOG_LEVEL = 'error';
 
+import { randomUUID } from 'node:crypto';
 import { createMcpHandler } from 'mcp-handler';
 import { initializeMcpServer } from '../src/mcp-handler.js';
 import { Ratelimit } from '@upstash/ratelimit';
@@ -155,6 +156,15 @@ function isRateLimitedMethod(body: string): boolean {
   }
 }
 
+function isInitializeMethod(body: string): boolean {
+  try {
+    const parsed = JSON.parse(body);
+    return parsed.method === 'initialize';
+  } catch {
+    return false;
+  }
+}
+
 /** 7-day TTL for ~10-minute bypass tracking buckets. */
 const BYPASS_BUCKET_TTL_SECONDS = 7 * 24 * 60 * 60;
 
@@ -285,6 +295,7 @@ interface RequestConfig {
   userProvidedApiKey: boolean;
   authMethod: 'oauth' | 'api_key' | 'free_tier';
   exaSource?: string;
+  mcpSessionId?: string;
   defaultSearchType?: 'auto' | 'fast';
 }
 
@@ -391,8 +402,9 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   }
 
   const exaSource = request.headers.get('x-exa-source') || undefined;
+  const mcpSessionId = request.headers.get('MCP-Session-Id') || undefined;
 
-  return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod, exaSource, defaultSearchType };
+  return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod, exaSource, mcpSessionId, defaultSearchType };
 }
 
 /**
@@ -401,7 +413,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
  * configuration (tools and API key). This prevents API key leakage between
  * different users who might pass different keys via URL.
  */
-function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string }) {
+function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string; mcpSessionId?: string; defaultSearchType?: 'auto' | 'fast' }) {
   return createMcpHandler(
     (server: any) => {
       initializeMcpServer(server, config);
@@ -468,6 +480,8 @@ async function handleRequest(request: Request, options?: { forceOAuth?: boolean 
  */
 async function processRequest(request: Request, options?: { forceOAuth?: boolean }): Promise<Response> {
   const debug = process.env.DEBUG === 'true';
+  const isInitializeRequest =
+    request.method === 'POST' ? isInitializeMethod(await request.clone().text()) : false;
 
   // Check user-agent bypass BEFORE the 401 gate so bypass clients never see auth prompts
   const userAgent = request.headers.get('user-agent') || '';
@@ -500,7 +514,7 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   }
   
   // Use separate API key for bypass users and save their IP/user-agent for tracking
-  if (bypassRateLimit) {
+  if (bypassRateLimit && !config.userProvidedApiKey) {
     config.exaApiKey = bypassApiKey;
     config.userProvidedApiKey = false;
     const clientIp = getClientIp(request);
@@ -563,7 +577,19 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
     duplex: 'half',
   });
   
-  return withCors(await handler(request));
+  const response = withCors(await handler(request));
+
+  if (isInitializeRequest && response.ok && !response.headers.has('Mcp-Session-Id')) {
+    const headers = new Headers(response.headers);
+    headers.set('Mcp-Session-Id', randomUUID());
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
+  return response;
 }
 
 function handleOptions(): Response {
