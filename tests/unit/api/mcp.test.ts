@@ -116,6 +116,46 @@ describe("api/mcp API key configuration", () => {
     expect(forwardedRequest?.headers.get("MCP-Session-Id")).toBe("session-123");
   });
 
+  it("assigns a stateless MCP session id on initialize responses", async () => {
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {},
+        }),
+      }),
+    );
+
+    expect(response.headers.get("Mcp-Session-Id")).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+  });
+
+  it("does not assign an MCP session id on non-initialize responses", async () => {
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/list",
+          params: {},
+        }),
+      }),
+    );
+
+    expect(response.headers.get("Mcp-Session-Id")).toBeNull();
+  });
+
   it("uses a plain Authorization bearer token before query parameters", async () => {
     const { config, forwardedRequest } = await callHandleRequest(
       new Request("https://mcp.exa.ai/mcp?exaApiKey=query-key", {
