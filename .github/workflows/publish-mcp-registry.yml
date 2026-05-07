@@ -1,0 +1,69 @@
+name: Publish to MCP Registry
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (must match package.json + server.json). Leave blank to use the version already in those files."
+        required: false
+        type: string
+
+jobs:
+  publish:
+    name: Publish ai.exa/exa to MCP registry
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Verify version consistency
+        run: |
+          PKG_VERSION=$(jq -r .version package.json)
+          SERVER_VERSION=$(jq -r .version server.json)
+          PKG_NAME=$(jq -r .mcpName package.json)
+          SERVER_NAME=$(jq -r .name server.json)
+          if [ "$PKG_VERSION" != "$SERVER_VERSION" ]; then
+            echo "::error::package.json version ($PKG_VERSION) != server.json version ($SERVER_VERSION)"
+            exit 1
+          fi
+          if [ "$PKG_NAME" != "$SERVER_NAME" ]; then
+            echo "::error::package.json mcpName ($PKG_NAME) != server.json name ($SERVER_NAME)"
+            exit 1
+          fi
+          echo "Version: $PKG_VERSION"
+          echo "Name: $PKG_NAME"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/
+
+      - name: Authenticate via DNS
+        env:
+          MCP_REGISTRY_DNS_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_DNS_PRIVATE_KEY }}
+        run: |
+          mcp-publisher login dns --domain exa.ai --private-key "$MCP_REGISTRY_DNS_PRIVATE_KEY"
+
+      - name: Publish to MCP registry
+        run: mcp-publisher publish
+
+      - name: Verify on registry
+        run: |
+          sleep 10
+          curl -s "https://registry.modelcontextprotocol.io/v0/servers?search=ai.exa/exa&version=latest" | jq '.servers[0].server | {name, version}'
