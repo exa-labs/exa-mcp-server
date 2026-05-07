@@ -43,8 +43,10 @@ describe("validation helpers", () => {
       ["passthrough number", 10, 10],
       ["coerces numeric string", "10", 10],
       ["coerces float string", "3.14", 3.14],
+      ["coerces long float string", "3.141592653589793", 3.141592653589793],
       ["zero", 0, 0],
       ["negative", -5, -5],
+      ["coerces negative string", "-5", -5],
     ])("accepts %s", (_, input, expected) => {
       const parsed = schema.safeParse(input);
       expect(parsed.success).toBe(true);
