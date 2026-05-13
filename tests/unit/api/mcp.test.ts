@@ -6,6 +6,7 @@ const {
   initializeMcpServerMock,
   isJwtTokenMock,
   rateLimitInstances,
+  redisValues,
   RatelimitMock,
   RedisMock,
   verifyOAuthTokenMock,
@@ -21,6 +22,7 @@ const {
   });
   const isJwtTokenMock = vi.fn((token: string) => token === "jwt-token" || token === "invalid-jwt");
   const rateLimitInstances: Array<{ limit: ReturnType<typeof vi.fn> }> = [];
+  const redisValues = new Map<string, string>();
   class RatelimitMock {
     static slidingWindow = vi.fn((limit: number, window: string) => ({ limit, window, type: "sliding" }));
     static fixedWindow = vi.fn((limit: number, window: string) => ({ limit, window, type: "fixed" }));
@@ -32,6 +34,11 @@ const {
   class RedisMock {
     zadd = vi.fn();
     expire = vi.fn();
+    set = vi.fn(async (key: string, value: string) => {
+      redisValues.set(key, value);
+      return "OK";
+    });
+    get = vi.fn(async (key: string) => redisValues.get(key) ?? null);
   }
   const verifyOAuthTokenMock = vi.fn();
 
@@ -41,6 +48,7 @@ const {
     initializeMcpServerMock,
     isJwtTokenMock,
     rateLimitInstances,
+    redisValues,
     RatelimitMock,
     RedisMock,
     verifyOAuthTokenMock,
@@ -99,6 +107,7 @@ describe("api/mcp handler", () => {
     vi.clearAllMocks();
     capturedRequests.length = 0;
     rateLimitInstances.length = 0;
+    redisValues.clear();
     isJwtTokenMock.mockImplementation((token: string) => token === "jwt-token" || token === "invalid-jwt");
     verifyOAuthTokenMock.mockResolvedValue(null);
     vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -164,6 +173,54 @@ describe("api/mcp handler", () => {
     expect(forwardedRequest?.headers.get("MCP-Session-Id")).toBe("session-123");
   });
 
+  it("passes one structured MCP client object using request headers", async () => {
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        headers: {
+          "MCP-Session-Id": "session-123",
+          "User-Agent": "Cursor/1.2.3",
+          "x-exa-source": "cursor",
+        },
+      }),
+    );
+
+    expect(config).toMatchObject({
+      mcpClient: {
+        source: "cursor",
+        sessionId: "session-123",
+        userAgent: "Cursor/1.2.3",
+      },
+    });
+  });
+
+  it("falls back to unknown when initialize clientInfo cannot be extracted", async () => {
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": "user-key",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            clientInfo: "not-an-object",
+          },
+        }),
+      }),
+    );
+
+    expect(config).toMatchObject({
+      mcpClient: {
+        clientInfo: {
+          name: "unknown",
+        },
+      },
+    });
+  });
+
   it("assigns a stateless MCP session id on initialize responses", async () => {
     const { response } = await callHandleRequest(
       new Request("https://mcp.exa.ai/mcp", {
@@ -183,6 +240,71 @@ describe("api/mcp handler", () => {
     expect(response.headers.get("Mcp-Session-Id")).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
     );
+  });
+
+  it("stores initialize clientInfo and reuses it for later session requests", async () => {
+    process.env.KV_REST_API_URL = "https://redis.example";
+    process.env.KV_REST_API_TOKEN = "redis-token";
+
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "Claude-Code-UA/1.0",
+          "x-api-key": "user-key",
+          "x-exa-source": "claude-code",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            clientInfo: {
+              name: "Claude Code",
+              title: "Claude Code",
+              version: "1.0.0",
+            },
+          },
+        }),
+      }),
+    );
+    const sessionId = response.headers.get("Mcp-Session-Id");
+
+    expect(sessionId).toBeTruthy();
+    expect(redisValues.get(`exa-mcp:client:${sessionId}`)).toBeTruthy();
+
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "MCP-Session-Id": sessionId ?? "",
+          "User-Agent": "Claude-Code-UA/1.0",
+          "x-api-key": "user-key",
+          "x-exa-source": "claude-code",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/call",
+          params: {},
+        }),
+      }),
+    );
+
+    expect(config).toMatchObject({
+      mcpClient: {
+        source: "claude-code",
+        sessionId,
+        clientInfo: {
+          name: "Claude Code",
+          title: "Claude Code",
+          version: "1.0.0",
+        },
+        userAgent: "Claude-Code-UA/1.0",
+      },
+    });
   });
 
   it("does not assign an MCP session id on non-initialize responses", async () => {

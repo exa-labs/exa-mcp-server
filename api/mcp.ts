@@ -6,6 +6,13 @@ import { initializeMcpServer } from '../src/mcp-handler.js';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { isJwtToken, verifyOAuthToken } from '../src/utils/auth.js';
+import {
+  buildMcpClientMetadata,
+  extractInitializeClientInfo,
+  MCP_CLIENT_SESSION_TTL_SECONDS,
+  sanitizeMcpClientMetadata,
+  type McpClientMetadata,
+} from '../src/utils/mcpClientMetadata.js';
 
 // Origin: '*' is safe — auth is per-request via headers/query, never cookies.
 const CORS_HEADERS: Record<string, string> = {
@@ -49,6 +56,59 @@ let qpsLimiter: Ratelimit | null = null;
 let dailyLimiter: Ratelimit | null = null;
 let rateLimitersInitialized = false;
 let redisClient: Redis | null = null;
+
+function getMcpClientSessionKey(sessionId: string): string {
+  return `exa-mcp:client:${sessionId}`;
+}
+
+async function saveMcpClientMetadata(sessionId: string | undefined, metadata: McpClientMetadata | undefined, debug: boolean): Promise<void> {
+  if (!sessionId || !metadata?.clientInfo) {
+    return;
+  }
+
+  initializeRateLimiters();
+
+  if (!redisClient) {
+    return;
+  }
+
+  try {
+    await redisClient.set(getMcpClientSessionKey(sessionId), JSON.stringify(metadata), {
+      ex: MCP_CLIENT_SESSION_TTL_SECONDS,
+    });
+  } catch (error) {
+    if (debug) {
+      console.error('[EXA-MCP] Failed to save MCP client metadata:', error);
+    }
+  }
+}
+
+async function loadMcpClientMetadata(sessionId: string | undefined, debug: boolean): Promise<McpClientMetadata | undefined> {
+  if (!sessionId) {
+    return undefined;
+  }
+
+  initializeRateLimiters();
+
+  if (!redisClient) {
+    return undefined;
+  }
+
+  try {
+    const value = await redisClient.get<string>(getMcpClientSessionKey(sessionId));
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+
+    const parsed: unknown = JSON.parse(value);
+    return sanitizeMcpClientMetadata(parsed);
+  } catch (error) {
+    if (debug) {
+      console.error('[EXA-MCP] Failed to load MCP client metadata:', error);
+    }
+    return undefined;
+  }
+}
 
 function initializeRateLimiters(): boolean {
   if (rateLimitersInitialized) {
@@ -299,6 +359,7 @@ interface RequestConfig {
   authMethod: 'oauth' | 'api_key' | 'free_tier';
   exaSource?: string;
   mcpSessionId?: string;
+  mcpClient?: McpClientMetadata;
   defaultSearchType?: 'auto' | 'fast';
   /** True when a Bearer token was a JWT but failed OAuth verification (expired, bad sig, wrong issuer/audience). */
   invalidOAuthJwt: boolean;
@@ -417,7 +478,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
  * configuration (tools and API key). This prevents API key leakage between
  * different users who might pass different keys via URL.
  */
-function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string; mcpSessionId?: string; defaultSearchType?: 'auto' | 'fast' }) {
+function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string; mcpSessionId?: string; mcpClient?: McpClientMetadata; defaultSearchType?: 'auto' | 'fast' }) {
   return createMcpHandler(
     (server: any) => {
       initializeMcpServer(server, config);
@@ -484,8 +545,9 @@ async function handleRequest(request: Request, options?: { forceOAuth?: boolean 
  */
 async function processRequest(request: Request, options?: { forceOAuth?: boolean }): Promise<Response> {
   const debug = process.env.DEBUG === 'true';
-  const isInitializeRequest =
-    request.method === 'POST' ? isInitializeMethod(await request.clone().text()) : false;
+  const body = request.method === 'POST' ? await request.clone().text() : undefined;
+  const isInitializeRequest = isInitializeMethod(body ?? '');
+  const initializeClientInfo = extractInitializeClientInfo(body);
 
   // Check user-agent bypass BEFORE the 401 gate so bypass clients never see auth prompts
   const userAgent = request.headers.get('user-agent') || '';
@@ -518,6 +580,15 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
     return create401Response();
   }
 
+  const storedMcpClient = isInitializeRequest ? undefined : await loadMcpClientMetadata(config.mcpSessionId, config.debug);
+  config.mcpClient = buildMcpClientMetadata({
+    source: config.exaSource,
+    sessionId: config.mcpSessionId,
+    clientInfo: initializeClientInfo,
+    stored: storedMcpClient,
+    userAgent,
+  });
+  
   if (config.debug) {
     console.log(`[EXA-MCP] Request URL: ${request.url}`);
     console.log(`[EXA-MCP] Enabled tools: ${config.enabledTools?.join(', ') || 'default'}`);
@@ -536,12 +607,8 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   // Rate limit users who didn't provide their own API key (including bypass users)
   // Only rate limit actual tool calls (tools/call), not protocol methods like tools/list
   if (!config.userProvidedApiKey && request.method === 'POST') {
-    // Clone the request to read the body without consuming it
-    const clonedRequest = request.clone();
-    const body = await clonedRequest.text();
-    
     // Only rate limit actual tool calls, not protocol methods
-    if (isRateLimitedMethod(body)) {
+    if (isRateLimitedMethod(body ?? '')) {
       // Initialize rate limiters on first request (lazy init)
       initializeRateLimiters();
       
@@ -591,9 +658,22 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   
   const response = withCors(await handler(request));
 
-  if (isInitializeRequest && response.ok && !response.headers.has('Mcp-Session-Id')) {
+  if (isInitializeRequest && response.ok) {
+    const responseSessionId = response.headers.get('Mcp-Session-Id') ?? config.mcpSessionId ?? randomUUID();
+    const metadata = buildMcpClientMetadata({
+      source: config.exaSource,
+      sessionId: responseSessionId,
+      clientInfo: initializeClientInfo,
+      userAgent,
+    });
+    await saveMcpClientMetadata(responseSessionId, metadata, config.debug);
+
+    if (response.headers.has('Mcp-Session-Id')) {
+      return response;
+    }
+
     const headers = new Headers(response.headers);
-    headers.set('Mcp-Session-Id', randomUUID());
+    headers.set('Mcp-Session-Id', responseSessionId);
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,

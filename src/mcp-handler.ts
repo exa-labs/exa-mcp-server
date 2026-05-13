@@ -36,6 +36,7 @@ export interface McpConfig {
   userProvidedApiKey?: boolean;
   exaSource?: string;
   mcpSessionId?: string;
+  mcpClient?: unknown;
   defaultSearchType?: 'auto' | 'fast';
 }
 
