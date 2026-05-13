@@ -247,11 +247,11 @@ describe("api/mcp handler", () => {
     });
   });
 
-  it("does not treat invalid OAuth JWTs as plain API keys", async () => {
+  it("returns 401 with WWW-Authenticate when a Bearer JWT fails verification", async () => {
     process.env.EXA_API_KEY = "env-key";
     verifyOAuthTokenMock.mockResolvedValue(null);
 
-    const { config } = await callHandleRequest(
+    const { response, config } = await callHandleRequest(
       new Request("https://mcp.exa.ai/mcp", {
         headers: {
           authorization: "Bearer invalid-jwt",
@@ -260,11 +260,33 @@ describe("api/mcp handler", () => {
     );
 
     expect(verifyOAuthTokenMock).toHaveBeenCalledWith("invalid-jwt");
-    expect(config).toMatchObject({
-      exaApiKey: "env-key",
-      userProvidedApiKey: false,
-      authMethod: "free_tier",
-    });
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource"',
+    );
+    expectMcpCorsHeaders(response);
+    expect(config).toBeUndefined();
+    expect(initializeMcpServerMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 for plugin clients sending an invalid OAuth JWT", async () => {
+    verifyOAuthTokenMock.mockResolvedValue(null);
+
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?client=claude-code-plugin", {
+        headers: {
+          authorization: "Bearer invalid-jwt",
+        },
+      }),
+    );
+
+    expect(verifyOAuthTokenMock).toHaveBeenCalledWith("invalid-jwt");
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource"',
+    );
+    expectMcpCorsHeaders(response);
+    expect(initializeMcpServerMock).not.toHaveBeenCalled();
   });
 
   it("uses exaApiKey query parameters when no key header is present", async () => {
