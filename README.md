@@ -307,8 +307,10 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 Enable additional tools with the `tools` parameter:
 
 ```
-https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
+https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
 ```
+
+> **Security note:** Pass your API key through your MCP client's secret/header configuration (or `EXA_API_KEY` for the npm package) rather than embedding it in the URL. Query-string secrets can leak through shell history, proxy logs, and screenshots.
 
 ## Agent Skills (Claude Skills)
 
