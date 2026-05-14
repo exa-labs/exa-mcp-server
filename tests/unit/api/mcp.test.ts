@@ -247,7 +247,7 @@ describe("api/mcp handler", () => {
     });
   });
 
-  it("returns 401 with WWW-Authenticate when a Bearer JWT fails verification", async () => {
+  it("returns 401 with invalid_token WWW-Authenticate when a Bearer JWT fails verification", async () => {
     process.env.EXA_API_KEY = "env-key";
     verifyOAuthTokenMock.mockResolvedValue(null);
 
@@ -261,7 +261,10 @@ describe("api/mcp handler", () => {
 
     expect(verifyOAuthTokenMock).toHaveBeenCalledWith("invalid-jwt");
     expect(response.status).toBe(401);
-    expect(response.headers.get("WWW-Authenticate")).toContain(
+    const wwwAuthenticate = response.headers.get("WWW-Authenticate");
+    expect(wwwAuthenticate).toContain('error="invalid_token"');
+    expect(wwwAuthenticate).toContain('error_description="The access token is invalid or expired"');
+    expect(wwwAuthenticate).toContain(
       'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource"',
     );
     expectMcpCorsHeaders(response);
@@ -269,7 +272,7 @@ describe("api/mcp handler", () => {
     expect(initializeMcpServerMock).not.toHaveBeenCalled();
   });
 
-  it("returns 401 for plugin clients sending an invalid OAuth JWT", async () => {
+  it("returns 401 with invalid_token error for plugin clients sending an invalid OAuth JWT", async () => {
     verifyOAuthTokenMock.mockResolvedValue(null);
 
     const { response } = await callHandleRequest(
@@ -282,7 +285,9 @@ describe("api/mcp handler", () => {
 
     expect(verifyOAuthTokenMock).toHaveBeenCalledWith("invalid-jwt");
     expect(response.status).toBe(401);
-    expect(response.headers.get("WWW-Authenticate")).toContain(
+    const wwwAuthenticate = response.headers.get("WWW-Authenticate");
+    expect(wwwAuthenticate).toContain('error="invalid_token"');
+    expect(wwwAuthenticate).toContain(
       'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource"',
     );
     expectMcpCorsHeaders(response);
