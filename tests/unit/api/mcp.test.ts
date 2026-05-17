@@ -387,7 +387,7 @@ describe("api/mcp handler", () => {
     expect(wwwAuthenticate).toContain('error="invalid_token"');
     expect(wwwAuthenticate).toContain('error_description="The access token is invalid or expired"');
     expect(wwwAuthenticate).toContain(
-      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource"',
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
     );
     expectMcpCorsHeaders(response);
     expect(config).toBeUndefined();
@@ -410,7 +410,7 @@ describe("api/mcp handler", () => {
     const wwwAuthenticate = response.headers.get("WWW-Authenticate");
     expect(wwwAuthenticate).toContain('error="invalid_token"');
     expect(wwwAuthenticate).toContain(
-      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource"',
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
     );
     expectMcpCorsHeaders(response);
     expect(initializeMcpServerMock).not.toHaveBeenCalled();
@@ -509,7 +509,7 @@ describe("api/mcp handler", () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get("WWW-Authenticate")).toContain(
-      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource"',
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
     );
     expectMcpCorsHeaders(response);
   });
@@ -549,5 +549,19 @@ describe("api/mcp handler", () => {
     expect(response.status).toBe(500);
     expect(response.headers.get("Content-Type")).toContain("application/json");
     expectMcpCorsHeaders(response);
+  });
+
+  it("serves OAuth protected resource metadata for the MCP resource", async () => {
+    const { GET } = await import("../../../api/well-known-oauth-protected-resource.js");
+
+    const response = GET();
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      resource: "https://mcp.exa.ai/mcp",
+      authorization_servers: ["https://auth.exa.ai"],
+      scopes_supported: ["mcp:tools"],
+      bearer_methods_supported: ["header"],
+    });
   });
 });

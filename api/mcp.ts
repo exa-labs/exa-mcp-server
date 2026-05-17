@@ -509,13 +509,15 @@ function hasAuth(request: Request): boolean {
  *                      client can distinguish "refresh/re-auth" from "start over from scratch" and trigger its
  *                      refresh-token exchange against the authorization server.
  */
+const PROTECTED_RESOURCE_METADATA_URL = 'https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp';
+
 function create401Response(reason: 'missing' | 'invalid_token' = 'missing'): Response {
   const params: string[] = [];
   if (reason === 'invalid_token') {
     params.push('error="invalid_token"');
     params.push('error_description="The access token is invalid or expired"');
   }
-  params.push('resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource"');
+  params.push(`resource_metadata="${PROTECTED_RESOURCE_METADATA_URL}"`);
 
   const message =
     reason === 'invalid_token'
