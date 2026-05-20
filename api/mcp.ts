@@ -2,6 +2,7 @@ process.env.AGNOST_LOG_LEVEL = 'error';
 
 import { randomUUID } from 'node:crypto';
 import { createMcpHandler } from 'mcp-handler';
+import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { initializeMcpServer } from '../src/mcp-handler.js';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
@@ -483,7 +484,17 @@ function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; de
     (server: any) => {
       initializeMcpServer(server, config);
     },
-    {}, // Server options
+    {
+      serverInfo: {
+        name: 'exa-search-server',
+        title: 'Exa',
+        version: '3.2.1',
+        websiteUrl: 'https://exa.ai',
+        icons: [
+          { src: 'https://exa.ai/images/favicon-32x32.png', mimeType: 'image/png', sizes: ['32x32'] },
+        ],
+      } satisfies Implementation as { name: string; version: string },
+    },
     { basePath: '/api' } // Config - basePath for Vercel Functions
   );
 }
