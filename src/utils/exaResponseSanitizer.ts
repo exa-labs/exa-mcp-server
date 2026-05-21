@@ -2,16 +2,58 @@ import { ExaDeepSearchResponse, ExaSearchResponse } from "../types.js";
 
 const SENSITIVE_RESPONSE_KEYS = new Set(["requestTags"]);
 
+/**
+ * Maximum length for text content fields returned to the AI.
+ * Prevents excessively large payloads and limits prompt injection surface.
+ */
+const MAX_TEXT_LENGTH = 10_000;
+const MAX_HIGHLIGHT_LENGTH = 2_000;
+
+/**
+ * Patterns that indicate potential prompt injection attempts in web content.
+ * These are sequences that could be interpreted as tool calls or system instructions
+ * when embedded in AI context windows.
+ */
+const INJECTION_PATTERNS = [
+  /<\/?tool[_\s]/gi,
+  /<\/?function[_\s]/gi,
+  /\[INST\]/gi,
+  /\[\/INST\]/gi,
+  /<\|im_start\|>/gi,
+  /<\|im_end\|>/gi,
+  /<<<.*?>>>/gs,
+  /SYSTEM:/gi,
+  /\bignore previous instructions\b/gi,
+  /\bignore all previous\b/gi,
+  /\bforget your instructions\b/gi,
+];
+
+/**
+ * Sanitize a string field from web content:
+ * 1. Truncate to a safe maximum length
+ * 2. Strip known prompt injection patterns
+ */
+function sanitizeTextContent(value: string, maxLength = MAX_TEXT_LENGTH): string {
+  let sanitized = value.length > maxLength ? value.slice(0, maxLength) + "…" : value;
+  for (const pattern of INJECTION_PATTERNS) {
+    sanitized = sanitized.replace(pattern, "[removed]");
+  }
+  return sanitized;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function sanitizeStringArray(value: unknown): string[] | undefined {
+function sanitizeStringArray(value: unknown, maxLength?: number): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
 
-  const sanitized = value.filter((item): item is string => typeof item === "string");
+  const sanitized = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => sanitizeTextContent(item, maxLength ?? MAX_HIGHLIGHT_LENGTH));
+
   return sanitized.length > 0 ? sanitized : undefined;
 }
 
@@ -165,22 +207,34 @@ export function sanitizeSearchResult(value: unknown): Record<string, unknown> | 
 
   const sanitized: Record<string, unknown> = {};
 
-  const stringFields = ["id", "url", "publishedDate", "author", "text", "summary", "image", "favicon"] as const;
-  for (const field of stringFields) {
+  // Sanitize safe metadata fields (URLs/dates — no injection risk, but still truncate)
+  const metaStringFields = ["id", "url", "publishedDate", "author", "image", "favicon"] as const;
+  for (const field of metaStringFields) {
     if (typeof value[field] === "string") {
       sanitized[field] = value[field];
     }
   }
 
+  // Sanitize user-controlled text content fields for prompt injection
+  const contentStringFields = ["text", "summary"] as const;
+  for (const field of contentStringFields) {
+    if (typeof value[field] === "string") {
+      sanitized[field] = sanitizeTextContent(value[field] as string);
+    }
+  }
+
   if (typeof value.title === "string" || value.title === null) {
-    sanitized.title = value.title;
+    sanitized.title = typeof value.title === "string"
+      ? sanitizeTextContent(value.title, 500)
+      : null;
   }
 
   if (typeof value.score === "number") {
     sanitized.score = value.score;
   }
 
-  const highlights = sanitizeStringArray(value.highlights);
+  // Highlights come from webpage content — sanitize them
+  const highlights = sanitizeStringArray(value.highlights, MAX_HIGHLIGHT_LENGTH);
   if (highlights) {
     sanitized.highlights = highlights;
   }
@@ -249,7 +303,7 @@ function sanitizeTopLevelResponse(value: unknown): Record<string, unknown> {
   }
 
   if (typeof value.context === "string") {
-    sanitized.context = value.context;
+    sanitized.context = sanitizeTextContent(value.context);
   }
 
   const output = sanitizeSearchOutput(value.output);
