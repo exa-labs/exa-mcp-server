@@ -3,6 +3,7 @@ import { trackMCP, createConfig } from 'agnost';
 
 // Import tool implementations
 import { registerWebSearchTool } from "./tools/webSearch.js";
+import { registerWebSearchFetchTool } from "./tools/webSearchFetch.js";
 import { registerCompanyResearchTool } from "./tools/companyResearch.js";
 import { registerWebFetchTool } from "./tools/webFetch.js";
 import { registerPeopleSearchTool } from "./tools/peopleSearch.js";
@@ -17,6 +18,7 @@ import { log } from "./utils/logger.js";
 // Tool registry for managing available tools
 const availableTools = {
   'web_search_exa': { name: 'Web Search (Exa)', description: 'Real-time web search using Exa AI', enabled: true },
+  'web_search_fetch_exa': { name: 'Web Search and Fetch (Exa)', description: 'Search the web and fetch full content from the top results in one call', enabled: true },
   'web_search_advanced_exa': { name: 'Advanced Web Search (Exa)', description: 'Advanced web search with full Exa API control including category filters, domain restrictions, date ranges, highlights, summaries, and subpage crawling', enabled: false },
   'get_code_context_exa': { name: 'Code Context Search (Deprecated)', description: 'Deprecated: Use web_search_exa instead. Search for code snippets, examples, and documentation from open source repositories', enabled: false },
   'company_research_exa': { name: 'Company Research (Deprecated)', description: 'Deprecated: Use web_search_advanced_exa instead. Research companies and organizations', enabled: false },
@@ -70,6 +72,11 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     if (shouldRegisterTool('web_search_exa')) {
       registerWebSearchTool(server, config);
       registeredTools.push('web_search_exa');
+    }
+
+    if (shouldRegisterTool('web_search_fetch_exa')) {
+      registerWebSearchFetchTool(server, config);
+      registeredTools.push('web_search_fetch_exa');
     }
     
     if (shouldRegisterTool('web_search_advanced_exa')) {

@@ -29,6 +29,40 @@ export const emptySearchResponse = {
   results: [],
 } satisfies WebSearchFixtureResponse;
 
+export const multiSearchResponse = {
+  requestId: "multi-search-request",
+  resolvedSearchType: "auto",
+  results: [
+    {
+      id: "result-1",
+      title: "Result One",
+      url: "https://example.com/one",
+      publishedDate: "2026-04-01T12:00:00.000Z",
+      author: "Example Author",
+      highlights: ["First highlight"],
+    },
+    {
+      id: "result-2",
+      title: "Result Two",
+      url: "https://example.com/two",
+      publishedDate: "2026-04-02T12:00:00.000Z",
+      author: "Second Author",
+      highlights: ["Second highlight"],
+    },
+    {
+      id: "result-3",
+      title: "Result Three",
+      url: "https://example.com/three",
+      highlights: ["Third highlight"],
+    },
+  ],
+  searchTime: 0.5,
+  costDollars: {
+    total: 0.001,
+    search: { semantic: 0.001 },
+  },
+} satisfies WebSearchFixtureResponse;
+
 export const contentsResponse = {
   requestId: "contents-request",
   results: [
@@ -63,4 +97,31 @@ export const contentsErrorResponse = {
       error: { tag: "not_found" },
     },
   ],
+} satisfies WebContentsFixtureResponse;
+
+export const searchFetchContentsResponse = {
+  requestId: "search-fetch-contents-request",
+  results: [
+    {
+      id: "page-one",
+      title: "Fetched One",
+      url: "https://example.com/one",
+      publishedDate: "2026-04-03T12:00:00.000Z",
+      author: "Fetched Author",
+      text: "Full page one text",
+    },
+  ],
+  statuses: [
+    {
+      id: "https://example.com/two",
+      status: "error",
+      source: "contents",
+      error: { tag: "forbidden", httpStatusCode: 403 },
+    },
+  ],
+  searchTime: 0.31,
+  costDollars: {
+    total: 0.002,
+    contents: { text: 0.002 },
+  },
 } satisfies WebContentsFixtureResponse;
