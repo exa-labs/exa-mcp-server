@@ -378,6 +378,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let authMethod: 'oauth' | 'api_key' | 'free_tier' = 'free_tier';
   let defaultSearchType: 'auto' | 'fast' | undefined;
   let invalidOAuthJwt = false;
+  let clientParam: string | null = null;
 
   // 1. Check x-api-key header (highest priority)
   const xApiKey = request.headers.get('x-api-key');
@@ -418,6 +419,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   try {
     const parsedUrl = new URL(request.url);
     const params = parsedUrl.searchParams;
+    clientParam = params.get('client');
 
     // 3. Check ?exaApiKey=YOUR_KEY (fallback for backwards compat, only if no header)
     if (!xApiKey && !getBearerToken(request) && params.has('exaApiKey')) {
@@ -467,7 +469,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
       .filter(t => t.length > 0);
   }
 
-  const exaSource = request.headers.get('x-exa-source') || undefined;
+  const exaSource = request.headers.get('x-exa-source') || clientParam || undefined;
   const mcpSessionId = request.headers.get('MCP-Session-Id') || undefined;
 
   return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod, exaSource, mcpSessionId, defaultSearchType, invalidOAuthJwt };
