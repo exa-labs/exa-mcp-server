@@ -310,6 +310,8 @@ Enable additional tools with the `tools` parameter:
 https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
 ```
 
+> **Security note:** Placing your API key in the URL query string can expose it through browser history, server logs, and proxy logs. For production environments, prefer the `Authorization` header or a local stdio configuration with the `EXA_API_KEY` environment variable instead.
+
 ## Agent Skills (Claude Skills)
 
 Ready-to-use skills for Claude Code. Each skill teaches Claude how to use Exa search for a specific task. Copy the content inside a dropdown and paste it into Claude Code — it handles the rest.
