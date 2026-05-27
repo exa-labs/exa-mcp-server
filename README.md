@@ -306,10 +306,10 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 
 Enable additional tools with the `tools` parameter:
 
-> **Note:** For security, it's recommended to pass your Exa API key via the `Authorization` header (`Authorization: Bearer YOUR_KEY`) or your client's dedicated secret management instead of a URL query parameter.
+> **Note:** For security, it's recommended to pass your Exa API key via the `Authorization` header (`Authorization: Bearer YOUR_API_KEY`) or your client's dedicated secret management instead of a URL query parameter.
 
 ```
-https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
+https://mcp.exa.ai/mcp?exaApiKey=YOUR_API_KEY&tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
 ```
 ## Agent Skills (Claude Skills)
 
