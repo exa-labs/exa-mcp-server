@@ -239,7 +239,7 @@ Standard `mcpServers` format:
 Enable additional tools with the `tools` parameter:
 
 ```
-https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
+https://mcp.exa.ai/mcp?exaApiKey=YOUR_API_KEY&tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
 ```
 
 See the [full documentation](https://docs.exa.ai/reference/exa-mcp) for more details on tool configuration.
