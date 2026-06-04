@@ -1,6 +1,6 @@
 process.env.AGNOST_LOG_LEVEL = 'error';
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createMcpHandler } from 'mcp-handler';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
 import { initializeMcpServer } from '../src/mcp-handler.js';
@@ -167,11 +167,103 @@ function getClientIp(request: Request): string {
   return cfConnectingIp ?? xRealIp ?? xForwardedForFirst ?? 'unknown';
 }
 
-const RATE_LIMIT_ERROR_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
+/**
+ * ENG-778 A/B test: optionally require auth for a deterministic slice of
+ * anonymous tool calls, to measure whether forcing signup actually increases the
+ * number of authenticated MCP users (rather than just driving people away).
+ *
+ * Assignment is a salted hash of the client IP, so a given client always lands in
+ * the same arm with zero added latency — no feature-flag network call in the hot
+ * path. Reporting happens out-of-band: exposure is counted in Redis (a per-arm,
+ * per-day HyperLogLog) and signups are attributed via utm tags on the dashboard
+ * URL surfaced in the gate/rate-limit message.
+ *
+ * Entirely gated behind MCP_AB_ENABLED; with it unset the server behaves exactly
+ * as before (everyone is "control"), so this is a no-op until explicitly ramped.
+ */
+interface ExperimentConfig {
+  enabled: boolean;
+  /** Percentage (0-100) of anonymous clients routed to the auth-required arm. */
+  treatmentPct: number;
+  /** Salt mixed into the IP hash; changing it reshuffles every client's arm. */
+  salt: string;
+}
 
-Fix: Create API key at https://dashboard.exa.ai/api-keys , then either:
+type ExperimentArm = 'control' | 'treatment';
+
+/** Campaign id stamped on experiment signups so they can be joined back per arm. */
+const EXPERIMENT_CAMPAIGN = 'eng778';
+
+/** TTL on the per-day exposure HyperLogLog keys (kept long enough to read out). */
+const EXPERIMENT_EXPOSURE_TTL_SECONDS = 30 * 24 * 60 * 60;
+
+function getExperimentConfig(): ExperimentConfig {
+  const parsedPct = Number.parseInt(process.env.MCP_AB_TREATMENT_PCT ?? '0', 10);
+  const treatmentPct = Number.isFinite(parsedPct) ? Math.min(100, Math.max(0, parsedPct)) : 0;
+  return {
+    enabled: process.env.MCP_AB_ENABLED === 'true',
+    treatmentPct,
+    salt: process.env.MCP_AB_SALT || EXPERIMENT_CAMPAIGN,
+  };
+}
+
+/**
+ * Deterministically bucket a client into an experiment arm from a salted hash of
+ * its IP. Stable across requests for the same (salt, ip).
+ */
+function assignExperimentArm(ip: string, config: ExperimentConfig): ExperimentArm {
+  const bucket = createHash('sha256').update(`${config.salt}:${ip}`).digest().readUInt16BE(0) % 100;
+  return bucket < config.treatmentPct ? 'treatment' : 'control';
+}
+
+/** Dashboard signup URL tagged so the resulting signup is attributable to its arm. */
+function experimentSignupUrl(arm: ExperimentArm): string {
+  const params = new URLSearchParams({
+    utm_source: 'mcp',
+    utm_medium: 'mcp_server',
+    utm_campaign: EXPERIMENT_CAMPAIGN,
+    utm_content: `arm_${arm}`,
+  });
+  return `https://dashboard.exa.ai/api-keys?${params.toString()}`;
+}
+
+/**
+ * Record an anonymous client's experiment exposure for offline analysis, using a
+ * per-arm, per-day HyperLogLog so unique exposed clients per arm can be read back
+ * cheaply. Best-effort: never blocks or fails the request.
+ */
+async function recordExperimentExposure(arm: ExperimentArm, ip: string, debug: boolean): Promise<void> {
+  initializeRateLimiters();
+
+  if (!redisClient) {
+    return;
+  }
+
+  try {
+    const day = new Date().toISOString().slice(0, 10);
+    const key = `exa-mcp:ab:${EXPERIMENT_CAMPAIGN}:${arm}:${day}`;
+    await redisClient.pfadd(key, ip);
+    await redisClient.expire(key, EXPERIMENT_EXPOSURE_TTL_SECONDS);
+  } catch (error) {
+    if (debug) {
+      console.error('[EXA-MCP] Failed to record experiment exposure:', error);
+    }
+  }
+}
+
+/**
+ * Build the free-tier rate-limit error message. When the request is part of the
+ * ENG-778 experiment, the signup URL is tagged with the client's arm so the
+ * resulting signup can be attributed back to it.
+ */
+function buildRateLimitMessage(experimentArm?: ExperimentArm): string {
+  const signupUrl = experimentArm ? experimentSignupUrl(experimentArm) : 'https://dashboard.exa.ai/api-keys';
+  return `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
+
+Fix: Create API key at ${signupUrl} , then either:
 - Set the header: Authorization: Bearer YOUR_EXA_API_KEY
 - Or use the URL: https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
+}
 
 /**
  * Create a JSON-RPC 2.0 error response for rate limiting.
@@ -179,13 +271,13 @@ Fix: Create API key at https://dashboard.exa.ai/api-keys , then either:
  * Note: We intentionally hide rate limit dimension info (limit set to 0) to prevent
  * users from inferring which limit they hit (QPS vs daily).
  */
-function createRateLimitResponse(retryAfterSeconds: number, reset: number): Response {
+function createRateLimitResponse(retryAfterSeconds: number, reset: number, experimentArm?: ExperimentArm): Response {
   return new Response(
     JSON.stringify({
       jsonrpc: '2.0',
       error: {
         code: -32000,
-        message: RATE_LIMIT_ERROR_MESSAGE,
+        message: buildRateLimitMessage(experimentArm),
       },
       id: null,
     }),
@@ -270,7 +362,7 @@ async function saveBypassRequestInfo(ip: string, userAgent: string, debug: boole
  * Check rate limits for a given IP.
  * Returns null if within limits, or a Response if rate limited.
  */
-async function checkRateLimits(ip: string, debug: boolean): Promise<Response | null> {
+async function checkRateLimits(ip: string, debug: boolean, experimentArm?: ExperimentArm): Promise<Response | null> {
   if (!qpsLimiter || !dailyLimiter) {
     return null; // Rate limiting not configured
   }
@@ -283,7 +375,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
         console.log(`[EXA-MCP] QPS rate limit exceeded for IP: ${ip}`);
       }
       const retryAfter = Math.ceil((qpsResult.reset - Date.now()) / 1000);
-      return createRateLimitResponse(retryAfter, qpsResult.reset);
+      return createRateLimitResponse(retryAfter, qpsResult.reset, experimentArm);
     }
     
     // Check daily limit
@@ -293,7 +385,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
         console.log(`[EXA-MCP] Daily rate limit exceeded for IP: ${ip}`);
       }
       const retryAfter = Math.ceil((dailyResult.reset - Date.now()) / 1000);
-      return createRateLimitResponse(retryAfter, dailyResult.reset);
+      return createRateLimitResponse(retryAfter, dailyResult.reset, experimentArm);
     }
     
     return null; // Within limits
@@ -522,7 +614,10 @@ function hasAuth(request: Request): boolean {
  */
 const PROTECTED_RESOURCE_METADATA_URL = 'https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp';
 
-function create401Response(reason: 'missing' | 'invalid_token' = 'missing'): Response {
+function create401Response(
+  reason: 'missing' | 'invalid_token' = 'missing',
+  options?: { experimentArm?: ExperimentArm },
+): Response {
   const params: string[] = [];
   if (reason === 'invalid_token') {
     params.push('error="invalid_token"');
@@ -530,10 +625,17 @@ function create401Response(reason: 'missing' | 'invalid_token' = 'missing'): Res
   }
   params.push(`resource_metadata="${PROTECTED_RESOURCE_METADATA_URL}"`);
 
-  const message =
+  let message =
     reason === 'invalid_token'
       ? 'The access token is invalid or expired. Refresh or re-authenticate.'
       : 'Authentication required. Use OAuth or provide an API key.';
+
+  // When gated as part of the experiment, surface a tagged dashboard URL so a
+  // client that shows the error to a human gives them a one-click path to sign
+  // up — and so that signup is attributable to the treatment arm.
+  if (options?.experimentArm) {
+    message = `Authentication required to use the Exa MCP server. Create a free Exa API key at ${experimentSignupUrl(options.experimentArm)} and pass it as 'Authorization: Bearer YOUR_EXA_API_KEY', or authenticate via OAuth.`;
+  }
 
   return new Response(
     JSON.stringify({
@@ -615,6 +717,27 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
     return create401Response('invalid_token');
   }
 
+  // ENG-778 experiment: deterministically assign anonymous tool calls to an arm.
+  // The treatment arm is gated behind auth (401); both arms are recorded so we
+  // can read unique exposed clients per arm. No-op unless MCP_AB_ENABLED=true.
+  let experimentArm: ExperimentArm | undefined;
+  const experimentConfig = getExperimentConfig();
+  if (
+    experimentConfig.enabled &&
+    request.method === 'POST' &&
+    !config.userProvidedApiKey &&
+    !bypassRateLimit &&
+    !requireOAuth &&
+    isRateLimitedMethod(body ?? '')
+  ) {
+    const clientIp = getClientIp(request);
+    experimentArm = assignExperimentArm(clientIp, experimentConfig);
+    await recordExperimentExposure(experimentArm, clientIp, config.debug);
+    if (experimentArm === 'treatment') {
+      return create401Response('missing', { experimentArm });
+    }
+  }
+
   const storedMcpClient = isInitializeRequest ? undefined : await loadMcpClientMetadata(config.mcpSessionId, config.debug);
   config.mcpClient = buildMcpClientMetadata({
     source: config.exaSource,
@@ -653,7 +776,7 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
         console.log(`[EXA-MCP] Client IP: ${clientIp}, method: tools/call`);
       }
       
-      const rateLimitResponse = await checkRateLimits(clientIp, config.debug);
+      const rateLimitResponse = await checkRateLimits(clientIp, config.debug, experimentArm);
       if (rateLimitResponse) {
         return rateLimitResponse;
       }

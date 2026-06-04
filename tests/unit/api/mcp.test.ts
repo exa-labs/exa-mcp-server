@@ -7,6 +7,7 @@ const {
   isJwtTokenMock,
   rateLimitInstances,
   redisValues,
+  pfaddKeys,
   RatelimitMock,
   RedisMock,
   verifyOAuthTokenMock,
@@ -23,6 +24,7 @@ const {
   const isJwtTokenMock = vi.fn((token: string) => token === "jwt-token" || token === "invalid-jwt");
   const rateLimitInstances: Array<{ limit: ReturnType<typeof vi.fn> }> = [];
   const redisValues = new Map<string, string>();
+  const pfaddKeys: string[] = [];
   class RatelimitMock {
     static slidingWindow = vi.fn((limit: number, window: string) => ({ limit, window, type: "sliding" }));
     static fixedWindow = vi.fn((limit: number, window: string) => ({ limit, window, type: "fixed" }));
@@ -34,6 +36,10 @@ const {
   class RedisMock {
     zadd = vi.fn();
     expire = vi.fn();
+    pfadd = vi.fn(async (key: string) => {
+      pfaddKeys.push(key);
+      return 1;
+    });
     set = vi.fn(async (key: string, value: string) => {
       redisValues.set(key, value);
       return "OK";
@@ -49,6 +55,7 @@ const {
     isJwtTokenMock,
     rateLimitInstances,
     redisValues,
+    pfaddKeys,
     RatelimitMock,
     RedisMock,
     verifyOAuthTokenMock,
@@ -108,6 +115,7 @@ describe("api/mcp handler", () => {
     capturedRequests.length = 0;
     rateLimitInstances.length = 0;
     redisValues.clear();
+    pfaddKeys.length = 0;
     isJwtTokenMock.mockImplementation((token: string) => token === "jwt-token" || token === "invalid-jwt");
     verifyOAuthTokenMock.mockResolvedValue(null);
     vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -123,6 +131,103 @@ describe("api/mcp handler", () => {
     delete process.env.RATE_LIMIT_BYPASS;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
     delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.MCP_AB_ENABLED;
+    delete process.env.MCP_AB_TREATMENT_PCT;
+    delete process.env.MCP_AB_SALT;
+  });
+
+  function toolCallRequest() {
+    return new Request("https://mcp.exa.ai/mcp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-real-ip": "203.0.113.7" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call" }),
+    });
+  }
+
+  describe("ENG-778 auth experiment", () => {
+    it("is a no-op for anonymous tool calls when MCP_AB_ENABLED is unset", async () => {
+      process.env.EXA_API_KEY = "env-key";
+
+      const { response } = await callHandleRequest(toolCallRequest());
+
+      expect(response.status).toBe(200);
+      expect(createMcpHandlerMock).toHaveBeenCalled();
+      expect(pfaddKeys).toHaveLength(0);
+    });
+
+    it("gates treatment-arm anonymous tool calls with a tagged 401 and records exposure", async () => {
+      process.env.EXA_API_KEY = "env-key";
+      process.env.MCP_AB_ENABLED = "true";
+      process.env.MCP_AB_TREATMENT_PCT = "100";
+      process.env.KV_REST_API_URL = "https://redis.example";
+      process.env.KV_REST_API_TOKEN = "redis-token";
+
+      const { response } = await callHandleRequest(toolCallRequest());
+
+      expect(response.status).toBe(401);
+      expect(createMcpHandlerMock).not.toHaveBeenCalled();
+      expect(response.headers.get("WWW-Authenticate")).toContain(
+        'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+      );
+      const payload = (await response.json()) as { error: { message: string } };
+      expect(payload.error.message).toContain("utm_campaign=eng778");
+      expect(payload.error.message).toContain("utm_content=arm_treatment");
+      expect(pfaddKeys).toContain("exa-mcp:ab:eng778:treatment:" + new Date().toISOString().slice(0, 10));
+    });
+
+    it("lets control-arm anonymous tool calls through and records exposure", async () => {
+      process.env.EXA_API_KEY = "env-key";
+      process.env.MCP_AB_ENABLED = "true";
+      process.env.MCP_AB_TREATMENT_PCT = "0";
+      process.env.KV_REST_API_URL = "https://redis.example";
+      process.env.KV_REST_API_TOKEN = "redis-token";
+
+      const { response } = await callHandleRequest(toolCallRequest());
+
+      expect(response.status).toBe(200);
+      expect(createMcpHandlerMock).toHaveBeenCalled();
+      expect(pfaddKeys).toContain("exa-mcp:ab:eng778:control:" + new Date().toISOString().slice(0, 10));
+    });
+
+    it("never gates a client that provides its own API key", async () => {
+      process.env.MCP_AB_ENABLED = "true";
+      process.env.MCP_AB_TREATMENT_PCT = "100";
+
+      const { response } = await callHandleRequest(
+        new Request("https://mcp.exa.ai/mcp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-real-ip": "203.0.113.7",
+            "x-api-key": "user-key",
+          },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call" }),
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(createMcpHandlerMock).toHaveBeenCalled();
+      expect(pfaddKeys).toHaveLength(0);
+    });
+
+    it("tags the rate-limit nudge with the control arm", async () => {
+      process.env.EXA_API_KEY = "env-key";
+      process.env.MCP_AB_ENABLED = "true";
+      process.env.MCP_AB_TREATMENT_PCT = "0";
+      process.env.KV_REST_API_URL = "https://redis.example";
+      process.env.KV_REST_API_TOKEN = "redis-token";
+      const reset = Date.now() + 10_000;
+      rateLimitInstances.push(
+        { limit: vi.fn().mockResolvedValue({ success: false, reset }) },
+        { limit: vi.fn().mockResolvedValue({ success: true, reset }) },
+      );
+
+      const { response } = await callHandleRequest(toolCallRequest());
+
+      expect(response.status).toBe(429);
+      const payload = (await response.json()) as { error: { message: string } };
+      expect(payload.error.message).toContain("utm_content=arm_control");
+    });
   });
 
   it("falls back to EXA_API_KEY without marking it as user-provided", async () => {
