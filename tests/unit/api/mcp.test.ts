@@ -429,6 +429,37 @@ describe("api/mcp handler", () => {
     expect(new URL(forwardedRequest?.url ?? "").searchParams.has("exaApiKey")).toBe(false);
   });
 
+  it("redacts the exaApiKey query parameter from debug request URL logs", async () => {
+    const logSpy = vi.spyOn(console, "log");
+
+    await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?exaApiKey=query-key&debug=true&tools=web_search_exa"),
+    );
+
+    const loggedUrlCall = logSpy.mock.calls.find(
+      ([message]) => typeof message === "string" && message.startsWith("[EXA-MCP] Request URL:"),
+    );
+
+    // Debug logging is enabled via ?debug=true, so the URL line must be present...
+    expect(loggedUrlCall).toBeDefined();
+    const loggedMessage = String(loggedUrlCall?.[0]);
+
+    // ...but the user-provided API key must be redacted before it reaches logs...
+    expect(loggedMessage).not.toContain("query-key");
+    expect(loggedMessage).toContain("exaApiKey=REDACTED");
+
+    // ...while non-sensitive parameters remain intact for debugging.
+    expect(loggedMessage).toContain("tools=web_search_exa");
+    expect(loggedMessage).toContain("debug=true");
+
+    // No log line should leak the key.
+    for (const [message] of logSpy.mock.calls) {
+      if (typeof message === "string") {
+        expect(message).not.toContain("query-key");
+      }
+    }
+  });
+
   it("requires auth before initializing MCP when OAuth is forced", async () => {
     const { response } = await callHandleRequest(new Request("https://mcp.exa.ai/mcp/oauth"), {
       forceOAuth: true,

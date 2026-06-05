@@ -555,6 +555,35 @@ function create401Response(reason: 'missing' | 'invalid_token' = 'missing'): Res
   );
 }
 
+// Query parameters that can carry user credentials and must never be written to logs.
+// Debug logging is request-controlled via ?debug=true, so the raw URL is attacker-influenced.
+const SENSITIVE_URL_QUERY_PARAMS = ['exaApiKey'];
+
+/**
+ * Return a log-safe version of a request URL with sensitive query parameters
+ * (e.g. ?exaApiKey=) redacted. The full request URL contains the user's API key
+ * when authentication uses the backwards-compatible query parameter, so it must be
+ * scrubbed before being written to debug logs, log drains, or observability vendors.
+ */
+function redactRequestUrlForLogs(rawUrl: string): string {
+  try {
+    const url = new URL(rawUrl);
+    let redacted = false;
+    for (const param of SENSITIVE_URL_QUERY_PARAMS) {
+      if (url.searchParams.has(param)) {
+        url.searchParams.set(param, 'REDACTED');
+        redacted = true;
+      }
+    }
+    return redacted ? url.toString() : rawUrl;
+  } catch {
+    // If the URL cannot be parsed, fall back to a textual redaction so a malformed
+    // URL still never leaks a key into logs.
+    const pattern = SENSITIVE_URL_QUERY_PARAMS.join('|');
+    return rawUrl.replace(new RegExp(`([?&](?:${pattern})=)[^&#]*`, 'gi'), '$1REDACTED');
+  }
+}
+
 // Wrap so uncaught throws still return CORS headers — otherwise browsers see an opaque CORS error masking the real failure.
 async function handleRequest(request: Request, options?: { forceOAuth?: boolean }): Promise<Response> {
   try {
@@ -625,7 +654,7 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   });
   
   if (config.debug) {
-    console.log(`[EXA-MCP] Request URL: ${request.url}`);
+    console.log(`[EXA-MCP] Request URL: ${redactRequestUrlForLogs(request.url)}`);
     console.log(`[EXA-MCP] Enabled tools: ${config.enabledTools?.join(', ') || 'default'}`);
     console.log(`[EXA-MCP] Auth method: ${config.authMethod}`);
     console.log(`[EXA-MCP] API key provided: ${config.userProvidedApiKey ? 'yes' : 'no (using env var)'}`);
