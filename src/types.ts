@@ -1,7 +1,7 @@
 // Exa API Types
 export interface ExaSearchRequest {
   query: string;
-  type: 'auto' | 'fast' | 'deep' | 'deep-reasoning';
+  type: 'auto' | 'fast' | 'instant' | 'deep' | 'deep-reasoning';
   category?: 'company' | 'research paper' | 'news' | 'pdf' | 'github' | 'personal site' | 'people' | 'financial report';
   includeDomains?: string[];
   excludeDomains?: string[];

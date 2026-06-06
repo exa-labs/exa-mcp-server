@@ -361,7 +361,7 @@ interface RequestConfig {
   exaSource?: string;
   mcpSessionId?: string;
   mcpClient?: McpClientMetadata;
-  defaultSearchType?: 'auto' | 'fast';
+  defaultSearchType?: 'auto' | 'fast' | 'instant';
   /** True when a Bearer token was a JWT but failed OAuth verification (expired, bad sig, wrong issuer/audience). */
   invalidOAuthJwt: boolean;
 }
@@ -376,7 +376,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let debug = process.env.DEBUG === 'true';
   let userProvidedApiKey = false;
   let authMethod: 'oauth' | 'api_key' | 'free_tier' = 'free_tier';
-  let defaultSearchType: 'auto' | 'fast' | undefined;
+  let defaultSearchType: 'auto' | 'fast' | 'instant' | undefined;
   let invalidOAuthJwt = false;
 
   // 1. Check x-api-key header (highest priority)
@@ -445,10 +445,10 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
       debug = params.get('debug') === 'true';
     }
 
-    // Support ?defaultSearchType=auto|fast
+    // Support ?defaultSearchType
     if (params.has('defaultSearchType')) {
       const dst = params.get('defaultSearchType');
-      if (dst === 'auto' || dst === 'fast') {
+      if (dst === 'auto' || dst === 'fast' || dst === 'instant') {
         defaultSearchType = dst;
       }
     }
@@ -467,6 +467,13 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
       .filter(t => t.length > 0);
   }
 
+  if (!defaultSearchType && process.env.DEFAULT_SEARCH_TYPE) {
+    const dst = process.env.DEFAULT_SEARCH_TYPE;
+    if (dst === 'auto' || dst === 'fast' || dst === 'instant') {
+      defaultSearchType = dst;
+    }
+  }
+
   const exaSource = request.headers.get('x-exa-source') || undefined;
   const mcpSessionId = request.headers.get('MCP-Session-Id') || undefined;
 
@@ -479,7 +486,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
  * configuration (tools and API key). This prevents API key leakage between
  * different users who might pass different keys via URL.
  */
-function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string; mcpSessionId?: string; mcpClient?: McpClientMetadata; defaultSearchType?: 'auto' | 'fast' }) {
+function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string; mcpSessionId?: string; mcpClient?: McpClientMetadata; defaultSearchType?: 'auto' | 'fast' | 'instant' }) {
   return createMcpHandler(
     (server: any) => {
       initializeMcpServer(server, config);

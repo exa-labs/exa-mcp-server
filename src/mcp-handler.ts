@@ -37,7 +37,7 @@ export interface McpConfig {
   exaSource?: string;
   mcpSessionId?: string;
   mcpClient?: unknown;
-  defaultSearchType?: 'auto' | 'fast';
+  defaultSearchType?: 'auto' | 'fast' | 'instant';
 }
 
 /**

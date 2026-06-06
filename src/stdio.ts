@@ -17,8 +17,8 @@ function parseTools(value: string | undefined): string[] | undefined {
   return tools.length > 0 ? tools : undefined;
 }
 
-function parseSearchType(value: string | undefined): "auto" | "fast" | undefined {
-  if (value === "auto" || value === "fast") return value;
+function parseSearchType(value: string | undefined): "auto" | "fast" | "instant" | undefined {
+  if (value === "auto" || value === "fast" || value === "instant") return value;
   return undefined;
 }
 

@@ -114,6 +114,7 @@ describe("api/mcp handler", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     delete process.env.DEBUG;
+    delete process.env.DEFAULT_SEARCH_TYPE;
     delete process.env.ENABLED_TOOLS;
     delete process.env.EXA_API_KEY;
     delete process.env.EXA_API_KEY_BYPASS;
@@ -427,6 +428,26 @@ describe("api/mcp handler", () => {
       authMethod: "api_key",
     });
     expect(new URL(forwardedRequest?.url ?? "").searchParams.has("exaApiKey")).toBe(false);
+  });
+
+  it("accepts instant as a defaultSearchType query parameter", async () => {
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?defaultSearchType=instant"),
+    );
+
+    expect(config).toMatchObject({
+      defaultSearchType: "instant",
+    });
+  });
+
+  it("falls back to DEFAULT_SEARCH_TYPE from the environment", async () => {
+    process.env.DEFAULT_SEARCH_TYPE = "instant";
+
+    const { config } = await callHandleRequest(new Request("https://mcp.exa.ai/mcp"));
+
+    expect(config).toMatchObject({
+      defaultSearchType: "instant",
+    });
   });
 
   it("requires auth before initializing MCP when OAuth is forced", async () => {

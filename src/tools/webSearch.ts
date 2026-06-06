@@ -12,7 +12,7 @@ import { checkpoint } from "agnost"
 type WebSearchConfig = {
   exaApiKey?: string;
   userProvidedApiKey?: boolean;
-  defaultSearchType?: 'auto' | 'fast';
+  defaultSearchType?: 'auto' | 'fast' | 'instant';
   exaSource?: string;
   mcpSessionId?: string;
 };
