@@ -158,13 +158,11 @@ function initializeRateLimiters(): boolean {
   }
 }
 
-function getClientIp(request: Request): string {
-  const cfConnectingIp = request.headers.get('cf-connecting-ip');
-  const xRealIp = request.headers.get('x-real-ip');
-  const xForwardedFor = request.headers.get('x-forwarded-for');
-  const xForwardedForFirst = xForwardedFor?.split(',')[0]?.trim();
+function getClientIp(request: Request): string | null {
+  const vercelForwarded = request.headers.get('x-vercel-forwarded-for');
+  const vercelForwardedFirst = vercelForwarded?.split(',')[0]?.trim();
 
-  return cfConnectingIp ?? xRealIp ?? xForwardedForFirst ?? 'unknown';
+  return vercelForwardedFirst || null;
 }
 
 const RATE_LIMIT_ERROR_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
@@ -270,7 +268,14 @@ async function saveBypassRequestInfo(ip: string, userAgent: string, debug: boole
  * Check rate limits for a given IP.
  * Returns null if within limits, or a Response if rate limited.
  */
-async function checkRateLimits(ip: string, debug: boolean): Promise<Response | null> {
+async function checkRateLimits(ip: string | null, debug: boolean): Promise<Response | null> {
+  if (!ip) {
+    if (debug) {
+      console.log('[EXA-MCP] Skipping rate limit: trusted client IP unavailable');
+    }
+    return null;
+  }
+
   if (!qpsLimiter || !dailyLimiter) {
     return null; // Rate limiting not configured
   }
@@ -299,7 +304,7 @@ async function checkRateLimits(ip: string, debug: boolean): Promise<Response | n
     return null; // Within limits
   } catch (error) {
     // If rate limiting fails, allow the request through (fail open)
-    console.error('[EXA-MCP] Rate limit check failed:', error);
+    console.error('[EXA-MCP][ALERT][RATE_LIMIT_FAIL_OPEN] Rate limit check failed; allowing anonymous tools/call request:', error);
     return null;
   }
 }
@@ -643,7 +648,11 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
     config.exaApiKey = bypassApiKey;
     config.userProvidedApiKey = false;
     const clientIp = getClientIp(request);
-    saveBypassRequestInfo(clientIp, userAgent, config.debug);
+    if (clientIp) {
+      saveBypassRequestInfo(clientIp, userAgent, config.debug);
+    } else if (config.debug) {
+      console.log('[EXA-MCP] Skipping bypass request info save: trusted client IP unavailable');
+    }
   }
   
   // Rate limit users who didn't provide their own API key (including bypass users)
@@ -657,7 +666,7 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
       const clientIp = getClientIp(request);
       
       if (config.debug) {
-        console.log(`[EXA-MCP] Client IP: ${clientIp}, method: tools/call`);
+        console.log(`[EXA-MCP] Client IP: ${clientIp ?? 'unavailable'}, method: tools/call`);
       }
       
       const rateLimitResponse = await checkRateLimits(clientIp, config.debug);

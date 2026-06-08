@@ -549,6 +549,7 @@ describe("api/mcp handler", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-vercel-forwarded-for": "203.0.113.10",
         },
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call" }),
       }),
