@@ -7,6 +7,7 @@
 
 const AVAILABLE_TOOLS = [
   'web_search_exa',
+  'web_search_fetch_exa',
   'web_search_advanced_exa',
   'web_fetch_exa',
 ];
@@ -27,10 +28,10 @@ const configSchema = {
     "tools": {
       "type": "string",
       "title": "Enabled Tools",
-      "description": "Comma-separated list of tools to enable. Leave empty for defaults (web_search_exa, web_fetch_exa).",
+      "description": "Comma-separated list of tools to enable. Leave empty for defaults (web_search_exa, web_search_fetch_exa, web_fetch_exa).",
       "examples": [
-        "web_search_exa,web_search_advanced_exa",
-        "web_search_exa,web_search_advanced_exa,web_fetch_exa"
+        "web_search_exa,web_search_fetch_exa",
+        "web_search_exa,web_search_fetch_exa,web_search_advanced_exa,web_fetch_exa"
       ],
       "x-available-values": AVAILABLE_TOOLS
     },
