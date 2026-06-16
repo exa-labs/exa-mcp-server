@@ -129,11 +129,14 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
       log(`Registered ${registeredTools.length} tools: ${registeredTools.join(', ')}`);
     }
     
-    // Register prompts to help users get started
+    // Register prompts to help users get started.
+    // No args schema is passed: web_search_help takes no arguments, and
+    // supplying an empty schema makes the SDK validate params.arguments as a
+    // required object, which rejects requests that omit `arguments` entirely
+    // (e.g. clients that drop empty maps, like the official Go SDK). See #358.
     server.prompt(
       "web_search_help",
       "Get help with web search using Exa",
-      {},
       async () => {
         return {
           messages: [
