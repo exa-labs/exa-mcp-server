@@ -52,11 +52,9 @@ describe("registerWebFetchTool", () => {
       "/contents",
       "POST",
       {
-        ids: ["https://example.com/page", "https://example.com/missing"],
-        contents: {
-          text: {
-            maxCharacters: 500,
-          },
+        urls: ["https://example.com/page", "https://example.com/missing"],
+        text: {
+          maxCharacters: 500,
         },
       },
       undefined,

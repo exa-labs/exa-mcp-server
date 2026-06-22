@@ -67,11 +67,9 @@ Returns: Clean text content and metadata from the page(s).`,
         const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
 
         const crawlRequest = {
-          ids: urls,
-          contents: {
-            text: {
-              maxCharacters: maxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS
-            },
+          urls,
+          text: {
+            maxCharacters: maxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS
           },
         };
 
