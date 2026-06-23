@@ -346,7 +346,7 @@ describe("api/mcp handler", () => {
     expect(new URL(forwardedRequest?.url ?? "").searchParams.has("exaApiKey")).toBe(false);
   });
 
-  it("uses an OAuth JWT api key claim from Authorization bearer tokens", async () => {
+  it("forwards the raw OAuth JWT as oauthAccessToken instead of extracting api_key_id", async () => {
     verifyOAuthTokenMock.mockResolvedValue({
       sub: "user-1",
       "exa:team_id": "team-1",
@@ -364,7 +364,30 @@ describe("api/mcp handler", () => {
 
     expect(verifyOAuthTokenMock).toHaveBeenCalledWith("jwt-token");
     expect(config).toMatchObject({
-      exaApiKey: "oauth-api-key",
+      oauthAccessToken: "jwt-token",
+      userProvidedApiKey: true,
+      authMethod: "oauth",
+    });
+    expect(config.exaApiKey).not.toBe("oauth-api-key");
+  });
+
+  it("accepts OAuth JWTs without exa:api_key_id (keyless grants)", async () => {
+    verifyOAuthTokenMock.mockResolvedValue({
+      sub: "user-1",
+      "exa:team_id": "team-1",
+      scope: "mcp:tools",
+    });
+
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        headers: {
+          authorization: "Bearer jwt-token",
+        },
+      }),
+    );
+
+    expect(config).toMatchObject({
+      oauthAccessToken: "jwt-token",
       userProvidedApiKey: true,
       authMethod: "oauth",
     });

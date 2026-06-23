@@ -369,6 +369,8 @@ interface RequestConfig {
   defaultSearchType?: 'auto' | 'fast' | 'instant';
   /** True when a Bearer token was a JWT but failed OAuth verification (expired, bad sig, wrong issuer/audience). */
   invalidOAuthJwt: boolean;
+  /** Raw OAuth JWT to forward to Vulcan as Authorization: Bearer. */
+  oauthAccessToken?: string;
 }
 
 /**
@@ -383,6 +385,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let authMethod: 'oauth' | 'api_key' | 'free_tier' = 'free_tier';
   let defaultSearchType: 'auto' | 'fast' | 'instant' | undefined;
   let invalidOAuthJwt = false;
+  let oauthAccessToken: string | undefined;
 
   // 1. Check x-api-key header (highest priority)
   const xApiKey = request.headers.get('x-api-key');
@@ -400,8 +403,8 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
       if (isJwtToken(bearerToken)) {
         const claims = await verifyOAuthToken(bearerToken);
         if (claims) {
-          // The api_key_id claim IS the API key (ApiKey.id UUID = the key string)
-          exaApiKey = claims['exa:api_key_id'];
+          // Forward the raw JWT to Vulcan — Vulcan verifies and builds auth context.
+          oauthAccessToken = bearerToken;
           userProvidedApiKey = true;
           authMethod = 'oauth';
         } else {
@@ -482,7 +485,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   const exaSource = request.headers.get('x-exa-source') || undefined;
   const mcpSessionId = request.headers.get('MCP-Session-Id') || undefined;
 
-  return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod, exaSource, mcpSessionId, defaultSearchType, invalidOAuthJwt };
+  return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod, exaSource, mcpSessionId, defaultSearchType, invalidOAuthJwt, oauthAccessToken };
 }
 
 /**
@@ -491,7 +494,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
  * configuration (tools and API key). This prevents API key leakage between
  * different users who might pass different keys via URL.
  */
-function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string; mcpSessionId?: string; mcpClient?: McpClientMetadata; defaultSearchType?: 'auto' | 'fast' | 'instant' }) {
+function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string; mcpSessionId?: string; mcpClient?: McpClientMetadata; defaultSearchType?: 'auto' | 'fast' | 'instant'; oauthAccessToken?: string }) {
   return createMcpHandler(
     (server: any) => {
       initializeMcpServer(server, config);

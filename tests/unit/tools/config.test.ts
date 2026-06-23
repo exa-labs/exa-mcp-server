@@ -47,6 +47,25 @@ describe("integrationHeaders", () => {
     });
   });
 
+  it("includes Authorization Bearer header when oauthAccessToken is present", () => {
+    expect(
+      integrationHeaders("web-search-mcp", {
+        oauthAccessToken: "eyJhbGciOiJSUzI1NiJ9.payload.signature",
+      }),
+    ).toEqual({
+      "x-exa-integration": "web-search-mcp",
+      Authorization: "Bearer eyJhbGciOiJSUzI1NiJ9.payload.signature",
+    });
+  });
+
+  it("does not include Authorization header when oauthAccessToken is absent", () => {
+    expect(
+      integrationHeaders("web-search-mcp", { exaSource: "cursor" }),
+    ).toEqual({
+      "x-exa-integration": "web-search-mcp:cursor",
+    });
+  });
+
   it("omits oversized MCP client metadata", () => {
     expect(
       integrationHeaders("web-search-mcp", {
