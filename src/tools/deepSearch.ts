@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG, integrationHeaders } from "./config.js";
+import { API_CONFIG, integrationHeaders, createExaClient } from "./config.js";
 import { ExaDeepSearchRequest, ExaDeepSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
@@ -39,7 +38,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
       logger.start(objective);
 
       try {
-        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
+        const exa = createExaClient(config);
 
         const searchRequest: ExaDeepSearchRequest = {
           query: objective,

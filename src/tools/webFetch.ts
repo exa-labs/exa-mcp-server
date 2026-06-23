@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG, integrationHeaders } from "./config.js";
+import { API_CONFIG, integrationHeaders, createExaClient } from "./config.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeContentsResponse } from "../utils/exaResponseSanitizer.js";
@@ -64,7 +63,7 @@ Returns: Clean text content and metadata from the page(s).`,
       logger.start(urls.join(', '));
 
       try {
-        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
+        const exa = createExaClient(config);
 
         const crawlRequest = {
           urls,

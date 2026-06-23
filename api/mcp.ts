@@ -405,6 +405,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
         if (claims) {
           // Forward the raw JWT to Vulcan — Vulcan verifies and builds auth context.
           oauthAccessToken = bearerToken;
+          exaApiKey = undefined;
           userProvidedApiKey = true;
           authMethod = 'oauth';
         } else {

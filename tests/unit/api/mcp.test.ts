@@ -368,7 +368,7 @@ describe("api/mcp handler", () => {
       userProvidedApiKey: true,
       authMethod: "oauth",
     });
-    expect(config.exaApiKey).not.toBe("oauth-api-key");
+    expect(config.exaApiKey).toBeUndefined();
   });
 
   it("accepts OAuth JWTs without exa:api_key_id (keyless grants)", async () => {

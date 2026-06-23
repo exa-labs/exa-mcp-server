@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { integrationHeaders } from "../../../src/tools/config.js";
+import { integrationHeaders, createExaClient } from "../../../src/tools/config.js";
 
 describe("integrationHeaders", () => {
   it("includes the Exa integration header", () => {
@@ -76,5 +76,35 @@ describe("integrationHeaders", () => {
     ).toEqual({
       "x-exa-integration": "web-search-mcp",
     });
+  });
+});
+
+describe("createExaClient", () => {
+  it("strips x-api-key header for OAuth users", () => {
+    const exa = createExaClient({ oauthAccessToken: "jwt-token" });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const headers: Headers = (exa as any).headers;
+    expect(headers.has("x-api-key")).toBe(false);
+    expect(headers.has("Content-Type")).toBe(true);
+  });
+
+  it("sets x-api-key header for non-OAuth users", () => {
+    const exa = createExaClient({ exaApiKey: "test-key-123" });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const headers: Headers = (exa as any).headers;
+    expect(headers.get("x-api-key")).toBe("test-key-123");
+  });
+
+  it("falls back to EXA_API_KEY env var when no exaApiKey in config", () => {
+    const original = process.env.EXA_API_KEY;
+    process.env.EXA_API_KEY = "env-key-456";
+    try {
+      const exa = createExaClient({});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const headers: Headers = (exa as any).headers;
+      expect(headers.get("x-api-key")).toBe("env-key-456");
+    } finally {
+      process.env.EXA_API_KEY = original;
+    }
   });
 });

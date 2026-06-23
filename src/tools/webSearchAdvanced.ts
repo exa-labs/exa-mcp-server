@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG, integrationHeaders } from "./config.js";
+import { API_CONFIG, integrationHeaders, createExaClient } from "./config.js";
 import { ExaAdvancedSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
@@ -72,7 +71,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
       logger.start(params.query);
 
       try {
-        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
+        const exa = createExaClient(config);
 
         const contents: ExaAdvancedSearchRequest['contents'] = {
           text: params.textMaxCharacters ? { maxCharacters: params.textMaxCharacters } : true,
