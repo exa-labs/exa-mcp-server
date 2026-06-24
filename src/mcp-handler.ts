@@ -1,4 +1,5 @@
 import { trackMCP, createConfig } from 'agnost';
+import { z } from "zod";
 
 // Import tool implementations
 import { registerWebSearchTool } from "./tools/webSearch.js";
@@ -15,6 +16,7 @@ import { registerAgentCreateRunTool } from "./tools/agentCreateRun.js";
 import { registerAgentWaitForRunTool } from "./tools/agentWaitForRun.js";
 import { registerAgentGetRunOutputTool } from "./tools/agentGetRunOutput.js";
 import { registerAgentCancelRunTool } from "./tools/agentCancelRun.js";
+import { agentSchemaTemplates } from "./tools/agentSchemaTemplates.js";
 import {
   TOOL_REGISTRY,
   isAgentTool,
@@ -23,6 +25,7 @@ import {
   type ToolId,
 } from "./toolRegistry.js";
 import { log } from "./utils/logger.js";
+import { loadAgentSkillContent } from "./utils/agentSkill.js";
 
 export interface McpConfig {
   exaApiKey?: string;
@@ -177,6 +180,50 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
 
     const registeredAgentTools = registeredTools.filter((toolId) => isAgentTool(toolId as ToolId));
 
+    if (registeredAgentTools.length > 0) {
+      const agentSkillContent = loadAgentSkillContent();
+
+      server.prompt(
+        "agent_research_help",
+        "Get help structuring a multi-step Exa Agent research run.",
+        {
+          task: z
+            .string()
+            .optional()
+            .describe("The research task to turn into an Exa Agent run"),
+        },
+        async (args?: { task?: string }) => {
+          const task = args?.task?.trim();
+          const taskLine = task
+            ? `My research task:\n\n${task}`
+            : "Help me turn my research task into an Exa Agent run with a clear objective, bounded output schema, coverage plan, and follow-up strategy.";
+
+          return {
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: `${taskLine}\n\nFollow the Exa Agent research guide below.`,
+                },
+              },
+              {
+                role: "user",
+                content: {
+                  type: "resource",
+                  resource: {
+                    uri: "exa://agent/skill",
+                    mimeType: "text/markdown",
+                    text: agentSkillContent,
+                  },
+                },
+              },
+            ],
+          };
+        },
+      );
+    }
+
     // Register resources to expose server information
     server.resource(
       "tools_list",
@@ -195,6 +242,42 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
         };
       }
     );
+
+    if (registeredAgentTools.length > 0) {
+      const agentSkillContent = loadAgentSkillContent();
+
+      server.resource(
+        "agent_research_guide",
+        "exa://agent/skill",
+        {
+          mimeType: "text/markdown",
+          description: "Exa Agent research workflow, schema rules, and coverage guidance",
+        },
+        async () => ({
+          contents: [{
+            uri: "exa://agent/skill",
+            text: agentSkillContent,
+            mimeType: "text/markdown",
+          }],
+        }),
+      );
+
+      server.resource(
+        "agent_schema_templates",
+        "exa://agent/schema-templates",
+        {
+          mimeType: "application/json",
+          description: "Starter JSON Schema templates for common Agent workflows",
+        },
+        async () => ({
+          contents: [{
+            uri: "exa://agent/schema-templates",
+            text: JSON.stringify(agentSchemaTemplates, null, 2),
+            mimeType: "application/json",
+          }],
+        }),
+      );
+    }
     
     // Add Agnost analytics tracking (works with both McpServer and mcp-handler)
     // The server object might be wrapped, so we try to access the underlying server
