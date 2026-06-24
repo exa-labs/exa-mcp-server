@@ -63,6 +63,8 @@ describe("Stdio entrypoint", () => {
       exaApiKey: "env-key",
       enabledTools: ["web_search_exa", "web_fetch_exa"],
       debug: false,
+      exaSource: undefined,
+      mcpSessionId: undefined,
       defaultSearchType: undefined,
       userProvidedApiKey: true,
     });
@@ -81,9 +83,23 @@ describe("Stdio entrypoint", () => {
       exaApiKey: undefined,
       enabledTools: ["web_search_exa"],
       debug: true,
+      exaSource: undefined,
+      mcpSessionId: undefined,
       defaultSearchType: "fast",
       userProvidedApiKey: false,
     });
+  });
+
+  it("buildConfigFromEnv includes optional integration metadata", async () => {
+    const { buildConfigFromEnv } = await import("../../src/stdio.js");
+
+    const config = buildConfigFromEnv({
+      EXA_SOURCE: "local",
+      MCP_SESSION_ID: "session-1",
+    });
+
+    expect(config.exaSource).toBe("local");
+    expect(config.mcpSessionId).toBe("session-1");
   });
 
   it("buildConfigFromEnv accepts instant as a default search type", async () => {

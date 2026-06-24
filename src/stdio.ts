@@ -28,6 +28,8 @@ export function buildConfigFromEnv(env: NodeJS.ProcessEnv = process.env): McpCon
     exaApiKey,
     enabledTools: parseTools(env.ENABLED_TOOLS ?? env.TOOLS),
     debug: env.DEBUG === "true",
+    exaSource: env.EXA_SOURCE,
+    mcpSessionId: env.MCP_SESSION_ID,
     defaultSearchType: parseSearchType(env.DEFAULT_SEARCH_TYPE),
     userProvidedApiKey: Boolean(exaApiKey),
   };
