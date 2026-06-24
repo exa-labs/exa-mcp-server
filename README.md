@@ -230,6 +230,26 @@ Add to your Roo Code MCP config:
 </details>
 
 <details>
+<summary><b>LM Studio</b></summary>
+
+<a href="https://lmstudio.ai/install-mcp?name=exa&config=eyJ1cmwiOiJodHRwczovL21jcC5leGEuYWkvbWNwIn0%3D">
+  <img src="https://files.lmstudio.ai/deeplink/mcp-install-light.svg" alt="Add Exa MCP to LM Studio" />
+</a>
+
+Or add manually: open LM Studio, go to the Program tab, click **Install > Edit mcp.json**, and add:
+
+```json
+{
+  "exa": {
+    "url": "https://mcp.exa.ai/mcp"
+  }
+}
+```
+
+Exa's tools will appear in the chat. Ask your model to search the web, fetch a page, or research a topic.
+</details>
+
+<details>
 <summary><b>Other Clients</b></summary>
 
 For clients that support remote MCP:
