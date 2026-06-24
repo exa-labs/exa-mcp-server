@@ -5,9 +5,14 @@ export function integrationHeaders(tool: string, config?: Record<string, unknown
   const source = config?.exaSource;
   const mcpSessionId = config?.mcpSessionId;
   const mcpClient = serializeMcpClientMetadata(config?.mcpClient);
+  const oauthAccessToken = config?.oauthAccessToken;
   const headers: Record<string, string> = {
     'x-exa-integration': typeof source === 'string' ? `${tool}:${source}` : tool,
   };
+
+  if (typeof oauthAccessToken === 'string' && oauthAccessToken.length > 0) {
+    headers['Authorization'] = `Bearer ${oauthAccessToken}`;
+  }
 
   if (typeof mcpSessionId === 'string' && mcpSessionId.length > 0) {
     headers['x-exa-mcp-session-id'] = mcpSessionId;
