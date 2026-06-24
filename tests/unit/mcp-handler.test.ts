@@ -18,7 +18,11 @@ describe("initializeMcpServer", () => {
 
     initializeMcpServer(server);
 
-    expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_exa", "web_fetch_exa"]);
+    expect(server.tools.map((tool) => tool.name)).toEqual([
+      "web_search_exa",
+      "web_search_fetch_exa",
+      "web_fetch_exa",
+    ]);
     expect(server.prompts.map((prompt) => prompt.name)).toEqual(["web_search_help"]);
     expect(server.resources.map((resource) => resource.name)).toEqual(["tools_list"]);
 
@@ -36,6 +40,7 @@ describe("initializeMcpServer", () => {
     expect(toolsList).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "web_search_exa", enabled: true }),
+        expect.objectContaining({ id: "web_search_fetch_exa", enabled: true }),
         expect.objectContaining({ id: "web_fetch_exa", enabled: true }),
         expect.objectContaining({ id: "web_search_advanced_exa", enabled: false }),
       ]),
@@ -46,11 +51,15 @@ describe("initializeMcpServer", () => {
     const server = new FakeMcpServer();
 
     initializeMcpServer(server, {
-      enabledTools: ["web_search_advanced_exa", "crawling_exa", "deep_search_exa"],
+      enabledTools: ["web_search_fetch_exa", "web_search_advanced_exa", "crawling_exa", "deep_search_exa"],
       userProvidedApiKey: false,
     });
 
-    expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_advanced_exa", "crawling_exa"]);
+    expect(server.tools.map((tool) => tool.name)).toEqual([
+      "web_search_fetch_exa",
+      "web_search_advanced_exa",
+      "crawling_exa",
+    ]);
   });
 
   it("only registers deep_search_exa when the user provided an API key", () => {

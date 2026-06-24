@@ -321,7 +321,7 @@ async function checkRateLimits(ip: string | null, debug: boolean): Promise<Respo
  * - ?exaApiKey=YOUR_KEY - Pass API key via URL (backwards compatible)
  * 
  * Other URL query parameters:
- * - ?tools=web_search_exa,web_fetch_exa - Enable specific tools
+ * - ?tools=web_search_exa,web_search_fetch_exa,web_fetch_exa - Enable specific tools
  * - ?debug=true - Enable debug logging
  * 
  * Also supports environment variables:

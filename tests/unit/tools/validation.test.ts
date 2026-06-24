@@ -185,13 +185,15 @@ describe("advertised JSON Schema retains usable type info", () => {
 
   it("each registered tool advertises non-empty inputSchema fields", async () => {
     const { registerWebSearchTool } = await import("../../../src/tools/webSearch.js");
+    const { registerWebSearchFetchTool } = await import("../../../src/tools/webSearchFetch.js");
     const { registerWebFetchTool } = await import("../../../src/tools/webFetch.js");
 
     const server = new FakeMcpServer();
     registerWebSearchTool(server as any);
+    registerWebSearchFetchTool(server as any);
     registerWebFetchTool(server as any);
 
-    for (const toolName of ["web_search_exa", "web_fetch_exa"]) {
+    for (const toolName of ["web_search_exa", "web_search_fetch_exa", "web_fetch_exa"]) {
       const inputSchema = server.getTool(toolName).inputSchema as Record<string, z.ZodTypeAny>;
       expect(Object.keys(inputSchema).length, `${toolName} should expose fields`).toBeGreaterThan(0);
 
