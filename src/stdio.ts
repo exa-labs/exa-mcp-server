@@ -3,6 +3,7 @@ process.env.AGNOST_LOG_LEVEL = process.env.AGNOST_LOG_LEVEL ?? "error";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { initializeMcpServer, type McpConfig } from "./mcp-handler.js";
+import { expandToolSelection } from "./toolRegistry.js";
 import { log } from "./utils/logger.js";
 
 // Reads EXA_API_KEY, ENABLED_TOOLS / TOOLS, DEBUG, DEFAULT_SEARCH_TYPE from env.
@@ -10,10 +11,12 @@ import { log } from "./utils/logger.js";
 
 function parseTools(value: string | undefined): string[] | undefined {
   if (!value) return undefined;
-  const tools = value
+  const tools = expandToolSelection(
+    value
     .split(",")
     .map(tool => tool.trim())
-    .filter(tool => tool.length > 0);
+    .filter(tool => tool.length > 0),
+  );
   return tools.length > 0 ? tools : undefined;
 }
 

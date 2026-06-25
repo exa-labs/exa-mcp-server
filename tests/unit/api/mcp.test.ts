@@ -430,6 +430,36 @@ describe("api/mcp handler", () => {
     expect(new URL(forwardedRequest?.url ?? "").searchParams.has("exaApiKey")).toBe(false);
   });
 
+  it("expands the agent tool alias from query parameters", async () => {
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?tools=agent_tools"),
+    );
+
+    expect(config).toMatchObject({
+      enabledTools: [
+        "agent_create_run",
+        "agent_wait_for_run",
+        "agent_get_run_output",
+        "agent_cancel_run",
+      ],
+    });
+  });
+
+  it("expands the agent tool alias from ENABLED_TOOLS", async () => {
+    process.env.ENABLED_TOOLS = "agent_tools";
+
+    const { config } = await callHandleRequest(new Request("https://mcp.exa.ai/mcp"));
+
+    expect(config).toMatchObject({
+      enabledTools: [
+        "agent_create_run",
+        "agent_wait_for_run",
+        "agent_get_run_output",
+        "agent_cancel_run",
+      ],
+    });
+  });
+
   it("accepts instant as a defaultSearchType query parameter", async () => {
     const { config } = await callHandleRequest(
       new Request("https://mcp.exa.ai/mcp?defaultSearchType=instant"),

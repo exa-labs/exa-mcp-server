@@ -7,6 +7,7 @@ import { initializeMcpServer } from '../src/mcp-handler.js';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { isJwtToken, verifyOAuthToken } from '../src/utils/auth.js';
+import { expandToolSelection } from '../src/toolRegistry.js';
 import {
   buildMcpClientMetadata,
   extractInitializeClientInfo,
@@ -438,10 +439,12 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
     if (params.has('tools')) {
       const toolsParam = params.get('tools');
       if (toolsParam) {
-        enabledTools = toolsParam
+        enabledTools = expandToolSelection(
+          toolsParam
           .split(',')
           .map(t => t.trim())
-          .filter(t => t.length > 0);
+          .filter(t => t.length > 0),
+        );
       }
     }
 
@@ -466,10 +469,12 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
 
   // Fall back to env vars if no query params were found
   if (!enabledTools && process.env.ENABLED_TOOLS) {
-    enabledTools = process.env.ENABLED_TOOLS
-      .split(',')
-      .map(t => t.trim())
-      .filter(t => t.length > 0);
+    enabledTools = expandToolSelection(
+      process.env.ENABLED_TOOLS
+        .split(',')
+        .map(t => t.trim())
+        .filter(t => t.length > 0),
+    );
   }
 
   if (!defaultSearchType && process.env.DEFAULT_SEARCH_TYPE) {

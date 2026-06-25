@@ -114,6 +114,17 @@ export const AGENT_TOOL_IDS = AVAILABLE_TOOL_IDS.filter(
   (toolId) => TOOL_REGISTRY[toolId].group === "agent",
 );
 
+export const TOOL_SELECTION_ALIASES = {
+  agent_tools: AGENT_TOOL_IDS,
+} as const;
+
+export type ToolSelectionValue = ToolId | keyof typeof TOOL_SELECTION_ALIASES;
+
+export const AVAILABLE_TOOL_SELECTION_VALUES = [
+  ...AVAILABLE_TOOL_IDS,
+  ...Object.keys(TOOL_SELECTION_ALIASES),
+] as ToolSelectionValue[];
+
 export function isToolEnabledByDefault(toolId: ToolId): boolean {
   return TOOL_REGISTRY[toolId].enabled;
 }
@@ -134,4 +145,25 @@ export function listToolMetadata(registeredTools: string[]) {
     description: TOOL_REGISTRY[toolId].description,
     enabled: registeredTools.includes(toolId),
   }));
+}
+
+export function expandToolSelection(values: string[]): ToolId[] {
+  const expanded: ToolId[] = [];
+  const seen = new Set<ToolId>();
+
+  for (const value of values) {
+    const aliasTools = TOOL_SELECTION_ALIASES[value as keyof typeof TOOL_SELECTION_ALIASES];
+    const toolIds = aliasTools ?? [value as ToolId];
+
+    for (const toolId of toolIds) {
+      if (!(toolId in TOOL_REGISTRY) || seen.has(toolId)) {
+        continue;
+      }
+
+      seen.add(toolId);
+      expanded.push(toolId);
+    }
+  }
+
+  return expanded;
 }

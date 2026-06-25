@@ -70,6 +70,21 @@ describe("Stdio entrypoint", () => {
     });
   });
 
+  it("buildConfigFromEnv expands the agent tool alias", async () => {
+    const { buildConfigFromEnv } = await import("../../src/stdio.js");
+
+    const config = buildConfigFromEnv({
+      ENABLED_TOOLS: "agent_tools",
+    });
+
+    expect(config.enabledTools).toEqual([
+      "agent_create_run",
+      "agent_wait_for_run",
+      "agent_get_run_output",
+      "agent_cancel_run",
+    ]);
+  });
+
   it("buildConfigFromEnv leaves userProvidedApiKey false when EXA_API_KEY is missing", async () => {
     const { buildConfigFromEnv } = await import("../../src/stdio.js");
 

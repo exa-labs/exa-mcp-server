@@ -5,7 +5,7 @@
  * the available configuration options and pass them via URL parameters.
  */
 
-import { AVAILABLE_TOOL_IDS } from "../src/toolRegistry.js";
+import { AVAILABLE_TOOL_SELECTION_VALUES } from "../src/toolRegistry.js";
 
 const configSchema = {
   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -27,9 +27,10 @@ const configSchema = {
       "examples": [
         "web_search_exa,web_search_advanced_exa",
         "web_search_exa,web_search_advanced_exa,web_fetch_exa",
+        "agent_tools",
         "agent_create_run,agent_wait_for_run,agent_get_run_output,agent_cancel_run"
       ],
-      "x-available-values": AVAILABLE_TOOL_IDS
+      "x-available-values": AVAILABLE_TOOL_SELECTION_VALUES
     },
     "debug": {
       "type": "boolean",
