@@ -2,9 +2,8 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { checkpoint } from "agnost";
 import type { AgentEffort, AgentRunInput } from "../types.js";
-import { AgentApiClient, type AgentApiClientConfig } from "../utils/agentApiClient.js";
-import { formatAgentToolError } from "../utils/agentErrorHandler.js";
-import { createRequestLogger } from "../utils/logger.js";
+import type { AgentApiClientConfig } from "../utils/agentApiClient.js";
+import { withAgentTool } from "../utils/agentTool.js";
 import { jsonContent } from "../utils/response.js";
 
 const effortSchema = z.enum(["low", "medium", "high", "xhigh", "auto"]);
@@ -42,12 +41,11 @@ export function registerAgentCreateRunTool(server: McpServer, config?: AgentApiC
       destructiveHint: false,
       idempotentHint: false,
     },
-    async ({ query, systemPrompt, outputSchema, input, dataSources, previousRunId, effort }) => {
-      const logger = createRequestLogger("agent_create_run");
-      logger.start(query.slice(0, 120));
-
-      try {
-        const client = new AgentApiClient(config);
+    withAgentTool(
+      "agent_create_run",
+      config,
+      ({ query }) => query.slice(0, 120),
+      async ({ query, systemPrompt, outputSchema, input, dataSources, previousRunId, effort }, { client }) => {
         const runInput: AgentRunInput = {
           query,
           ...(systemPrompt != null ? { systemPrompt } : {}),
@@ -68,7 +66,6 @@ export function registerAgentCreateRunTool(server: McpServer, config?: AgentApiC
 
         const run = await client.createRun(runInput);
         checkpoint("agent_create_run_response_received", { status: run.status });
-        logger.complete();
 
         return jsonContent({
           success: true,
@@ -79,10 +76,7 @@ export function registerAgentCreateRunTool(server: McpServer, config?: AgentApiC
           nextAction: `Call agent_wait_for_run with runId "${run.id}".`,
           run,
         });
-      } catch (error) {
-        logger.error(error);
-        return formatAgentToolError(error, "agent_create_run");
-      }
-    },
+      },
+    ),
   );
 }

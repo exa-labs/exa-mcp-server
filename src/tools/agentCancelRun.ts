@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { checkpoint } from "agnost";
-import { AgentApiClient, type AgentApiClientConfig } from "../utils/agentApiClient.js";
-import { formatAgentToolError } from "../utils/agentErrorHandler.js";
-import { createRequestLogger } from "../utils/logger.js";
+import type { AgentApiClientConfig } from "../utils/agentApiClient.js";
+import { withAgentTool } from "../utils/agentTool.js";
 import { jsonContent } from "../utils/response.js";
 
 export function registerAgentCancelRunTool(server: McpServer, config?: AgentApiClientConfig): void {
@@ -18,14 +17,13 @@ export function registerAgentCancelRunTool(server: McpServer, config?: AgentApiC
       destructiveHint: false,
       idempotentHint: true,
     },
-    async ({ runId }) => {
-      const logger = createRequestLogger("agent_cancel_run");
-      logger.start(runId);
-
-      try {
-        const run = await new AgentApiClient(config).cancelRun(runId);
+    withAgentTool(
+      "agent_cancel_run",
+      config,
+      ({ runId }) => runId,
+      async ({ runId }, { client }) => {
+        const run = await client.cancelRun(runId);
         checkpoint("agent_cancel_run_response_received", { status: run.status });
-        logger.complete();
 
         return jsonContent({
           success: true,
@@ -34,10 +32,7 @@ export function registerAgentCancelRunTool(server: McpServer, config?: AgentApiC
           nextAction: "Create a corrected run if the task still needs to be completed.",
           run,
         });
-      } catch (error) {
-        logger.error(error);
-        return formatAgentToolError(error, "agent_cancel_run");
-      }
-    },
+      },
+    ),
   );
 }

@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { checkpoint } from "agnost";
-import { AgentApiClient, type AgentApiClientConfig } from "../utils/agentApiClient.js";
-import { formatAgentToolError } from "../utils/agentErrorHandler.js";
-import { createRequestLogger } from "../utils/logger.js";
+import type { AgentApiClientConfig } from "../utils/agentApiClient.js";
+import { withAgentTool } from "../utils/agentTool.js";
 import { jsonContent } from "../utils/response.js";
 import { isTerminalStatus } from "./runStatus.js";
 
@@ -24,14 +23,13 @@ export function registerAgentGetRunOutputTool(server: McpServer, config?: AgentA
       destructiveHint: false,
       idempotentHint: true,
     },
-    async ({ runId, requireCompleted, includeText, includeStructured, includeGrounding, includeUsage }) => {
-      const logger = createRequestLogger("agent_get_run_output");
-      logger.start(runId);
-
-      try {
-        const run = await new AgentApiClient(config).getRun(runId);
+    withAgentTool(
+      "agent_get_run_output",
+      config,
+      ({ runId }) => runId,
+      async ({ runId, requireCompleted, includeText, includeStructured, includeGrounding, includeUsage }, { client }) => {
+        const run = await client.getRun(runId);
         checkpoint("agent_get_run_output_response_received", { status: run.status });
-        logger.complete();
 
         const mustBeCompleted = requireCompleted ?? true;
         if (mustBeCompleted && run.status !== "completed") {
@@ -61,10 +59,7 @@ export function registerAgentGetRunOutputTool(server: McpServer, config?: AgentA
           ...(includeUsage ?? true ? { usage: run.usage, costDollars: run.costDollars } : {}),
           nextAction: "Validate coverage, deduplicate structured rows, inspect grounding, and continue with previousRunId if gaps remain.",
         });
-      } catch (error) {
-        logger.error(error);
-        return formatAgentToolError(error, "agent_get_run_output");
-      }
-    },
+      },
+    ),
   );
 }

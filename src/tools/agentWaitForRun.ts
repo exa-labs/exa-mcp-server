@@ -3,9 +3,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { checkpoint } from "agnost";
 import { API_CONFIG } from "./config.js";
 import type { AgentRun } from "../types.js";
-import { AgentApiClient, type AgentApiClientConfig } from "../utils/agentApiClient.js";
-import { delay, formatAgentToolError } from "../utils/agentErrorHandler.js";
-import { createRequestLogger } from "../utils/logger.js";
+import type { AgentApiClientConfig } from "../utils/agentApiClient.js";
+import { delay } from "../utils/agentErrorHandler.js";
+import { withAgentTool } from "../utils/agentTool.js";
 import { clampInteger, jsonContent } from "../utils/response.js";
 import { isTerminalStatus, nextActionForStatus } from "./runStatus.js";
 
@@ -55,26 +55,26 @@ export function registerAgentWaitForRunTool(server: McpServer, config?: AgentApi
       destructiveHint: false,
       idempotentHint: true,
     },
-    async ({ runId, timeoutSeconds, pollIntervalMs }) => {
-      const logger = createRequestLogger("agent_wait_for_run");
-      logger.start(runId);
+    withAgentTool(
+      "agent_wait_for_run",
+      config,
+      ({ runId }) => runId,
+      async ({ runId, timeoutSeconds, pollIntervalMs }, { client }) => {
+        const boundedTimeoutSeconds = clampInteger(
+          timeoutSeconds,
+          API_CONFIG.DEFAULT_WAIT_TIMEOUT_SECONDS,
+          1,
+          API_CONFIG.MAX_WAIT_TIMEOUT_SECONDS,
+        );
+        const boundedPollIntervalMs = clampInteger(
+          pollIntervalMs,
+          API_CONFIG.DEFAULT_POLL_INTERVAL_MS,
+          API_CONFIG.MIN_POLL_INTERVAL_MS,
+          boundedTimeoutSeconds * 1000,
+        );
 
-      const boundedTimeoutSeconds = clampInteger(
-        timeoutSeconds,
-        API_CONFIG.DEFAULT_WAIT_TIMEOUT_SECONDS,
-        1,
-        API_CONFIG.MAX_WAIT_TIMEOUT_SECONDS,
-      );
-      const boundedPollIntervalMs = clampInteger(
-        pollIntervalMs,
-        API_CONFIG.DEFAULT_POLL_INTERVAL_MS,
-        API_CONFIG.MIN_POLL_INTERVAL_MS,
-        boundedTimeoutSeconds * 1000,
-      );
-
-      try {
         const result = await waitForRun({
-          client: new AgentApiClient(config),
+          client,
           runId,
           timeoutSeconds: boundedTimeoutSeconds,
           pollIntervalMs: boundedPollIntervalMs,
@@ -83,7 +83,6 @@ export function registerAgentWaitForRunTool(server: McpServer, config?: AgentApi
           status: result.run.status,
           timedOut: result.timedOut,
         });
-        logger.complete();
 
         return jsonContent({
           success: true,
@@ -96,10 +95,7 @@ export function registerAgentWaitForRunTool(server: McpServer, config?: AgentApi
             : nextActionForStatus(result.run.status, runId),
           run: result.run,
         });
-      } catch (error) {
-        logger.error(error);
-        return formatAgentToolError(error, "agent_wait_for_run");
-      }
-    },
+      },
+    ),
   );
 }
