@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { contentsErrorResponse, contentsResponse } from "../../fixtures/exaResponses.js";
 import { FakeMcpServer } from "../../helpers/fakeMcpServer.js";
 
@@ -73,6 +74,18 @@ describe("registerWebFetchTool", () => {
     expect((result as any).content[0].text).toContain(
       "Error fetching https://example.com/missing: not_found",
     );
+  });
+
+  it("rejects non-URL strings in the urls input schema", async () => {
+    const { registerWebFetchTool } = await import("../../../src/tools/webFetch.js");
+    const server = new FakeMcpServer();
+
+    registerWebFetchTool(server as any);
+
+    const schema = z.object(server.getTool("web_fetch_exa").inputSchema as any);
+
+    expect(schema.safeParse({ urls: ["not a url"] }).success).toBe(false);
+    expect(schema.safeParse({ urls: ["https://example.com"] }).success).toBe(true);
   });
 
   it("returns an MCP error when all URLs fail", async () => {
