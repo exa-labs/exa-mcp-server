@@ -28,7 +28,7 @@ const configSchema = {
         "web_search_exa,web_search_advanced_exa",
         "web_search_exa,web_search_advanced_exa,web_fetch_exa",
         "agent_tools",
-        "agent_create_run,agent_wait_for_run,agent_get_run_output,agent_cancel_run"
+        "web_search_exa,agent_tools"
       ],
       "x-available-values": AVAILABLE_TOOL_SELECTION_VALUES
     },

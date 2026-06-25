@@ -250,10 +250,16 @@ Enable additional tools with the `tools` parameter:
 https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
 ```
 
-If you want to use Exa Agent, enable all tools like so:
+If you want to use Exa Agent, enable the optional toolset like so:
 
 ```
-https://mcp.exa.ai/mcp?exaApiKey=YOUR_KEY&tools=agent_create_run,agent_wait_for_run,agent_get_run_output,agent_cancel_run
+https://mcp.exa.ai/mcp?tools=agent_tools
+```
+
+If you want both search and Exa Agent tools enabled:
+
+```
+https://mcp.exa.ai/mcp?tools=web_search_exa,agent_tools
 ```
 
 See the [full documentation](https://docs.exa.ai/reference/exa-mcp) for more details on tool configuration.
