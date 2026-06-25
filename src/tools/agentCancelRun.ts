@@ -6,11 +6,7 @@ import { formatAgentToolError } from "../utils/agentErrorHandler.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { jsonContent } from "../utils/response.js";
 
-type AgentToolConfig = AgentApiClientConfig & {
-  userProvidedApiKey?: boolean;
-};
-
-export function registerAgentCancelRunTool(server: McpServer, config?: AgentToolConfig): void {
+export function registerAgentCancelRunTool(server: McpServer, config?: AgentApiClientConfig): void {
   server.tool(
     "agent_cancel_run",
     "Cancel a queued or running Exa Agent run. Use only when the user asks, the run is clearly wrong, or a duplicate run was accidentally created.",
@@ -41,7 +37,7 @@ export function registerAgentCancelRunTool(server: McpServer, config?: AgentTool
         });
       } catch (error) {
         logger.error(error);
-        return formatAgentToolError(error, "agent_cancel_run", config?.userProvidedApiKey);
+        return formatAgentToolError(error, "agent_cancel_run");
       }
     },
   );

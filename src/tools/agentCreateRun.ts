@@ -19,11 +19,7 @@ const dataSourceProviderSchema = z.enum([
   "jinko",
 ]);
 
-type AgentToolConfig = AgentApiClientConfig & {
-  userProvidedApiKey?: boolean;
-};
-
-export function registerAgentCreateRunTool(server: McpServer, config?: AgentToolConfig): void {
+export function registerAgentCreateRunTool(server: McpServer, config?: AgentApiClientConfig): void {
   server.tool(
     "agent_create_run",
     "Create an async Exa Agent run for multi-step research, list-building, enrichment, or structured output. Returns an agent_run_... ID immediately; poll with agent_wait_for_run before reading final output. Every run should include outputSchema when repeatable structured results are needed.",
@@ -86,7 +82,7 @@ export function registerAgentCreateRunTool(server: McpServer, config?: AgentTool
         });
       } catch (error) {
         logger.error(error);
-        return formatAgentToolError(error, "agent_create_run", config?.userProvidedApiKey);
+        return formatAgentToolError(error, "agent_create_run");
       }
     },
   );

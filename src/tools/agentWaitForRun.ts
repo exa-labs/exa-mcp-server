@@ -19,10 +19,6 @@ export type WaitForRunResult = {
   timedOut: boolean;
 };
 
-type AgentToolConfig = AgentApiClientConfig & {
-  userProvidedApiKey?: boolean;
-};
-
 export async function waitForRun(params: {
   client: AgentRunReader;
   runId: string;
@@ -45,7 +41,7 @@ export async function waitForRun(params: {
   };
 }
 
-export function registerAgentWaitForRunTool(server: McpServer, config?: AgentToolConfig): void {
+export function registerAgentWaitForRunTool(server: McpServer, config?: AgentApiClientConfig): void {
   server.tool(
     "agent_wait_for_run",
     "Poll an Exa Agent run until it reaches completed/failed/cancelled or a bounded timeout. This is the ergonomic default after agent_create_run.",
@@ -103,7 +99,7 @@ export function registerAgentWaitForRunTool(server: McpServer, config?: AgentToo
         });
       } catch (error) {
         logger.error(error);
-        return formatAgentToolError(error, "agent_wait_for_run", config?.userProvidedApiKey);
+        return formatAgentToolError(error, "agent_wait_for_run");
       }
     },
   );

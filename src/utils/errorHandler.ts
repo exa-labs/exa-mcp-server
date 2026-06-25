@@ -6,11 +6,44 @@ import { ExaError } from "exa-js";
 
 type ToolErrorResult = { content: Array<{ type: "text"; text: string }>; isError: true };
 
-const TRANSIENT_STATUS_CODES = new Set([500, 502, 503, 504]);
+export const TRANSIENT_STATUS_CODES = new Set([500, 502, 503, 504]);
 
-const FREE_MCP_RATE_LIMIT_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
+export const EXA_API_KEYS_URL = "https://dashboard.exa.ai/api-keys";
 
-Fix: Create API key at https://dashboard.exa.ai/api-keys , and then update Exa MCP URL to this https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
+export const FREE_MCP_RATE_LIMIT_MESSAGE = `You've hit Exa's free MCP rate limit. To continue using without limits, create your own Exa API key.
+
+Fix: Create API key at ${EXA_API_KEYS_URL} , and then update Exa MCP URL to this https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY`;
+
+export function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function retryOnTransient<T>(
+  fn: () => Promise<T>,
+  isTransient: (error: unknown) => boolean,
+  maxRetries = 2,
+  baseDelayMs = 1000,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (!isTransient(error) || attempt === maxRetries) throw error;
+      await delay(baseDelayMs * 2 ** attempt);
+    }
+  }
+  throw lastError;
+}
+
+function isTransientExaError(error: unknown): boolean {
+  return error instanceof ExaError && TRANSIENT_STATUS_CODES.has(error.statusCode);
+}
+
+export function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
+  return retryOnTransient(fn, isTransientExaError, maxRetries);
+}
 
 /**
  * Checks if an error is a rate limit error (HTTP 429) and if the user is using the free MCP.
@@ -36,29 +69,6 @@ export function handleRateLimitError(
   }
 
   return null;
-}
-
-/**
- * Retries an async function on transient (5xx) errors with exponential backoff.
- * Delays: 1s after first failure, 2s after second failure.
- */
-export async function retryWithBackoff<T>(
-  fn: () => Promise<T>,
-  maxRetries: number = 2
-): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      if (!(error instanceof ExaError) || !TRANSIENT_STATUS_CODES.has(error.statusCode) || attempt === maxRetries) {
-        throw error;
-      }
-      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
-    }
-  }
-  throw lastError;
 }
 
 /**

@@ -7,11 +7,7 @@ import { createRequestLogger } from "../utils/logger.js";
 import { jsonContent } from "../utils/response.js";
 import { isTerminalStatus } from "./runStatus.js";
 
-type AgentToolConfig = AgentApiClientConfig & {
-  userProvidedApiKey?: boolean;
-};
-
-export function registerAgentGetRunOutputTool(server: McpServer, config?: AgentToolConfig): void {
+export function registerAgentGetRunOutputTool(server: McpServer, config?: AgentApiClientConfig): void {
   server.tool(
     "agent_get_run_output",
     "Retrieve completed Exa Agent output in a Claude-friendly shape: text, structured JSON, grounding, usage, and cost. Use after agent_wait_for_run reports completed.",
@@ -68,7 +64,7 @@ export function registerAgentGetRunOutputTool(server: McpServer, config?: AgentT
         });
       } catch (error) {
         logger.error(error);
-        return formatAgentToolError(error, "agent_get_run_output", config?.userProvidedApiKey);
+        return formatAgentToolError(error, "agent_get_run_output");
       }
     },
   );
