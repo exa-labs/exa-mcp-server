@@ -15,8 +15,7 @@ export function withAgentTool<TArgs>(
   run: (args: TArgs, context: AgentToolContext) => Promise<ToolContent>,
 ): (args: TArgs) => Promise<ToolContent> {
   return async (args: TArgs) => {
-    const requestId = `${toolName}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const logger = createRequestLogger(requestId, toolName);
+    const logger = createRequestLogger(toolName);
     logger.start(startMessage(args));
 
     try {
