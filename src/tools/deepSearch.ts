@@ -33,8 +33,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
       idempotentHint: false
     },
     async ({ objective, search_queries, type, numResults, highlightMaxCharacters, outputSchema, systemPrompt, structuredOutput }) => {
-      const requestId = `deep_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'deep_search_exa');
+      const logger = createRequestLogger('deep_search_exa');
 
       logger.start(objective);
 

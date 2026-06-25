@@ -19,8 +19,7 @@ export function registerAgentCancelRunTool(server: McpServer, config?: AgentApiC
       idempotentHint: true,
     },
     async ({ runId }) => {
-      const requestId = `agent_cancel_run-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      const logger = createRequestLogger(requestId, "agent_cancel_run");
+      const logger = createRequestLogger("agent_cancel_run");
       logger.start(runId);
 
       try {

@@ -43,8 +43,7 @@ export function registerAgentCreateRunTool(server: McpServer, config?: AgentApiC
       idempotentHint: false,
     },
     async ({ query, systemPrompt, outputSchema, input, dataSources, previousRunId, effort }) => {
-      const requestId = `agent_create_run-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      const logger = createRequestLogger(requestId, "agent_create_run");
+      const logger = createRequestLogger("agent_create_run");
       logger.start(query.slice(0, 120));
 
       try {

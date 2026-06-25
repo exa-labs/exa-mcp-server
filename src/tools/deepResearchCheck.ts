@@ -29,8 +29,7 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
       idempotentHint: true
     },
     async ({ researchId }) => {
-      const requestId = `deep_researcher_check-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'deep_researcher_check');
+      const logger = createRequestLogger('deep_researcher_check');
       
       logger.start(researchId);
       

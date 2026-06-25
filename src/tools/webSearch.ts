@@ -41,8 +41,7 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
     },
     async ({ query, numResults }) => {
       const toolId = toolName || 'web_search_exa';
-      const requestId = `${toolId}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, toolId);
+      const logger = createRequestLogger(toolId);
 
       // Extract category:<type> from query string if present
       const categoryMatch = query.match(/\bcategory:(company|research\s*paper|news|personal\s*site|people)\b/i);

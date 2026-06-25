@@ -56,8 +56,7 @@ export function registerAgentWaitForRunTool(server: McpServer, config?: AgentApi
       idempotentHint: true,
     },
     async ({ runId, timeoutSeconds, pollIntervalMs }) => {
-      const requestId = `agent_wait_for_run-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      const logger = createRequestLogger(requestId, "agent_wait_for_run");
+      const logger = createRequestLogger("agent_wait_for_run");
       logger.start(runId);
 
       const boundedTimeoutSeconds = clampInteger(

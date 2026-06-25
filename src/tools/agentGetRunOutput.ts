@@ -25,8 +25,7 @@ export function registerAgentGetRunOutputTool(server: McpServer, config?: AgentA
       idempotentHint: true,
     },
     async ({ runId, requireCompleted, includeText, includeStructured, includeGrounding, includeUsage }) => {
-      const requestId = `agent_get_run_output-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      const logger = createRequestLogger(requestId, "agent_get_run_output");
+      const logger = createRequestLogger("agent_get_run_output");
       logger.start(runId);
 
       try {
