@@ -347,7 +347,7 @@ https://mcp.exa.ai/mcp?tools=agent_tools
 If you want both search and Exa Agent tools enabled:
 
 ```
-https://mcp.exa.ai/mcp?tools=web_search_exa,agent_tools
+https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,agent_tools
 ```
 
 ## Agent Skills (Claude Skills)

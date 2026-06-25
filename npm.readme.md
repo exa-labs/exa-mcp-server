@@ -259,7 +259,7 @@ https://mcp.exa.ai/mcp?tools=agent_tools
 If you want both search and Exa Agent tools enabled:
 
 ```
-https://mcp.exa.ai/mcp?tools=web_search_exa,agent_tools
+https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,agent_tools
 ```
 
 See the [full documentation](https://docs.exa.ai/reference/exa-mcp) for more details on tool configuration.
