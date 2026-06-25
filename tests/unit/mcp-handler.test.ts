@@ -22,6 +22,22 @@ describe("initializeMcpServer", () => {
     expect(server.prompts.map((prompt) => prompt.name)).toEqual(["web_search_help"]);
     expect(server.resources.map((resource) => resource.name)).toEqual(["tools_list"]);
 
+    // web_search_help takes no arguments and must be registered without an args
+    // schema, otherwise the SDK validates params.arguments as a required object
+    // and rejects prompts/get requests that omit `arguments` entirely (#358).
+    const helpPrompt = server.prompts[0];
+    expect(helpPrompt.argsSchema).toBeUndefined();
+
+    const promptResult = await helpPrompt.handler();
+    expect(promptResult).toMatchObject({
+      messages: [
+        {
+          role: "user",
+          content: { type: "text" },
+        },
+      ],
+    });
+
     const resourceResult = await server.resources[0].handler();
     expect(resourceResult).toMatchObject({
       contents: [
