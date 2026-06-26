@@ -7,7 +7,11 @@ import { initializeMcpServer } from '../src/mcp-handler.js';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { isJwtToken, verifyOAuthToken } from '../src/utils/auth.js';
-import { expandToolSelection } from '../src/toolRegistry.js';
+import {
+  expandToolSelection,
+  requiresUserProvidedApiKey,
+  type ToolId,
+} from '../src/toolRegistry.js';
 import {
   buildMcpClientMetadata,
   extractInitializeClientInfo,
@@ -360,7 +364,7 @@ function getBearerToken(request: Request): string | undefined {
 
 interface RequestConfig {
   exaApiKey?: string;
-  enabledTools?: string[];
+  enabledTools?: ToolId[];
   debug: boolean;
   userProvidedApiKey: boolean;
   authMethod: 'oauth' | 'api_key' | 'free_tier';
@@ -378,7 +382,7 @@ interface RequestConfig {
  */
 async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let exaApiKey = process.env.EXA_API_KEY;
-  let enabledTools: string[] | undefined;
+  let enabledTools: ToolId[] | undefined;
   let debug = process.env.DEBUG === 'true';
   let userProvidedApiKey = false;
   let authMethod: 'oauth' | 'api_key' | 'free_tier' = 'free_tier';
@@ -630,6 +634,10 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   // OAuth error code that clients listen for when deciding to exchange a refresh token.
   if (config.invalidOAuthJwt) {
     return create401Response('invalid_token');
+  }
+
+  if (!config.userProvidedApiKey && config.enabledTools?.some(requiresUserProvidedApiKey)) {
+    return create401Response();
   }
 
   const storedMcpClient = isInitializeRequest ? undefined : await loadMcpClientMetadata(config.mcpSessionId, config.debug);

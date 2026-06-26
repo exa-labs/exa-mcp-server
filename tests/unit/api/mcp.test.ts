@@ -432,7 +432,11 @@ describe("api/mcp handler", () => {
 
   it("expands the agent tool alias from query parameters", async () => {
     const { config } = await callHandleRequest(
-      new Request("https://mcp.exa.ai/mcp?tools=agent_tools"),
+      new Request("https://mcp.exa.ai/mcp?tools=agent_tools", {
+        headers: {
+          authorization: "Bearer user-key",
+        },
+      }),
     );
 
     expect(config).toMatchObject({
@@ -448,7 +452,13 @@ describe("api/mcp handler", () => {
   it("expands the agent tool alias from ENABLED_TOOLS", async () => {
     process.env.ENABLED_TOOLS = "agent_tools";
 
-    const { config } = await callHandleRequest(new Request("https://mcp.exa.ai/mcp"));
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        headers: {
+          authorization: "Bearer user-key",
+        },
+      }),
+    );
 
     expect(config).toMatchObject({
       enabledTools: [
@@ -458,6 +468,69 @@ describe("api/mcp handler", () => {
         "agent_cancel_run",
       ],
     });
+  });
+
+  it("requires auth before initializing MCP when query-selected tools require user-provided auth", async () => {
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?tools=agent_tools", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {},
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      jsonrpc: "2.0",
+      error: {
+        code: -32000,
+        message: "Authentication required. Use OAuth or provide an API key.",
+      },
+      id: null,
+    });
+    expectMcpCorsHeaders(response);
+    expect(config).toBeUndefined();
+    expect(createMcpHandlerMock).not.toHaveBeenCalled();
+    expect(initializeMcpServerMock).not.toHaveBeenCalled();
+  });
+
+  it("requires auth before initializing MCP when an explicit selected tool requires user-provided auth", async () => {
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?tools=deep_search_exa"),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+    );
+    expectMcpCorsHeaders(response);
+    expect(config).toBeUndefined();
+    expect(createMcpHandlerMock).not.toHaveBeenCalled();
+    expect(initializeMcpServerMock).not.toHaveBeenCalled();
+  });
+
+  it("allows unauthenticated requests when only public tools are selected", async () => {
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(config).toMatchObject({
+      enabledTools: ["web_search_exa", "web_fetch_exa"],
+      userProvidedApiKey: false,
+      authMethod: "free_tier",
+    });
+    expect(initializeMcpServerMock).toHaveBeenCalled();
   });
 
   it("accepts instant as a defaultSearchType query parameter", async () => {
