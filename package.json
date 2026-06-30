@@ -31,6 +31,7 @@
     "people"
   ],
   "author": "Exa Labs",
+  "license": "MIT",
   "scripts": {
     "build": "npm run build:stdio",
     "build:stdio": "esbuild src/stdio-cli.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/stdio.cjs --banner:js=\"#!/usr/bin/env node\" && chmod +x dist/stdio.cjs",
