@@ -61,7 +61,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
 
         if (systemPrompt) {
           searchRequest.systemPrompt = systemPrompt;
-          logger.log("Using system prompt");
+          logger.log("Using caller-provided deep search instructions");
         }
 
         if (search_queries && search_queries.length > 0) {
