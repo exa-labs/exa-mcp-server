@@ -16,7 +16,7 @@ export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaA
 
 Best for: When you need specific filters like date ranges, domain restrictions, or category filters.
 Not recommended for: Simple searches - use web_search_exa instead.
-Returns: Search results with optional highlights, summaries, and subpage content.`,
+Returns: Search results. Defaults to highlights only (token-efficient, recommended for agents). Set enableText for full page text, enableSummary for AI summaries, or combine modes as needed.`,
     {
       query: lenientString().describe("Search query - can be a question, statement, or keywords"),
       numResults: lenientOptionalNumber().describe("Number of results (1-100, default: 10)"),
@@ -41,7 +41,8 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
       additionalQueries: z.array(z.string()).optional().describe("Additional query variations to expand search coverage"),
 
-      textMaxCharacters: lenientOptionalPositiveNumber().describe("Max characters for text extraction per result"),
+      enableText: lenientOptionalBoolean().describe("Include full page text per result. Off by default — for most agent workflows, prefer enableHighlights (token-efficient). Use enableText for deep analysis when you need full content."),
+      textMaxCharacters: lenientOptionalPositiveNumber().describe("Max characters for text extraction per result. Requires enableText: true (without it, this value is ignored)."),
       contextMaxCharacters: lenientOptionalPositiveNumber().describe("Max characters for context string (not included by default)"),
 
       enableSummary: lenientOptionalBoolean().describe("Enable summary generation for results"),
@@ -74,10 +75,13 @@ Returns: Search results with optional highlights, summaries, and subpage content
         const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
 
         const contents: ExaAdvancedSearchRequest['contents'] = {
-          text: params.textMaxCharacters ? { maxCharacters: params.textMaxCharacters } : true,
           ...(params.maxAgeHours !== undefined ? { maxAgeHours: params.maxAgeHours } : { livecrawl: 'fallback' as const }),
           ...(params.livecrawlTimeout && { livecrawlTimeout: params.livecrawlTimeout }),
         };
+
+        if (params.enableText) {
+          contents.text = params.textMaxCharacters ? { maxCharacters: params.textMaxCharacters } : true;
+        }
 
         if (params.contextMaxCharacters) {
           contents.context = { maxCharacters: params.contextMaxCharacters };
@@ -94,6 +98,12 @@ Returns: Search results with optional highlights, summaries, and subpage content
             highlightsPerUrl: params.highlightsPerUrl,
             query: params.highlightsQuery,
           };
+        }
+
+        // Default to highlights when no content mode was explicitly requested.
+        // Matches web_search_exa and Exa's own guidance for agent workflows.
+        if (!params.enableText && !params.enableSummary && !params.enableHighlights && !params.contextMaxCharacters) {
+          contents.highlights = true;
         }
 
         if (params.subpages) {
