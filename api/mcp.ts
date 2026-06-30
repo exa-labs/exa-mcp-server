@@ -613,12 +613,13 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   const oauthUserAgents = process.env.OAUTH_USER_AGENTS?.split(',').map(s => s.trim()).filter(Boolean) || [];
   const userAgentMatchesOAuth = oauthUserAgents.some(ua => userAgent.includes(ua));
 
-  // Check if request is from a plugin client (force OAuth for plugin users)
+  // Check if request is from a known OAuth client marker.
   const requestUrl = new URL(request.url);
-  const isPluginClient = requestUrl.searchParams.get('client')?.includes('plugin') ?? false;
+  const clientParam = requestUrl.searchParams.get('client')?.toLowerCase() ?? '';
+  const clientParamRequiresOAuth = clientParam.includes('plugin') || clientParam === 'opencode';
 
-  // Gate: require auth for /mcp/oauth endpoint, matching user agents, or plugin clients (unless bypassed)
-  const requireOAuth = options?.forceOAuth || userAgentMatchesOAuth || isPluginClient;
+  // Gate: require auth for /mcp/oauth endpoint, matching user agents, or known OAuth client markers (unless bypassed)
+  const requireOAuth = options?.forceOAuth || userAgentMatchesOAuth || clientParamRequiresOAuth;
   if (!bypassRateLimit && requireOAuth && !hasAuth(request)) {
     return create401Response();
   }

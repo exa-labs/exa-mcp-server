@@ -563,6 +563,65 @@ describe("api/mcp handler", () => {
     expect(initializeMcpServerMock).not.toHaveBeenCalled();
   });
 
+  it("requires OAuth for OpenCode's explicit client marker on the default MCP URL", async () => {
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?client=opencode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            clientInfo: {
+              name: "unknown-client-name",
+              version: "1.17.8",
+            },
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+    );
+    expectMcpCorsHeaders(response);
+    expect(createMcpHandlerMock).not.toHaveBeenCalled();
+    expect(initializeMcpServerMock).not.toHaveBeenCalled();
+  });
+
+  it("does not require OAuth for OpenCode client marker requests that include an API key", async () => {
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?client=opencode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": "user-key",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            clientInfo: {
+              name: "OpenCode",
+            },
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(config).toMatchObject({
+      exaApiKey: "user-key",
+      userProvidedApiKey: true,
+      authMethod: "api_key",
+    });
+  });
+
   it("uses the internal bypass API key without treating it as user-provided", async () => {
     process.env.RATE_LIMIT_BYPASS = "BypassClient";
     process.env.EXA_API_KEY_BYPASS = "bypass-key";
