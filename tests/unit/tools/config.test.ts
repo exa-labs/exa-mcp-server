@@ -11,11 +11,11 @@ describe("integrationHeaders", () => {
   it("appends source and forwards MCP session id as an Exa reporting header when present", () => {
     expect(
       integrationHeaders("web-search-mcp", {
-        exaSource: "claude",
+        exaSource: "kiro-power",
         mcpSessionId: "session-123",
       }),
     ).toEqual({
-      "x-exa-integration": "web-search-mcp:claude",
+      "x-exa-integration": "web-search-mcp:kiro-power",
       "x-exa-mcp-session-id": "session-123",
     });
   });
