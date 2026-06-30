@@ -1,6 +1,6 @@
 ---
 name: exa-agent
-description: Use Exa Agent for async, multi-step web research, list-building, enrichment, structured output, run continuation, and coverage validation.
+description: Use Exa Agent for async, multi-step web research, list-building, enrichment, structured output, run continuation, and coverage validation. Exa Agent can access additional data providers, fiber_ai, financial_datasets, similar_web, baselayer, affiliate, particle_news, jinko
 ---
 
 # Exa Agent Research
