@@ -36,6 +36,7 @@ export interface McpConfig {
   mcpSessionId?: string;
   mcpClient?: unknown;
   defaultSearchType?: 'auto' | 'fast' | 'instant';
+  oauthAccessToken?: string;
 }
 
 /**
