@@ -346,11 +346,10 @@ describe("api/mcp handler", () => {
     expect(new URL(forwardedRequest?.url ?? "").searchParams.has("exaApiKey")).toBe(false);
   });
 
-  it("uses an OAuth JWT api key claim from Authorization bearer tokens", async () => {
+  it("accepts proper JWT", async () => {
     verifyOAuthTokenMock.mockResolvedValue({
       sub: "user-1",
       "exa:team_id": "team-1",
-      "exa:api_key_id": "oauth-api-key",
       scope: "mcp:tools",
     });
 
@@ -364,7 +363,7 @@ describe("api/mcp handler", () => {
 
     expect(verifyOAuthTokenMock).toHaveBeenCalledWith("jwt-token");
     expect(config).toMatchObject({
-      exaApiKey: "oauth-api-key",
+      oauthAccessToken: "jwt-token",
       userProvidedApiKey: true,
       authMethod: "oauth",
     });
