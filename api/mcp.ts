@@ -403,6 +403,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
         const claims = await verifyOAuthToken(bearerToken);
         if (claims) {
           oauthAccessToken = bearerToken;
+          exaApiKey = undefined;
           userProvidedApiKey = true;
           authMethod = 'oauth';
         } else {

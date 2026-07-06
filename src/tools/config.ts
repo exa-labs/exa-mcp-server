@@ -1,3 +1,4 @@
+import { Exa } from 'exa-js';
 import { serializeMcpClientMetadata } from '../utils/mcpClientMetadata.js';
 
 // Build Exa reporting headers, appending x-exa-source if present
@@ -23,6 +24,17 @@ export function integrationHeaders(tool: string, config?: Record<string, unknown
   }
 
   return headers;
+}
+
+export function createExaClient(config?: Record<string, unknown>) {
+  const oauthAccessToken = config?.oauthAccessToken;
+  if (typeof oauthAccessToken === 'string' && oauthAccessToken.length > 0) {
+    const exa = new Exa('oauth');
+    (exa as unknown as { headers: Headers }).headers.delete('x-api-key');
+    return exa;
+  }
+  const exaApiKey = config?.exaApiKey;
+  return new Exa(typeof exaApiKey === 'string' && exaApiKey.length > 0 ? exaApiKey : process.env.EXA_API_KEY || '');
 }
 
 // Configuration for API

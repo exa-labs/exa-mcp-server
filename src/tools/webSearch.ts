@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG, integrationHeaders } from "./config.js";
+import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
@@ -52,7 +51,7 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
       logger.start(cleanedQuery);
 
       try {
-        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
+        const exa = createExaClient(config);
 
         const searchRequest: ExaSearchRequest = {
           query: cleanedQuery,
