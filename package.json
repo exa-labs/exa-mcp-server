@@ -13,13 +13,15 @@
     "exa-mcp-server": "dist/stdio.cjs"
   },
   "files": [
-    "dist"
+    "dist",
+    "skills"
   ],
   "keywords": [
     "mcp",
     "search mcp",
     "model context protocol",
     "exa",
+    "agent",
     "search",
     "websearch",
     "claude",

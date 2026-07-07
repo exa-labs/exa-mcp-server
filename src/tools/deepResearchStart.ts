@@ -26,8 +26,7 @@ Important: Call deep_researcher_check with the returned research ID to get the r
       idempotentHint: false
     },
     async ({ instructions, model, outputSchema }) => {
-      const requestId = `deep_researcher_start-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'deep_researcher_start');
+      const logger = createRequestLogger('deep_researcher_start');
       
       logger.start(instructions);
       

@@ -25,8 +25,7 @@ Returns: Company information from trusted business sources.`,
       idempotentHint: true
     },
     async ({ companyName, numResults }) => {
-      const requestId = `company_research_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'company_research_exa');
+      const logger = createRequestLogger('company_research_exa');
       
       logger.start(companyName);
       

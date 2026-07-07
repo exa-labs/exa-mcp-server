@@ -28,8 +28,7 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
       idempotentHint: true
     },
     async ({ query, numResults }) => {
-      const requestId = `get_code_context_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'get_code_context_exa');
+      const logger = createRequestLogger('get_code_context_exa');
 
       logger.start(`Searching for code context: ${query}`);
 

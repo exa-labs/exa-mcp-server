@@ -57,8 +57,7 @@ Returns: Clean text content and metadata from the page(s).`,
       idempotentHint: true
     },
     async ({ urls, maxCharacters }) => {
-      const requestId = `web_fetch_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'web_fetch_exa');
+      const logger = createRequestLogger('web_fetch_exa');
 
       logger.start(urls.join(', '));
 

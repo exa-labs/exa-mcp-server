@@ -25,8 +25,7 @@ Returns: Profile information and links.`,
       idempotentHint: true
     },
     async ({ query, numResults }) => {
-      const requestId = `people_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'people_search_exa');
+      const logger = createRequestLogger('people_search_exa');
       
       logger.start(`${query}`);
       

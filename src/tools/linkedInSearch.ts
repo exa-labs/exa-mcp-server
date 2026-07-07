@@ -22,8 +22,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
       idempotentHint: true
     },
     async ({ query, numResults }) => {
-      const requestId = `linkedin_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'linkedin_search_exa');
+      const logger = createRequestLogger('linkedin_search_exa');
       
       logger.start(`${query}`);
       

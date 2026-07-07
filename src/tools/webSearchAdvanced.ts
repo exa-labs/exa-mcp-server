@@ -65,8 +65,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
       idempotentHint: true
     },
     async (params) => {
-      const requestId = `web_search_advanced_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'web_search_advanced_exa');
+      const logger = createRequestLogger('web_search_advanced_exa');
 
       logger.start(params.query);
 
