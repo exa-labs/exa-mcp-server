@@ -26,7 +26,15 @@ export function integrationHeaders(tool: string, config?: Record<string, unknown
   return headers;
 }
 
-export function createExaClient(config?: Record<string, unknown>) {
+export function createExaClient(config?: Record<string, unknown>, tool?: string) {
+  const exa = createBaseExaClient(config);
+  if (tool) {
+    applyClientHeaders(exa, integrationHeaders(tool, config));
+  }
+  return exa;
+}
+
+function createBaseExaClient(config?: Record<string, unknown>) {
   const oauthAccessToken = config?.oauthAccessToken;
   if (typeof oauthAccessToken === 'string' && oauthAccessToken.length > 0) {
     const exa = new Exa('oauth');
@@ -35,6 +43,20 @@ export function createExaClient(config?: Record<string, unknown>) {
   }
   const exaApiKey = config?.exaApiKey;
   return new Exa(typeof exaApiKey === 'string' && exaApiKey.length > 0 ? exaApiKey : process.env.EXA_API_KEY || '');
+}
+
+function applyClientHeaders(exa: Exa, headers: Record<string, string>) {
+  const client = exa as unknown as { headers: Headers | Record<string, string> };
+  const headerBag = client.headers as Headers;
+  if (typeof headerBag.set === 'function') {
+    Object.entries(headers).forEach(([key, value]) => headerBag.set(key, value));
+    return;
+  }
+
+  client.headers = {
+    ...client.headers,
+    ...headers,
+  };
 }
 
 // Configuration for API

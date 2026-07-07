@@ -22,7 +22,7 @@ function run(status: AgentRun["status"]): AgentRun {
 describe("waitForRun", () => {
   it("returns immediately for completed runs", async () => {
     const reader: AgentRunReader = {
-      getRun: async () => run("completed"),
+      get: async () => run("completed"),
     };
 
     const result = await waitForRun({
@@ -39,7 +39,7 @@ describe("waitForRun", () => {
 
   it("reports timedOut when the run is still active at the deadline", async () => {
     const reader: AgentRunReader = {
-      getRun: async () => run("running"),
+      get: async () => run("running"),
     };
 
     const result = await waitForRun({

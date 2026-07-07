@@ -1,12 +1,12 @@
+import type { CreateAgentRunParams } from "exa-js";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { checkpoint } from "agnost";
 import type { AgentEffort, AgentRunInput } from "../types.js";
-import type { AgentApiClientConfig } from "../utils/agentApiClient.js";
-import { withAgentTool } from "../utils/agentTool.js";
+import { withAgentTool, type AgentToolConfig } from "../utils/agentTool.js";
 import { jsonContent } from "../utils/response.js";
 
-const effortSchema = z.enum(["low", "medium", "high", "xhigh", "auto"]);
+const effortSchema = z.enum(["minimal", "low", "medium", "high", "xhigh", "auto"]);
 const recordSchema = z.record(z.unknown());
 const dataSourceProviderSchema = z.enum([
   "fiber_ai",
@@ -18,7 +18,7 @@ const dataSourceProviderSchema = z.enum([
   "jinko",
 ]);
 
-export function registerAgentCreateRunTool(server: McpServer, config?: AgentApiClientConfig): void {
+export function registerAgentCreateRunTool(server: McpServer, config?: AgentToolConfig): void {
   server.tool(
     "agent_create_run",
     "Create an async Exa Agent run for multi-step research, list-building, enrichment, or structured output. Returns an agent_run_... ID immediately; poll with agent_wait_for_run before reading final output. Every run should include outputSchema when repeatable structured results are needed.",
@@ -34,7 +34,7 @@ export function registerAgentCreateRunTool(server: McpServer, config?: AgentApiC
         provider: dataSourceProviderSchema.describe("Exa Connect provider to enable for the run."),
       })).max(5).optional().describe("Optional Exa Connect providers to enable for this run. Usable self-serve providers: fiber_ai, financial_datasets, similar_web, baselayer, affiliate, particle_news, jinko."),
       previousRunId: z.string().optional().describe("Completed prior agent_run_... ID to continue from."),
-      effort: effortSchema.optional().describe("Agent effort: low, medium, high, xhigh, or auto. Defaults to auto."),
+      effort: effortSchema.optional().describe("Agent effort: minimal, low, medium, high, xhigh, or auto. Defaults to auto."),
     },
     {
       readOnlyHint: false,
@@ -64,7 +64,7 @@ export function registerAgentCreateRunTool(server: McpServer, config?: AgentApiC
           effort: runInput.effort,
         });
 
-        const run = await client.createRun(runInput);
+        const run = await client.agent.runs.create(runInput as CreateAgentRunParams);
         checkpoint("agent_create_run_response_received", { status: run.status });
 
         return jsonContent({

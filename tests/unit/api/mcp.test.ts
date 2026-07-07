@@ -472,6 +472,29 @@ describe("api/mcp handler", () => {
     });
   });
 
+  it("enables agent tools with key", async () => {
+    const { config, forwardedRequest } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?tools=agent_tools", {
+        headers: {
+          "x-api-key": "user-key",
+        },
+      }),
+    );
+
+    expect(config).toMatchObject({
+      exaApiKey: "user-key",
+      userProvidedApiKey: true,
+      authMethod: "api_key",
+      enabledTools: [
+        "agent_create_run",
+        "agent_wait_for_run",
+        "agent_get_run_output",
+        "agent_cancel_run",
+      ],
+    });
+    expect(forwardedRequest?.headers.get("x-api-key")).toBeNull();
+  });
+
   it("expands the agent tool alias from ENABLED_TOOLS", async () => {
     process.env.ENABLED_TOOLS = "agent_tools";
 

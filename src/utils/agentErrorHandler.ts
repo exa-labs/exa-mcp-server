@@ -1,13 +1,12 @@
-import axios from "axios";
+import { ExaError } from "exa-js";
 import type { ToolContent } from "../types.js";
 import { EXA_API_KEYS_URL, TRANSIENT_STATUS_CODES, delay, retryOnTransient } from "./errorHandler.js";
 
 export { delay };
 
 export function isTransientAgentError(error: unknown): boolean {
-  if (!axios.isAxiosError(error)) return false;
-  const status = error.response?.status;
-  return status != null && TRANSIENT_STATUS_CODES.has(status);
+  if (!isExaError(error)) return false;
+  return TRANSIENT_STATUS_CODES.has(error.statusCode);
 }
 
 export function retryAgentRequest<T>(
@@ -21,10 +20,9 @@ export function formatAgentToolError(
   error: unknown,
   toolName: string,
 ): ToolContent {
-  if (axios.isAxiosError(error)) {
-    const status = error.response?.status ?? "unknown";
-    const data = error.response?.data;
-    const apiMessage = errorMessageFromData(data) ?? error.message;
+  if (isExaError(error)) {
+    const status = error.statusCode;
+    const apiMessage = error.message;
     const guidance = guidanceForStatus(status);
     return {
       content: [{
@@ -44,14 +42,12 @@ export function formatAgentToolError(
   };
 }
 
-function errorMessageFromData(data: unknown): string | undefined {
-  if (data == null || typeof data !== "object") return undefined;
-  const record = data as Record<string, unknown>;
-  const message = record.message;
-  if (typeof message === "string") return message;
-  const error = record.error;
-  if (typeof error === "string") return error;
-  return JSON.stringify(data);
+function isExaError(error: unknown): error is ExaError {
+  return error instanceof ExaError || (
+    error instanceof Error &&
+    "statusCode" in error &&
+    typeof (error as { statusCode?: unknown }).statusCode === "number"
+  );
 }
 
 function guidanceForStatus(status: number | "unknown"): string {

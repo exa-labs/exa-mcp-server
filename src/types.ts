@@ -250,7 +250,7 @@ export interface ExaCodeResponse {
 }
 
 export type AgentStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
-export type AgentEffort = "low" | "medium" | "high" | "xhigh" | "auto";
+export type AgentEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "auto";
 export type AgentDataSourceProvider =
   | "fiber_ai"
   | "financial_datasets"

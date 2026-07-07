@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { checkpoint } from "agnost";
-import type { AgentApiClientConfig } from "../utils/agentApiClient.js";
-import { withAgentTool } from "../utils/agentTool.js";
+import type { AgentRun } from "../types.js";
+import { retryAgentRequest } from "../utils/agentErrorHandler.js";
+import { withAgentTool, type AgentToolConfig } from "../utils/agentTool.js";
 import { jsonContent } from "../utils/response.js";
 
-export function registerAgentCancelRunTool(server: McpServer, config?: AgentApiClientConfig): void {
+export function registerAgentCancelRunTool(server: McpServer, config?: AgentToolConfig): void {
   server.tool(
     "agent_cancel_run",
     "Cancel a queued or running Exa Agent run. Use only when the user asks, the run is clearly wrong, or a duplicate run was accidentally created.",
@@ -22,7 +23,7 @@ export function registerAgentCancelRunTool(server: McpServer, config?: AgentApiC
       config,
       ({ runId }) => runId,
       async ({ runId }, { client }) => {
-        const run = await client.cancelRun(runId);
+        const run = await retryAgentRequest(() => client.agent.runs.cancel(runId)) as AgentRun;
         checkpoint("agent_cancel_run_response_received", { status: run.status });
 
         return jsonContent({

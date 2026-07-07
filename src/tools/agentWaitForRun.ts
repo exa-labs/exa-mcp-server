@@ -3,14 +3,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { checkpoint } from "agnost";
 import { API_CONFIG } from "./config.js";
 import type { AgentRun } from "../types.js";
-import type { AgentApiClientConfig } from "../utils/agentApiClient.js";
-import { delay } from "../utils/agentErrorHandler.js";
-import { withAgentTool } from "../utils/agentTool.js";
+import { delay, retryAgentRequest } from "../utils/agentErrorHandler.js";
+import { withAgentTool, type AgentToolConfig } from "../utils/agentTool.js";
 import { clampInteger, jsonContent } from "../utils/response.js";
 import { isTerminalStatus, nextActionForStatus } from "./runStatus.js";
 
 export type AgentRunReader = {
-  getRun(runId: string): Promise<AgentRun>;
+  get(runId: string): Promise<AgentRun>;
 };
 
 export type WaitForRunResult = {
@@ -26,12 +25,12 @@ export async function waitForRun(params: {
   pollIntervalMs: number;
 }): Promise<WaitForRunResult> {
   const deadline = Date.now() + params.timeoutSeconds * 1000;
-  let lastRun = await params.client.getRun(params.runId);
+  let lastRun = await params.client.get(params.runId);
 
   while (!isTerminalStatus(lastRun.status) && Date.now() < deadline) {
     const remainingMs = Math.max(0, deadline - Date.now());
     await delay(Math.min(params.pollIntervalMs, remainingMs));
-    lastRun = await params.client.getRun(params.runId);
+    lastRun = await params.client.get(params.runId);
   }
 
   return {
@@ -41,7 +40,7 @@ export async function waitForRun(params: {
   };
 }
 
-export function registerAgentWaitForRunTool(server: McpServer, config?: AgentApiClientConfig): void {
+export function registerAgentWaitForRunTool(server: McpServer, config?: AgentToolConfig): void {
   server.tool(
     "agent_wait_for_run",
     "Poll an Exa Agent run until it reaches completed/failed/cancelled or a bounded timeout. This is the ergonomic default after agent_create_run.",
@@ -74,7 +73,9 @@ export function registerAgentWaitForRunTool(server: McpServer, config?: AgentApi
         );
 
         const result = await waitForRun({
-          client,
+          client: {
+            get: (id) => retryAgentRequest(() => client.agent.runs.get(id)) as Promise<AgentRun>,
+          },
           runId,
           timeoutSeconds: boundedTimeoutSeconds,
           pollIntervalMs: boundedPollIntervalMs,

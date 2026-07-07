@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { checkpoint } from "agnost";
-import type { AgentApiClientConfig } from "../utils/agentApiClient.js";
-import { withAgentTool } from "../utils/agentTool.js";
+import type { AgentRun } from "../types.js";
+import { retryAgentRequest } from "../utils/agentErrorHandler.js";
+import { withAgentTool, type AgentToolConfig } from "../utils/agentTool.js";
 import { jsonContent } from "../utils/response.js";
 import { isTerminalStatus } from "./runStatus.js";
 
-export function registerAgentGetRunOutputTool(server: McpServer, config?: AgentApiClientConfig): void {
+export function registerAgentGetRunOutputTool(server: McpServer, config?: AgentToolConfig): void {
   server.tool(
     "agent_get_run_output",
     "Retrieve completed Exa Agent output in a Claude-friendly shape: text, structured JSON, grounding, usage, and cost. Use after agent_wait_for_run reports completed.",
@@ -28,7 +29,7 @@ export function registerAgentGetRunOutputTool(server: McpServer, config?: AgentA
       config,
       ({ runId }) => runId,
       async ({ runId, requireCompleted, includeText, includeStructured, includeGrounding, includeUsage }, { client }) => {
-        const run = await client.getRun(runId);
+        const run = await retryAgentRequest(() => client.agent.runs.get(runId)) as AgentRun;
         checkpoint("agent_get_run_output_response_received", { status: run.status });
 
         const mustBeCompleted = requireCompleted ?? true;
