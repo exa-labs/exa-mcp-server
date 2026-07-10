@@ -60,6 +60,16 @@ claude mcp add --transport http exa https://mcp.exa.ai/mcp
 </details>
 
 <details>
+<summary><b>Autohand Code</b></summary>
+
+```bash
+autohand mcp add --transport http exa https://mcp.exa.ai/mcp
+```
+
+Add `--scope project` after `add` to keep the server configuration in the current project. See [Autohand Code](https://github.com/autohandai/code-cli/) for current installation and CLI details.
+</details>
+
+<details>
 <summary><b>Claude Desktop</b></summary>
 
 Exa is available as a native Claude Connector — no config files or terminal commands needed.
