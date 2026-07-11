@@ -248,3 +248,56 @@ export interface ExaCodeResponse {
   outputTokens?: number;
   traces?: any;
 }
+
+export type AgentStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
+export type AgentEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "auto";
+export type AgentDataSourceProvider =
+  | "fiber_ai"
+  | "financial_datasets"
+  | "similar_web"
+  | "baselayer"
+  | "affiliate"
+  | "particle_news"
+  | "jinko";
+
+export type AgentRunInput = {
+  query: string;
+  systemPrompt?: string;
+  input?: {
+    data?: Array<Record<string, unknown>>;
+    exclusion?: Array<Record<string, unknown>>;
+  };
+  outputSchema?: Record<string, unknown> | null;
+  effort?: AgentEffort;
+  flags?: string[];
+  previousRunId?: string;
+  dataSources?: Array<{
+    provider: AgentDataSourceProvider;
+  }>;
+};
+
+export type AgentRun = {
+  id: string;
+  object: "agent_run";
+  status: AgentStatus;
+  stopReason: string | null;
+  createdAt: string;
+  completedAt: string | null;
+  request: unknown;
+  output: {
+    text: string;
+    structured: unknown | null;
+    grounding: Array<{
+      field: string;
+      citations: Array<{ url: string; title?: string }>;
+      confidence: string;
+    }>;
+  };
+  usage?: Record<string, unknown>;
+  costDollars?: Record<string, unknown>;
+};
+
+export type ToolContent = {
+  content: Array<{ type: "text"; text: string }>;
+  isError?: true;
+};

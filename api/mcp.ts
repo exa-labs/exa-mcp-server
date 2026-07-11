@@ -8,6 +8,11 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { isJwtToken, verifyOAuthToken } from '../src/utils/auth.js';
 import {
+  expandToolSelection,
+  requiresUserProvidedApiKey,
+  type ToolId,
+} from '../src/toolRegistry.js';
+import {
   buildMcpClientMetadata,
   extractInitializeClientInfo,
   MCP_CLIENT_SESSION_TTL_SECONDS,
@@ -359,7 +364,7 @@ function getBearerToken(request: Request): string | undefined {
 
 interface RequestConfig {
   exaApiKey?: string;
-  enabledTools?: string[];
+  enabledTools?: ToolId[];
   debug: boolean;
   userProvidedApiKey: boolean;
   authMethod: 'oauth' | 'api_key' | 'free_tier';
@@ -367,6 +372,7 @@ interface RequestConfig {
   mcpSessionId?: string;
   mcpClient?: McpClientMetadata;
   defaultSearchType?: 'auto' | 'fast' | 'instant';
+  oauthAccessToken?: string;
   /** True when a Bearer token was a JWT but failed OAuth verification (expired, bad sig, wrong issuer/audience). */
   invalidOAuthJwt: boolean;
 }
@@ -377,11 +383,12 @@ interface RequestConfig {
  */
 async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let exaApiKey = process.env.EXA_API_KEY;
-  let enabledTools: string[] | undefined;
+  let enabledTools: ToolId[] | undefined;
   let debug = process.env.DEBUG === 'true';
   let userProvidedApiKey = false;
   let authMethod: 'oauth' | 'api_key' | 'free_tier' = 'free_tier';
   let defaultSearchType: 'auto' | 'fast' | 'instant' | undefined;
+  let oauthAccessToken: string | undefined;
   let invalidOAuthJwt = false;
 
   // 1. Check x-api-key header (highest priority)
@@ -400,8 +407,8 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
       if (isJwtToken(bearerToken)) {
         const claims = await verifyOAuthToken(bearerToken);
         if (claims) {
-          // The api_key_id claim IS the API key (ApiKey.id UUID = the key string)
-          exaApiKey = claims['exa:api_key_id'];
+          oauthAccessToken = bearerToken;
+          exaApiKey = undefined;
           userProvidedApiKey = true;
           authMethod = 'oauth';
         } else {
@@ -438,10 +445,12 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
     if (params.has('tools')) {
       const toolsParam = params.get('tools');
       if (toolsParam) {
-        enabledTools = toolsParam
+        enabledTools = expandToolSelection(
+          toolsParam
           .split(',')
           .map(t => t.trim())
-          .filter(t => t.length > 0);
+          .filter(t => t.length > 0),
+        );
       }
     }
 
@@ -466,10 +475,12 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
 
   // Fall back to env vars if no query params were found
   if (!enabledTools && process.env.ENABLED_TOOLS) {
-    enabledTools = process.env.ENABLED_TOOLS
-      .split(',')
-      .map(t => t.trim())
-      .filter(t => t.length > 0);
+    enabledTools = expandToolSelection(
+      process.env.ENABLED_TOOLS
+        .split(',')
+        .map(t => t.trim())
+        .filter(t => t.length > 0),
+    );
   }
 
   if (!defaultSearchType && process.env.DEFAULT_SEARCH_TYPE) {
@@ -482,7 +493,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   const exaSource = request.headers.get('x-exa-source') || undefined;
   const mcpSessionId = request.headers.get('MCP-Session-Id') || undefined;
 
-  return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod, exaSource, mcpSessionId, defaultSearchType, invalidOAuthJwt };
+  return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod, exaSource, mcpSessionId, defaultSearchType, oauthAccessToken, invalidOAuthJwt };
 }
 
 /**
@@ -491,7 +502,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
  * configuration (tools and API key). This prevents API key leakage between
  * different users who might pass different keys via URL.
  */
-function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string; mcpSessionId?: string; mcpClient?: McpClientMetadata; defaultSearchType?: 'auto' | 'fast' | 'instant' }) {
+function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string; mcpSessionId?: string; mcpClient?: McpClientMetadata; defaultSearchType?: 'auto' | 'fast' | 'instant'; oauthAccessToken?: string }) {
   return createMcpHandler(
     (server: any) => {
       initializeMcpServer(server, config);
@@ -625,6 +636,10 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   // OAuth error code that clients listen for when deciding to exchange a refresh token.
   if (config.invalidOAuthJwt) {
     return create401Response('invalid_token');
+  }
+
+  if (!config.userProvidedApiKey && config.enabledTools?.some(requiresUserProvidedApiKey)) {
+    return create401Response();
   }
 
   const storedMcpClient = isInitializeRequest ? undefined : await loadMcpClientMetadata(config.mcpSessionId, config.debug);

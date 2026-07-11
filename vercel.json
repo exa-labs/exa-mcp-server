@@ -2,11 +2,13 @@
   "functions": {
     "api/mcp.ts": {
       "maxDuration": 60,
-      "memory": 1024
+      "memory": 1024,
+      "includeFiles": "skills/**"
     },
     "api/mcp-oauth.ts": {
       "maxDuration": 60,
-      "memory": 1024
+      "memory": 1024,
+      "includeFiles": "skills/**"
     }
   },
   "rewrites": [
@@ -42,4 +44,3 @@
   "buildCommand": "npm run build:vercel",
   "outputDirectory": "dist"
 }
-

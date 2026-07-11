@@ -20,6 +20,17 @@ describe("integrationHeaders", () => {
     });
   });
 
+  it("includes Authorization bearer header when OAuth access token is present", () => {
+    expect(
+      integrationHeaders("web-search-mcp", {
+        oauthAccessToken: "jwt-token",
+      }),
+    ).toEqual({
+      "x-exa-integration": "web-search-mcp",
+      Authorization: "Bearer jwt-token",
+    });
+  });
+
   it("forwards MCP client metadata as one structured header", () => {
     expect(
       integrationHeaders("web-search-mcp", {

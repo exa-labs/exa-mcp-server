@@ -25,7 +25,7 @@ export function isJwtToken(token: string): boolean {
 export interface OAuthTokenClaims {
   sub: string;
   'exa:team_id': string;
-  'exa:api_key_id': string;
+  'exa:api_key_id'?: string;
   scope?: string;
 }
 
@@ -43,7 +43,7 @@ export async function verifyOAuthToken(token: string): Promise<OAuthTokenClaims 
     const teamId = payload['exa:team_id'];
     const apiKeyId = payload['exa:api_key_id'];
 
-    if (typeof teamId !== 'string' || typeof apiKeyId !== 'string') {
+    if (typeof teamId !== 'string') {
       console.error('[EXA-MCP] JWT missing required exa claims');
       return null;
     }
@@ -51,7 +51,7 @@ export async function verifyOAuthToken(token: string): Promise<OAuthTokenClaims 
     return {
       sub: payload.sub ?? '',
       'exa:team_id': teamId,
-      'exa:api_key_id': apiKeyId,
+      ...(typeof apiKeyId === 'string' ? { 'exa:api_key_id': apiKeyId } : {}),
       scope: typeof payload.scope === 'string' ? payload.scope : undefined,
     };
   } catch (error) {

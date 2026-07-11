@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { Exa } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG, integrationHeaders } from "./config.js";
+import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
@@ -23,13 +22,12 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
       idempotentHint: true
     },
     async ({ query, numResults }) => {
-      const requestId = `linkedin_search_exa-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'linkedin_search_exa');
+      const logger = createRequestLogger('linkedin_search_exa');
       
       logger.start(`${query}`);
       
       try {
-        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
+        const exa = createExaClient(config);
 
         let searchQuery = query;
         searchQuery = `${query} LinkedIn profile`;
