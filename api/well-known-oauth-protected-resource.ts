@@ -9,7 +9,7 @@ const OAUTH_ISSUER = process.env.OAUTH_ISSUER || 'https://auth.exa.ai';
 
 export function GET(): Response {
   const metadata = {
-    resource: 'https://mcp.exa.ai',
+    resource: 'https://mcp.exa.ai/mcp',
     authorization_servers: [OAUTH_ISSUER],
     scopes_supported: ['mcp:tools'],
     bearer_methods_supported: ['header'],

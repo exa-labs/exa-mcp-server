@@ -5,11 +5,7 @@
  * the available configuration options and pass them via URL parameters.
  */
 
-const AVAILABLE_TOOLS = [
-  'web_search_exa',
-  'web_search_advanced_exa',
-  'web_fetch_exa',
-];
+import { AVAILABLE_TOOL_SELECTION_VALUES } from "../src/toolRegistry.js";
 
 const configSchema = {
   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -27,12 +23,14 @@ const configSchema = {
     "tools": {
       "type": "string",
       "title": "Enabled Tools",
-      "description": "Comma-separated list of tools to enable. Leave empty for defaults (web_search_exa, web_fetch_exa).",
+      "description": "Comma-separated list of tools to enable. Leave empty for defaults (web_search_exa, web_fetch_exa). Agent tools require OAuth or an API key.",
       "examples": [
         "web_search_exa,web_search_advanced_exa",
-        "web_search_exa,web_search_advanced_exa,web_fetch_exa"
+        "web_search_exa,web_search_advanced_exa,web_fetch_exa",
+        "agent_tools",
+        "web_search_exa,agent_tools"
       ],
-      "x-available-values": AVAILABLE_TOOLS
+      "x-available-values": AVAILABLE_TOOL_SELECTION_VALUES
     },
     "debug": {
       "type": "boolean",

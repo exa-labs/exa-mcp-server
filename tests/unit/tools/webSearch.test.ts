@@ -79,6 +79,30 @@ describe("registerWebSearchTool", () => {
     expect((result as any).content[0].text).toContain("First highlight");
   });
 
+  it("uses an instant default search type when configured", async () => {
+    const { registerWebSearchTool } = await import("../../../src/tools/webSearch.js");
+    const server = new FakeMcpServer();
+    requestMock.mockResolvedValue(searchResponse);
+
+    registerWebSearchTool(server as any, {
+      defaultSearchType: "instant",
+    });
+
+    await server.getTool("web_search_exa").handler({
+      query: "AI breakthroughs",
+    });
+
+    expect(requestMock).toHaveBeenCalledWith(
+      "/search",
+      "POST",
+      expect.objectContaining({
+        type: "instant",
+      }),
+      undefined,
+      expect.any(Object),
+    );
+  });
+
   it("returns a friendly message when Exa has no results", async () => {
     const { registerWebSearchTool } = await import("../../../src/tools/webSearch.js");
     const server = new FakeMcpServer();

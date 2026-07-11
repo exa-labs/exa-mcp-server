@@ -230,6 +230,37 @@ Add to your Roo Code MCP config:
 </details>
 
 <details>
+<summary><b>LM Studio</b></summary>
+
+<a href="https://lmstudio.ai/install-mcp?name=exa&config=eyJ1cmwiOiJodHRwczovL21jcC5leGEuYWkvbWNwIn0%3D">
+  <img src="https://files.lmstudio.ai/deeplink/mcp-install-light.svg" alt="Add Exa MCP to LM Studio" />
+</a>
+
+Or add manually: open LM Studio, go to the Program tab, click **Install > Edit mcp.json**, and add:
+
+```json
+{
+  "exa": {
+    "url": "https://mcp.exa.ai/mcp"
+  }
+}
+```
+
+Exa's tools will appear in the chat. Ask your model to search the web, fetch a page, or research a topic.
+</details>
+
+<details>
+<summary><b>Replit</b></summary>
+
+Go to [**Integrations**](https://replit.com/integrations) > **MCP Servers** > **Add MCP Server**, then enter:
+
+- **Name:** `Exa`
+- **URL:** `https://mcp.exa.ai/mcp`
+
+Or [click here to install automatically](https://replit.com/integrations?mcp=eyJkaXNwbGF5TmFtZSI6IkV4YSIsImJhc2VVcmwiOiJodHRwczovL21jcC5leGEuYWkvbWNwIn0=).
+</details>
+
+<details>
 <summary><b>Other Clients</b></summary>
 
 For clients that support remote MCP:
@@ -291,6 +322,14 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | ---- | ----------- |
 | `web_search_advanced_exa` | Advanced web search with full control over filters, domains, dates, and content options |
 
+**[Exa Agent](https://exa.ai/docs/reference/agent-api-guide) Tools** (optional, OAuth or API key required):
+| Tool | Description |
+| ---- | ----------- |
+| `agent_create_run` | Start an async Exa Agent run for multi-step research, list-building, enrichment, or structured output |
+| `agent_wait_for_run` | Poll an Agent run until terminal status or timeout |
+| `agent_get_run_output` | Retrieve completed text, structured output, grounding, usage, and cost |
+| `agent_cancel_run` | Cancel a queued or running Agent run |
+
 **Deprecated** (still available for backwards compatibility):
 
 | Tool | Use instead |
@@ -308,6 +347,18 @@ Enable additional tools with the `tools` parameter:
 
 ```
 https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,web_fetch_exa
+```
+
+If you want to use Exa Agent, enable the optional toolset like so:
+
+```
+https://mcp.exa.ai/mcp?tools=agent_tools
+```
+
+If you want both search and Exa Agent tools enabled:
+
+```
+https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,agent_tools
 ```
 
 > **Security note:** Pass your API key through your MCP client's secret/header configuration (or `EXA_API_KEY` for the npm package) rather than embedding it in the URL. Query-string secrets can leak through shell history, proxy logs, and screenshots.

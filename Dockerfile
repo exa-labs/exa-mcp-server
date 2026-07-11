@@ -24,6 +24,7 @@ WORKDIR /app
 
 # Copy compiled code from the builder stage
 COPY --from=builder /app/dist ./dist
+COPY skills/ ./skills/
 COPY package.json package-lock.json ./
 
 # Install only production dependencies

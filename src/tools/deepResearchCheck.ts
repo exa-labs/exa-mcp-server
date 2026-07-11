@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { Exa, ExaError } from "exa-js";
+import { ExaError } from "exa-js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG, integrationHeaders } from "./config.js";
+import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { DeepResearchCheckResponse, DeepResearchErrorResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
@@ -29,8 +29,7 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
       idempotentHint: true
     },
     async ({ researchId }) => {
-      const requestId = `deep_researcher_check-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const logger = createRequestLogger(requestId, 'deep_researcher_check');
+      const logger = createRequestLogger('deep_researcher_check');
       
       logger.start(researchId);
       
@@ -40,7 +39,7 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
         await delay(5000);
         checkpoint('deep_research_check_delay_complete');
 
-        const exa = new Exa(config?.exaApiKey || process.env.EXA_API_KEY || '');
+        const exa = createExaClient(config);
 
         logger.log(`Checking status for research: ${researchId}`);
         
