@@ -710,6 +710,106 @@ describe("api/mcp handler", () => {
     expect(createMcpHandlerMock).not.toHaveBeenCalled();
   });
 
+  it("rate limits batched tools/call requests when over the limit", async () => {
+    process.env.KV_REST_API_URL = "https://redis.example";
+    process.env.KV_REST_API_TOKEN = "redis-token";
+    const reset = Date.now() + 10_000;
+    rateLimitInstances.push(
+      { limit: vi.fn().mockResolvedValue({ success: false, reset }) },
+      { limit: vi.fn().mockResolvedValue({ success: true, reset }) },
+    );
+
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-vercel-forwarded-for": "203.0.113.10",
+        },
+        body: JSON.stringify([
+          { jsonrpc: "2.0", id: 1, method: "tools/call" },
+          { jsonrpc: "2.0", id: 2, method: "tools/call" },
+        ]),
+      }),
+    );
+
+    expect(response.status).toBe(429);
+    expectMcpCorsHeaders(response);
+    expect(createMcpHandlerMock).not.toHaveBeenCalled();
+  });
+
+  it("charges one rate limit token per tools/call member in a batch", async () => {
+    process.env.KV_REST_API_URL = "https://redis.example";
+    process.env.KV_REST_API_TOKEN = "redis-token";
+    const reset = Date.now() + 10_000;
+    const qpsLimit = vi.fn().mockResolvedValue({ success: true, reset });
+    const dailyLimit = vi.fn().mockResolvedValue({ success: true, reset });
+    rateLimitInstances.push({ limit: qpsLimit }, { limit: dailyLimit });
+
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-vercel-forwarded-for": "203.0.113.10",
+        },
+        body: JSON.stringify([
+          { jsonrpc: "2.0", id: 1, method: "tools/call" },
+          { jsonrpc: "2.0", id: 2, method: "tools/list" },
+          { jsonrpc: "2.0", id: 3, method: "tools/call" },
+        ]),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(qpsLimit).toHaveBeenCalledWith("203.0.113.10", { rate: 2 });
+    expect(dailyLimit).toHaveBeenCalledWith("203.0.113.10", { rate: 2 });
+    expect(createMcpHandlerMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not rate limit batches without tools/call members", async () => {
+    process.env.KV_REST_API_URL = "https://redis.example";
+    process.env.KV_REST_API_TOKEN = "redis-token";
+    const reset = Date.now() + 10_000;
+    const qpsLimit = vi.fn().mockResolvedValue({ success: false, reset });
+    const dailyLimit = vi.fn().mockResolvedValue({ success: false, reset });
+    rateLimitInstances.push({ limit: qpsLimit }, { limit: dailyLimit });
+
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-vercel-forwarded-for": "203.0.113.10",
+        },
+        body: JSON.stringify([
+          { jsonrpc: "2.0", id: 1, method: "tools/list" },
+          { jsonrpc: "2.0", id: 2, method: "ping" },
+        ]),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(qpsLimit).not.toHaveBeenCalled();
+    expect(dailyLimit).not.toHaveBeenCalled();
+    expect(createMcpHandlerMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires auth before initializing MCP when deep researcher tools are selected", async () => {
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?tools=deep_researcher_start"),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+    );
+    expectMcpCorsHeaders(response);
+    expect(config).toBeUndefined();
+    expect(createMcpHandlerMock).not.toHaveBeenCalled();
+    expect(initializeMcpServerMock).not.toHaveBeenCalled();
+  });
+
   it("includes CORS headers when the MCP handler throws", async () => {
     createMcpHandlerMock.mockImplementationOnce(() => async () => {
       throw new Error("transport failed");

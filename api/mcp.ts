@@ -206,17 +206,15 @@ function createRateLimitResponse(retryAfterSeconds: number, reset: number): Resp
   );
 }
 
-/**
- * Check if a JSON-RPC request is a tools/call method that should be rate limited.
- * Returns true only for actual tool invocations, not for protocol methods like
- * tools/list, initialize, ping, resources/list, prompts/list, etc.
- */
-function isRateLimitedMethod(body: string): boolean {
+function countRateLimitedCalls(body: string): number {
   try {
     const parsed = JSON.parse(body);
-    return parsed.method === 'tools/call';
+    const messages = Array.isArray(parsed) ? parsed : [parsed];
+    return messages.filter(
+      (message) => message && typeof message === 'object' && message.method === 'tools/call'
+    ).length;
   } catch {
-    return false;
+    return 0;
   }
 }
 
@@ -273,7 +271,7 @@ async function saveBypassRequestInfo(ip: string, userAgent: string, debug: boole
  * Check rate limits for a given IP.
  * Returns null if within limits, or a Response if rate limited.
  */
-async function checkRateLimits(ip: string | null, debug: boolean): Promise<Response | null> {
+async function checkRateLimits(ip: string | null, count: number, debug: boolean): Promise<Response | null> {
   if (!ip) {
     if (debug) {
       console.log('[EXA-MCP] Skipping rate limit: trusted client IP unavailable');
@@ -284,10 +282,10 @@ async function checkRateLimits(ip: string | null, debug: boolean): Promise<Respo
   if (!qpsLimiter || !dailyLimiter) {
     return null; // Rate limiting not configured
   }
-  
+
   try {
     // Check QPS limit first (more likely to be hit)
-    const qpsResult = await qpsLimiter.limit(ip);
+    const qpsResult = await qpsLimiter.limit(ip, { rate: count });
     if (!qpsResult.success) {
       if (debug) {
         console.log(`[EXA-MCP] QPS rate limit exceeded for IP: ${ip}`);
@@ -297,7 +295,7 @@ async function checkRateLimits(ip: string | null, debug: boolean): Promise<Respo
     }
     
     // Check daily limit
-    const dailyResult = await dailyLimiter.limit(ip);
+    const dailyResult = await dailyLimiter.limit(ip, { rate: count });
     if (!dailyResult.success) {
       if (debug) {
         console.log(`[EXA-MCP] Daily rate limit exceeded for IP: ${ip}`);
@@ -674,17 +672,18 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   // Only rate limit actual tool calls (tools/call), not protocol methods like tools/list
   if (!config.userProvidedApiKey && request.method === 'POST') {
     // Only rate limit actual tool calls, not protocol methods
-    if (isRateLimitedMethod(body ?? '')) {
+    const rateLimitedCallCount = countRateLimitedCalls(body ?? '');
+    if (rateLimitedCallCount > 0) {
       // Initialize rate limiters on first request (lazy init)
       initializeRateLimiters();
-      
+
       const clientIp = getClientIp(request);
-      
+
       if (config.debug) {
-        console.log(`[EXA-MCP] Client IP: ${clientIp ?? 'unavailable'}, method: tools/call`);
+        console.log(`[EXA-MCP] Client IP: ${clientIp ?? 'unavailable'}, tools/call count: ${rateLimitedCallCount}`);
       }
-      
-      const rateLimitResponse = await checkRateLimits(clientIp, config.debug);
+
+      const rateLimitResponse = await checkRateLimits(clientIp, rateLimitedCallCount, config.debug);
       if (rateLimitResponse) {
         return rateLimitResponse;
       }

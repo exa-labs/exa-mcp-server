@@ -44,12 +44,14 @@ export const TOOL_REGISTRY = {
     description: "Deprecated: Start a comprehensive AI research task",
     enabled: false,
     group: "search",
+    requiresUserProvidedApiKey: true,
   },
   deep_researcher_check: {
     name: "Deep Researcher Check (Deprecated)",
     description: "Deprecated: Check status and retrieve results of research task",
     enabled: false,
     group: "search",
+    requiresUserProvidedApiKey: true,
   },
   people_search_exa: {
     name: "People Search (Deprecated)",
