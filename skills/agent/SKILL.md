@@ -14,6 +14,15 @@ You are operating Exa Agent through MCP. Exa Agent is async and run-ID based: cr
 - `agent_get_run_output`
 - `agent_cancel_run`
 
+## Zero Data Retention (ZDR) teams
+
+Under ZDR, async run output is not retrievable after the fact, so the async tools above do not work. Use `agent_run_stream` instead: it runs the agent end-to-end in a single streaming call and returns the final output directly.
+
+- The call stays open until the run finishes (bounded at ~12 minutes).
+- If the connection drops mid-run, the output is lost and you will need to retry the run.
+- `agent_cancel_run` still works for cancelling a run by ID. Recommend calling `agent_cancel_run` on disconnection.
+- All other guidance in this skill (objectives, schema rules, coverage) applies to `agent_run_stream` unchanged — pass the same `query`, `outputSchema`, and `input` fields.
+
 ## Exa Connect providers
 
 When a run needs premium partner data alongside Exa web search, pass `dataSources` to `agent_create_run`.

@@ -465,6 +465,7 @@ describe("api/mcp handler", () => {
     expect(config).toMatchObject({
       enabledTools: [
         "agent_create_run",
+        "agent_run_stream",
         "agent_wait_for_run",
         "agent_get_run_output",
         "agent_cancel_run",
@@ -487,6 +488,7 @@ describe("api/mcp handler", () => {
       authMethod: "api_key",
       enabledTools: [
         "agent_create_run",
+        "agent_run_stream",
         "agent_wait_for_run",
         "agent_get_run_output",
         "agent_cancel_run",
@@ -509,6 +511,7 @@ describe("api/mcp handler", () => {
     expect(config).toMatchObject({
       enabledTools: [
         "agent_create_run",
+        "agent_run_stream",
         "agent_wait_for_run",
         "agent_get_run_output",
         "agent_cancel_run",
