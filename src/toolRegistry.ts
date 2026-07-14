@@ -85,6 +85,13 @@ export const TOOL_REGISTRY = {
     group: "agent",
     requiresUserProvidedApiKey: true,
   },
+  agent_run_stream: {
+    name: "Run Exa Agent (Streaming)",
+    description: "Run an Exa Agent end-to-end in one streaming call and return the final output directly. Required for Zero Data Retention (ZDR) teams.",
+    enabled: false,
+    group: "agent",
+    requiresUserProvidedApiKey: true,
+  },
   agent_wait_for_run: {
     name: "Wait for Exa Agent Run",
     description: "Poll an Exa Agent run until terminal status or a bounded timeout.",

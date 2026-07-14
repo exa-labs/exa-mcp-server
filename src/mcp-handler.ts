@@ -13,6 +13,7 @@ import { registerExaCodeTool } from "./tools/exaCode.js";
 import { registerWebSearchAdvancedTool } from "./tools/webSearchAdvanced.js";
 import { registerDeepSearchTool } from "./tools/deepSearch.js";
 import { registerAgentCreateRunTool } from "./tools/agentCreateRun.js";
+import { registerAgentRunStreamTool } from "./tools/agentRunStream.js";
 import { registerAgentWaitForRunTool } from "./tools/agentWaitForRun.js";
 import { registerAgentGetRunOutputTool } from "./tools/agentGetRunOutput.js";
 import { registerAgentCancelRunTool } from "./tools/agentCancelRun.js";
@@ -138,6 +139,11 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     if (canRegisterTool("agent_create_run")) {
       registerAgentCreateRunTool(server, config);
       registeredTools.push("agent_create_run");
+    }
+
+    if (canRegisterTool("agent_run_stream")) {
+      registerAgentRunStreamTool(server, config);
+      registeredTools.push("agent_run_stream");
     }
 
     if (canRegisterTool("agent_wait_for_run")) {

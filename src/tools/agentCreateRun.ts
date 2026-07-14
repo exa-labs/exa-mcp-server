@@ -21,7 +21,7 @@ const dataSourceProviderSchema = z.enum([
 export function registerAgentCreateRunTool(server: McpServer, config?: AgentToolConfig): void {
   server.tool(
     "agent_create_run",
-    "Create an async Exa Agent run for multi-step research, list-building, enrichment, or structured output. Returns an agent_run_... ID immediately; poll with agent_wait_for_run before reading final output. Every run should include outputSchema when repeatable structured results are needed.",
+    "Create an async Exa Agent run for multi-step research, list-building, enrichment, or structured output. Returns an agent_run_... ID immediately; poll with agent_wait_for_run before reading final output. Every run should include outputSchema when repeatable structured results are needed. Not usable by Zero Data Retention (ZDR) teams — async run output is not retrievable under ZDR; use agent_run_stream instead.",
     {
       query: z.string().min(1).describe("Natural-language research or enrichment objective."),
       systemPrompt: z.string().optional().describe("Optional system-level guidance for the Agent."),
