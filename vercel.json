@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/mcp.ts": {
-      "maxDuration": 60,
+      "maxDuration": 800,
       "memory": 1024,
       "includeFiles": "skills/**"
     },
