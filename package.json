@@ -51,7 +51,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "agnost": "^0.1.11",
+    "agnost": "^0.2.0",
     "exa-js": "^2.16.0",
     "jose": "^6.2.2",
     "mcp-handler": "^1.0.4",

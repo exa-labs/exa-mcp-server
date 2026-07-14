@@ -296,7 +296,7 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
         disableLogs: true,
         disableInput: true,
         disableOutput: true,
-        disableError:false
+        disableError: true,
       }));
       
       if (config.debug) {
