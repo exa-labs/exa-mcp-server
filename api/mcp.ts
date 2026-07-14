@@ -516,8 +516,6 @@ function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; de
         ],
       } satisfies Implementation as { name: string; version: string },
     },
-    // maxDuration must match api/mcp.ts in vercel.json; streaming agent runs
-    // (agent_run_stream) hold the request open until the run finishes.
     { basePath: '/api', maxDuration: 800 }
   );
 }
