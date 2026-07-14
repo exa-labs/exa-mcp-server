@@ -336,8 +336,8 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | `crawling_exa` | `web_fetch_exa` |
 | `people_search_exa` | `web_search_advanced_exa` |
 | `linkedin_search_exa` | `web_search_advanced_exa` |
-| `deep_researcher_start` | [Research API](https://docs.exa.ai/reference/research/create-a-task) |
-| `deep_researcher_check` | [Research API](https://docs.exa.ai/reference/research/get-a-task) |
+| `deep_researcher_start` | [Exa Agent](https://exa.ai/docs/reference/agent-api-guide) |
+| `deep_researcher_check` | [Exa Agent](https://exa.ai/docs/reference/agent-api-guide) |
 | `deep_search_exa` | `web_search_advanced_exa` |
 
 Enable additional tools with the `tools` parameter:
