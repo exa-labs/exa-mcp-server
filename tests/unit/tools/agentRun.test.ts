@@ -4,9 +4,11 @@ import type { AgentEvent, AgentRun } from "exa-js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   agentRunInputShape,
+  DEFAULT_CALL_WINDOW_MS,
   formatProgressMessage,
   pollAgentRun,
   registerAgentRunTool,
+  resolveAgentCallWindowMs,
   streamAgentRun,
   type AgentRunClient,
 } from "../../../src/tools/agentRun.js";
@@ -122,6 +124,26 @@ function setup(options: {
 function payload(result: { content: Array<{ text: string }> }): Record<string, unknown> {
   return JSON.parse(result.content[0].text) as Record<string, unknown>;
 }
+
+describe("resolveAgentCallWindowMs", () => {
+  it("defaults to max duration minus headroom", () => {
+    expect(resolveAgentCallWindowMs()).toBe(DEFAULT_CALL_WINDOW_MS);
+    expect(resolveAgentCallWindowMs({ mcpMaxDurationSeconds: 600 })).toBe(550_000);
+  });
+
+  it("honors AGENT_CALL_WINDOW_MS when within the ceiling", () => {
+    expect(resolveAgentCallWindowMs({ agentCallWindowMs: 300_000 })).toBe(300_000);
+  });
+
+  it("caps AGENT_CALL_WINDOW_MS at max duration minus headroom", () => {
+    expect(
+      resolveAgentCallWindowMs({
+        agentCallWindowMs: 900_000,
+        mcpMaxDurationSeconds: 800,
+      }),
+    ).toBe(DEFAULT_CALL_WINDOW_MS);
+  });
+});
 
 describe("agentRunInputShape", () => {
   const schema = z.object(agentRunInputShape);

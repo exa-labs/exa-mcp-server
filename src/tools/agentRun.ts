@@ -64,13 +64,43 @@ export const agentRunInputShape = {
     .describe("Agent effort: minimal, low, medium, high, xhigh, or auto. Defaults to low."),
 };
 
-// Leave enough time to close the Exa stream and return a structured MCP result
-// before Vercel terminates the 800-second function invocation.
-export const DEFAULT_CALL_WINDOW_MS = 750_000;
+// Default MCP function duration (seconds) and headroom before the platform kills
+// the invocation. The call window is derived from these unless overridden.
+export const DEFAULT_MCP_MAX_DURATION_SECONDS = 800;
+export const CALL_WINDOW_HEADROOM_MS = 50_000;
+export const DEFAULT_CALL_WINDOW_MS =
+  DEFAULT_MCP_MAX_DURATION_SECONDS * 1000 - CALL_WINDOW_HEADROOM_MS;
 export const DEFAULT_HEARTBEAT_MS = 15_000;
 export const DEFAULT_POLL_INTERVAL_MS = 4_000;
 export const DEFAULT_PROGRESS_TIMEOUT_MS = 2_000;
 export const DEFAULT_CANCEL_TIMEOUT_MS = 5_000;
+
+export function parsePositiveInteger(value: string | undefined): number | undefined {
+  if (value == null || value.trim() === "") return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+export function resolveAgentCallWindowMs(options?: {
+  agentCallWindowMs?: number;
+  mcpMaxDurationSeconds?: number;
+}): number {
+  const maxDurationSeconds = options?.mcpMaxDurationSeconds ?? DEFAULT_MCP_MAX_DURATION_SECONDS;
+  const ceiling =
+    Number.isFinite(maxDurationSeconds) && maxDurationSeconds > 0
+      ? Math.max(1, maxDurationSeconds * 1000 - CALL_WINDOW_HEADROOM_MS)
+      : DEFAULT_CALL_WINDOW_MS;
+
+  if (
+    options?.agentCallWindowMs != null &&
+    Number.isFinite(options.agentCallWindowMs) &&
+    options.agentCallWindowMs > 0
+  ) {
+    return Math.min(Math.trunc(options.agentCallWindowMs), ceiling);
+  }
+
+  return ceiling;
+}
 
 const TERMINAL_EVENTS = new Map<string, "completed" | "failed" | "cancelled">([
   ["agent_run.completed", "completed"],

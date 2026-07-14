@@ -12,7 +12,7 @@ import { registerDeepResearchCheckTool } from "./tools/deepResearchCheck.js";
 import { registerExaCodeTool } from "./tools/exaCode.js";
 import { registerWebSearchAdvancedTool } from "./tools/webSearchAdvanced.js";
 import { registerDeepSearchTool } from "./tools/deepSearch.js";
-import { registerAgentRunTool } from "./tools/agentRun.js";
+import { registerAgentRunTool, resolveAgentCallWindowMs } from "./tools/agentRun.js";
 import { agentSchemaTemplates } from "./tools/agentSchemaTemplates.js";
 import {
   TOOL_REGISTRY,
@@ -34,6 +34,8 @@ export interface McpConfig {
   mcpClient?: unknown;
   defaultSearchType?: 'auto' | 'fast' | 'instant';
   oauthAccessToken?: string;
+  agentCallWindowMs?: number;
+  mcpMaxDurationSeconds?: number;
 }
 
 /**
@@ -133,7 +135,12 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     }
 
     if (canRegisterTool("agent_run")) {
-      registerAgentRunTool(server, config);
+      registerAgentRunTool(server, config, {
+        callWindowMs: resolveAgentCallWindowMs({
+          agentCallWindowMs: config.agentCallWindowMs,
+          mcpMaxDurationSeconds: config.mcpMaxDurationSeconds,
+        }),
+      });
       registeredTools.push("agent_run");
     }
 
