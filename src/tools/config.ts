@@ -65,6 +65,11 @@ export const API_CONFIG = {
     SEARCH: '/search',
     RESEARCH: '/research/v1',
   },
+  TOOL_TIMEOUTS: {
+    SEARCH_MS: 60_000,
+    FETCH_MS: 60_000,
+    ADVANCED_SEARCH_MS: 300_000,
+  },
   DEFAULT_NUM_RESULTS: 10,
   DEFAULT_MAX_CHARACTERS: 3000
 } as const;
