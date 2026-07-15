@@ -330,19 +330,6 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | `agent_get_run_output` | Retrieve completed text, structured output, grounding, usage, and cost |
 | `agent_cancel_run` | Cancel a queued or running Agent run |
 
-**Deprecated** (still available for backwards compatibility):
-
-| Tool | Use instead |
-| ---- | ----------- |
-| `get_code_context_exa` | `web_search_exa` |
-| `company_research_exa` | `web_search_advanced_exa` |
-| `crawling_exa` | `web_fetch_exa` |
-| `people_search_exa` | `web_search_advanced_exa` |
-| `linkedin_search_exa` | `web_search_advanced_exa` |
-| `deep_researcher_start` | [Research API](https://docs.exa.ai/reference/research/create-a-task) |
-| `deep_researcher_check` | [Research API](https://docs.exa.ai/reference/research/get-a-task) |
-| `deep_search_exa` | `web_search_advanced_exa` |
-
 Enable additional tools with the `tools` parameter:
 
 ```
