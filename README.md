@@ -327,19 +327,6 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 | ---- | ----------- |
 | `agent_run` | Run an Exa Agent for multi-step research, list-building, enrichment, or structured output |
 
-**Deprecated** (still available for backwards compatibility):
-
-| Tool | Use instead |
-| ---- | ----------- |
-| `get_code_context_exa` | `web_search_exa` |
-| `company_research_exa` | `web_search_advanced_exa` |
-| `crawling_exa` | `web_fetch_exa` |
-| `people_search_exa` | `web_search_advanced_exa` |
-| `linkedin_search_exa` | `web_search_advanced_exa` |
-| `deep_researcher_start` | `agent_run` [Exa Agent](https://exa.ai/docs/reference/agent-api-guide) |
-| `deep_researcher_check` | `agent_run` [Exa Agent](https://exa.ai/docs/reference/agent-api-guide) |
-| `deep_search_exa` | `web_search_advanced_exa` |
-
 Enable additional tools with the `tools` parameter:
 
 ```
