@@ -12,10 +12,7 @@ import { registerDeepResearchCheckTool } from "./tools/deepResearchCheck.js";
 import { registerExaCodeTool } from "./tools/exaCode.js";
 import { registerWebSearchAdvancedTool } from "./tools/webSearchAdvanced.js";
 import { registerDeepSearchTool } from "./tools/deepSearch.js";
-import { registerAgentCreateRunTool } from "./tools/agentCreateRun.js";
-import { registerAgentWaitForRunTool } from "./tools/agentWaitForRun.js";
-import { registerAgentGetRunOutputTool } from "./tools/agentGetRunOutput.js";
-import { registerAgentCancelRunTool } from "./tools/agentCancelRun.js";
+import { registerAgentRunTool, resolveAgentCallWindowMs } from "./tools/agentRun.js";
 import { agentSchemaTemplates } from "./tools/agentSchemaTemplates.js";
 import {
   TOOL_REGISTRY,
@@ -37,6 +34,8 @@ export interface McpConfig {
   mcpClient?: unknown;
   defaultSearchType?: 'auto' | 'fast' | 'instant';
   oauthAccessToken?: string;
+  agentCallWindowMs?: number;
+  mcpMaxDurationSeconds?: number;
 }
 
 /**
@@ -135,24 +134,14 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
       registeredTools.push('deep_search_exa');
     }
 
-    if (canRegisterTool("agent_create_run")) {
-      registerAgentCreateRunTool(server, config);
-      registeredTools.push("agent_create_run");
-    }
-
-    if (canRegisterTool("agent_wait_for_run")) {
-      registerAgentWaitForRunTool(server, config);
-      registeredTools.push("agent_wait_for_run");
-    }
-
-    if (canRegisterTool("agent_get_run_output")) {
-      registerAgentGetRunOutputTool(server, config);
-      registeredTools.push("agent_get_run_output");
-    }
-
-    if (canRegisterTool("agent_cancel_run")) {
-      registerAgentCancelRunTool(server, config);
-      registeredTools.push("agent_cancel_run");
+    if (canRegisterTool("agent_run")) {
+      registerAgentRunTool(server, config, {
+        callWindowMs: resolveAgentCallWindowMs({
+          agentCallWindowMs: config.agentCallWindowMs,
+          mcpMaxDurationSeconds: config.mcpMaxDurationSeconds,
+        }),
+      });
+      registeredTools.push("agent_run");
     }
 
     if (config.debug) {
@@ -290,7 +279,7 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
         disableLogs: true,
         disableInput: true,
         disableOutput: true,
-        disableError:false
+        disableError: true,
       }));
       
       if (config.debug) {

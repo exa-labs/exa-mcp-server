@@ -45,6 +45,30 @@ export function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 2): Promi
   return retryOnTransient(fn, isTransientExaError, maxRetries);
 }
 
+export async function withTimeout<T>(
+  fn: () => Promise<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      Promise.resolve().then(fn),
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error(`${label} timed out after ${timeoutMs / 1000}s`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 /**
  * Checks if an error is a rate limit error (HTTP 429) and if the user is using the free MCP.
  * Returns a user-friendly error message if both conditions are met.

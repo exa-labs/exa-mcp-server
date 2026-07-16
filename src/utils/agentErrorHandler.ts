@@ -1,25 +1,8 @@
 import { ExaError } from "exa-js";
 import type { ToolContent } from "../types.js";
-import { EXA_API_KEYS_URL, TRANSIENT_STATUS_CODES, delay, retryOnTransient } from "./errorHandler.js";
+import { EXA_API_KEYS_URL } from "./errorHandler.js";
 
-export { delay };
-
-export function isTransientAgentError(error: unknown): boolean {
-  if (!isExaError(error)) return false;
-  return TRANSIENT_STATUS_CODES.has(error.statusCode);
-}
-
-export function retryAgentRequest<T>(
-  fn: () => Promise<T>,
-  opts: { maxRetries?: number; baseDelayMs?: number } = {},
-): Promise<T> {
-  return retryOnTransient(fn, isTransientAgentError, opts.maxRetries, opts.baseDelayMs);
-}
-
-export function formatAgentToolError(
-  error: unknown,
-  toolName: string,
-): ToolContent {
+export function formatAgentToolError(error: unknown, toolName: string): ToolContent {
   if (isExaError(error)) {
     const status = error.statusCode;
     const apiMessage = error.message;
@@ -61,7 +44,7 @@ function guidanceForStatus(status: number | "unknown"): string {
     return "Run not found or not visible to this API key. Verify the agent_run_... ID and account.";
   }
   if (status === 429) {
-    return "Rate or concurrency limit reached. Wait for active runs to finish, poll existing run IDs, or cancel accidental duplicate runs.";
+    return "Rate or concurrency limit reached. Wait for active Agent runs to finish and avoid submitting duplicate runs.";
   }
   return "";
 }
