@@ -609,6 +609,68 @@ describe("api/mcp handler", () => {
     expect(initializeMcpServerMock).not.toHaveBeenCalled();
   });
 
+  it("returns 401 with WWW-Authenticate when ?login is set and no credentials are present (#378)", async () => {
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?login&tools=web_search_exa"),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      jsonrpc: "2.0",
+      error: {
+        code: -32000,
+        message: "Authentication required. Use OAuth or provide an API key.",
+      },
+      id: null,
+    });
+    expectMcpCorsHeaders(response);
+    expect(config).toBeUndefined();
+    expect(createMcpHandlerMock).not.toHaveBeenCalled();
+    expect(initializeMcpServerMock).not.toHaveBeenCalled();
+  });
+
+  it("accepts ?login=true as an explicit OAuth challenge opt-in", async () => {
+    const { response } = await callHandleRequest(new Request("https://mcp.exa.ai/mcp?login=true"));
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain("resource_metadata=");
+    expect(createMcpHandlerMock).not.toHaveBeenCalled();
+  });
+
+  it("does not force OAuth when login=false so free-tier remains available", async () => {
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?login=false&tools=web_search_exa"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(config).toMatchObject({
+      authMethod: "free_tier",
+      userProvidedApiKey: false,
+    });
+    expect(initializeMcpServerMock).toHaveBeenCalled();
+  });
+
+  it("allows authenticated requests through when ?login is set", async () => {
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?login=true", {
+        headers: {
+          "x-api-key": "user-key",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(config).toMatchObject({
+      exaApiKey: "user-key",
+      userProvidedApiKey: true,
+      authMethod: "api_key",
+    });
+    expect(initializeMcpServerMock).toHaveBeenCalled();
+  });
+
   it("uses the internal bypass API key without treating it as user-provided", async () => {
     process.env.RATE_LIMIT_BYPASS = "BypassClient";
     process.env.EXA_API_KEY_BYPASS = "bypass-key";

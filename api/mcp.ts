@@ -617,8 +617,17 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   const requestUrl = new URL(request.url);
   const isPluginClient = requestUrl.searchParams.get('client')?.includes('plugin') ?? false;
 
-  // Gate: require auth for /mcp/oauth endpoint, matching user agents, or plugin clients (unless bypassed)
-  const requireOAuth = options?.forceOAuth || userAgentMatchesOAuth || isPluginClient;
+  // HuggingFace-style ?login — force OAuth challenge so Connectors / Skills / Plugins can
+  // trigger client auth discovery without hard-coding API keys (see issue #378).
+  // Presence of login (or login=true|1|yes) opts into auth-required mode; free-tier
+  // remains the default for plain https://mcp.exa.ai/mcp.
+  const loginParam = requestUrl.searchParams.get('login');
+  const wantsLogin =
+    requestUrl.searchParams.has('login') &&
+    (loginParam === '' || ['1', 'true', 'yes'].includes(loginParam.toLowerCase()));
+
+  // Gate: require auth for /mcp/oauth, ?login, matching user agents, or plugin clients (unless bypassed)
+  const requireOAuth = options?.forceOAuth || userAgentMatchesOAuth || isPluginClient || wantsLogin;
   if (!bypassRateLimit && requireOAuth && !hasAuth(request)) {
     return create401Response();
   }

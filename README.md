@@ -348,6 +348,20 @@ If you want both search and Exa Agent tools enabled:
 https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,agent_tools
 ```
 
+### Force OAuth login (Connectors / Skills / Plugins)
+
+Plain `https://mcp.exa.ai/mcp` stays **keyless free-tier** so first-time explorers can try Exa without an account.
+
+When you distribute a Connector, Skill, or Plugin and need each end user to authenticate with **their own** Exa account (no shared API key in the URL), opt into an OAuth challenge:
+
+```
+https://mcp.exa.ai/mcp?login
+```
+
+Unauthenticated requests to that URL return **HTTP 401** with a `WWW-Authenticate` header pointing at Exa's OAuth protected-resource metadata, so MCP clients (Claude Desktop, etc.) can start the login flow. Equivalent forms: `?login=true`, `?login=1`. You can also use the dedicated endpoint `https://mcp.exa.ai/mcp/oauth`.
+
+Do **not** ship Skills/Plugins with a hardcoded `exaApiKey` in the URL.
+
 ## Agent Skills (Claude Skills)
 
 Ready-to-use skills for Claude Code. Each skill teaches Claude how to use Exa search for a specific task. Copy the content inside a dropdown and paste it into Claude Code — it handles the rest.
