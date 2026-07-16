@@ -595,6 +595,6 @@ describe("agent_run tool", () => {
     const { tool } = setup();
     expect(tool.description).toContain("New runs always stream");
     expect(tool.description).toContain("returns its ID");
-    expect(tool.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: false });
+    expect(tool.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
   });
 });
