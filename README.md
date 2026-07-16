@@ -345,6 +345,27 @@ If you want both search and Exa Agent tools enabled:
 https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,agent_tools
 ```
 
+### Force OAuth login
+
+To force the OAuth handshake so users sign in with their own Exa account (useful for shared Connectors, Skills, and Plugins), add the `login` parameter:
+
+```
+https://mcp.exa.ai/mcp?login
+```
+
+Or use the `/mcp/oauth` endpoint:
+
+```
+https://mcp.exa.ai/mcp/oauth
+```
+
+Both can be combined with the `tools` parameter:
+
+```
+https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,agent_tools&login
+https://mcp.exa.ai/mcp/oauth?tools=web_search_exa,web_fetch_exa,agent_tools
+```
+
 ## Agent Skills (Claude Skills)
 
 Ready-to-use skills for Claude Code. Each skill teaches Claude how to use Exa search for a specific task. Copy the content inside a dropdown and paste it into Claude Code — it handles the rest.
