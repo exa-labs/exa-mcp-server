@@ -626,7 +626,8 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
     requestUrl.searchParams.has('login') &&
     (loginParam === '' || ['1', 'true', 'yes'].includes(loginParam.toLowerCase()));
 
-  // Gate: require auth for /mcp/oauth, ?login, matching user agents, or plugin clients (unless bypassed)
+  // Gate: require auth for the dedicated /mcp/oauth endpoint, ?login opt-in,
+  // matching user agents, or plugin clients (unless bypassed).
   const requireOAuth = options?.forceOAuth || userAgentMatchesOAuth || isPluginClient || wantsLogin;
   if (!bypassRateLimit && requireOAuth && !hasAuth(request)) {
     return create401Response();
