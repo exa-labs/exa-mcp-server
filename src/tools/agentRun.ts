@@ -540,7 +540,7 @@ export function registerAgentRunTool(
     "agent_run",
     "Run an Exa Agent with live progress. New runs always stream. If a run outlives one call window, the tool returns its ID; call agent_run again with runId to keep waiting. Effort defaults to low.",
     agentRunInputShape,
-    { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    { readOnlyHint: true, destructiveHint: false, idempotentHint: false },
     async (
       { query, runId, systemPrompt, outputSchema, input, dataSources, previousRunId, effort },
       extra: StreamToolExtra,
