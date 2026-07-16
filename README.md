@@ -106,12 +106,14 @@ Add to your `opencode.json`:
   "mcp": {
     "exa": {
       "type": "remote",
-      "url": "https://mcp.exa.ai/mcp",
+      "url": "https://mcp.exa.ai/mcp?client=opencode",
       "enabled": true
     }
   }
 }
 ```
+
+OpenCode will prompt you to authenticate with Exa OAuth on first use. You can also run `opencode mcp auth exa` after adding the config.
 </details>
 
 <details>
