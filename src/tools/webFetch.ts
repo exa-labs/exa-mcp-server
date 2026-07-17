@@ -2,7 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { sanitizeContentsResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientOptionalPositiveNumber } from "./validation.js";
 import { checkpoint } from "agnost";
@@ -74,13 +74,17 @@ Returns: Clean text content and metadata from the page(s).`,
         checkpoint('crawl_request_prepared');
         logger.log("Sending crawl request to Exa API");
 
-        const response = await retryWithBackoff(() => exa.request<any>(
-          '/contents',
-          'POST',
-          crawlRequest,
-          undefined,
-          integrationHeaders('crawling-mcp', config)
-        ));
+        const response = await withTimeout(
+          () => retryWithBackoff(() => exa.request<any>(
+            '/contents',
+            'POST',
+            crawlRequest,
+            undefined,
+            integrationHeaders('crawling-mcp', config)
+          )),
+          API_CONFIG.TOOL_TIMEOUTS.FETCH_MS,
+          'web_fetch_exa',
+        );
 
         checkpoint('crawl_response_received');
         logger.log("Received response from Exa API");

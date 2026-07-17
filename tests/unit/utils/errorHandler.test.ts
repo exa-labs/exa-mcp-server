@@ -1,6 +1,10 @@
 import { ExaError } from "exa-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatToolError, retryWithBackoff } from "../../../src/utils/errorHandler.js";
+import {
+  formatToolError,
+  retryWithBackoff,
+  withTimeout,
+} from "../../../src/utils/errorHandler.js";
 
 describe("errorHandler", () => {
   afterEach(() => {
@@ -59,5 +63,32 @@ describe("errorHandler", () => {
 
     await expect(retryWithBackoff(fn)).rejects.toThrow("bad request");
     expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolves when the wrapped function completes before the timeout", async () => {
+    vi.useFakeTimers();
+
+    await expect(withTimeout(() => Promise.resolve("ok"), 1_000, "test operation")).resolves.toBe(
+      "ok",
+    );
+  });
+
+  it("rejects with the expected message when the timeout is exceeded", async () => {
+    vi.useFakeTimers();
+    const result = withTimeout(() => new Promise<string>(() => {}), 60_000, "web_search_exa");
+    const assertion = expect(result).rejects.toThrow("web_search_exa timed out after 60s");
+
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    await assertion;
+  });
+
+  it("propagates errors from the wrapped function", async () => {
+    vi.useFakeTimers();
+    const error = new Error("request failed");
+
+    await expect(withTimeout(() => Promise.reject(error), 1_000, "test operation")).rejects.toBe(
+      error,
+    );
   });
 });

@@ -78,10 +78,7 @@ describe("Stdio entrypoint", () => {
     });
 
     expect(config.enabledTools).toEqual([
-      "agent_create_run",
-      "agent_wait_for_run",
-      "agent_get_run_output",
-      "agent_cancel_run",
+      "agent_run",
     ]);
   });
 

@@ -325,10 +325,7 @@ Use the npm package with your API key. [Get your API key](https://dashboard.exa.
 **[Exa Agent](https://exa.ai/docs/reference/agent-api-guide) Tools** (optional, OAuth or API key required):
 | Tool | Description |
 | ---- | ----------- |
-| `agent_create_run` | Start an async Exa Agent run for multi-step research, list-building, enrichment, or structured output |
-| `agent_wait_for_run` | Poll an Agent run until terminal status or timeout |
-| `agent_get_run_output` | Retrieve completed text, structured output, grounding, usage, and cost |
-| `agent_cancel_run` | Cancel a queued or running Agent run |
+| `agent_run` | Run an Exa Agent for multi-step research, list-building, enrichment, or structured output |
 
 Enable additional tools with the `tools` parameter:
 
@@ -346,6 +343,27 @@ If you want both search and Exa Agent tools enabled:
 
 ```
 https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,agent_tools
+```
+
+### Force OAuth login
+
+To force the OAuth handshake so users sign in with their own Exa account (useful for shared Connectors, Skills, and Plugins), add the `login` parameter:
+
+```
+https://mcp.exa.ai/mcp?login
+```
+
+Or use the `/mcp/oauth` endpoint:
+
+```
+https://mcp.exa.ai/mcp/oauth
+```
+
+Both can be combined with the `tools` parameter:
+
+```
+https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,agent_tools&login
+https://mcp.exa.ai/mcp/oauth?tools=web_search_exa,web_fetch_exa,agent_tools
 ```
 
 ## Agent Skills (Claude Skills)

@@ -10,6 +10,7 @@ vi.mock("agnost", () => ({
 
 describe("initializeMcpServer", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
@@ -38,7 +39,7 @@ describe("initializeMcpServer", () => {
         expect.objectContaining({ id: "web_search_exa", enabled: true }),
         expect.objectContaining({ id: "web_fetch_exa", enabled: true }),
         expect.objectContaining({ id: "web_search_advanced_exa", enabled: false }),
-        expect.objectContaining({ id: "agent_create_run", enabled: false }),
+        expect.objectContaining({ id: "agent_run", enabled: false }),
       ]),
     );
   });
@@ -69,15 +70,12 @@ describe("initializeMcpServer", () => {
     const server = new FakeMcpServer();
 
     initializeMcpServer(server, {
-      enabledTools: ["agent_create_run", "agent_wait_for_run", "agent_get_run_output", "agent_cancel_run"],
+      enabledTools: ["agent_run"],
       userProvidedApiKey: true,
     });
 
     expect(server.tools.map((tool) => tool.name)).toEqual([
-      "agent_create_run",
-      "agent_wait_for_run",
-      "agent_get_run_output",
-      "agent_cancel_run",
+      "agent_run",
     ]);
     expect(server.prompts.map((prompt) => prompt.name)).toEqual(["web_search_help", "agent_research_help"]);
     expect(server.resources.map((resource) => resource.name)).toEqual(["tools_list", "agent_research_guide", "agent_schema_templates"]);
@@ -92,7 +90,7 @@ describe("initializeMcpServer", () => {
       ],
     });
     expect((agentGuide as any).contents[0].text).toContain("Exa Agent Research");
-    expect((agentGuide as any).contents[0].text).toContain("agent_create_run");
+    expect((agentGuide as any).contents[0].text).toContain("agent_run");
 
     const agentPrompt = server.prompts.find((prompt) => prompt.name === "agent_research_help");
     expect(agentPrompt).toBeDefined();
@@ -128,7 +126,7 @@ describe("initializeMcpServer", () => {
     const server = new FakeMcpServer();
 
     initializeMcpServer(server, {
-      enabledTools: ["agent_create_run", "agent_wait_for_run", "agent_get_run_output", "agent_cancel_run"],
+      enabledTools: ["agent_run"],
       userProvidedApiKey: false,
     });
 
@@ -140,8 +138,7 @@ describe("initializeMcpServer", () => {
     const toolsList = JSON.parse((resourceResult as any).contents[0].text);
     expect(toolsList).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: "agent_create_run", enabled: false }),
-        expect.objectContaining({ id: "agent_wait_for_run", enabled: false }),
+        expect.objectContaining({ id: "agent_run", enabled: false }),
       ]),
     );
   });

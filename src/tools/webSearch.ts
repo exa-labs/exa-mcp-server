@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
 import { checkpoint } from "agnost"
@@ -65,13 +65,17 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
         checkpoint('web_search_request_prepared');
         logger.log("Sending request to Exa API");
 
-        const response = await retryWithBackoff(() => exa.request<ExaSearchResponse>(
-          API_CONFIG.ENDPOINTS.SEARCH,
-          'POST',
-          searchRequest,
-          undefined,
-          integrationHeaders('web-search-mcp', config)
-        ));
+        const response = await withTimeout(
+          () => retryWithBackoff(() => exa.request<ExaSearchResponse>(
+            API_CONFIG.ENDPOINTS.SEARCH,
+            'POST',
+            searchRequest,
+            undefined,
+            integrationHeaders('web-search-mcp', config)
+          )),
+          API_CONFIG.TOOL_TIMEOUTS.SEARCH_MS,
+          toolId,
+        );
 
         checkpoint('exa_search_response_received');
         logger.log("Received response from Exa API");

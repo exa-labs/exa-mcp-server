@@ -5,6 +5,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { initializeMcpServer, type McpConfig } from "./mcp-handler.js";
 import { expandToolSelection } from "./toolRegistry.js";
 import { log } from "./utils/logger.js";
+import { parsePositiveInteger } from "./tools/agentRun.js";
 
 // Reads EXA_API_KEY, ENABLED_TOOLS / TOOLS, DEBUG, DEFAULT_SEARCH_TYPE from env.
 // HTTP/Vercel entry point lives in api/mcp.ts; CLI bootstrap lives in src/stdio-cli.ts.
@@ -35,6 +36,8 @@ export function buildConfigFromEnv(env: NodeJS.ProcessEnv = process.env): McpCon
     mcpSessionId: env.MCP_SESSION_ID,
     defaultSearchType: parseSearchType(env.DEFAULT_SEARCH_TYPE),
     userProvidedApiKey: Boolean(exaApiKey),
+    mcpMaxDurationSeconds: parsePositiveInteger(env.MCP_MAX_DURATION_SECONDS),
+    agentCallWindowMs: parsePositiveInteger(env.AGENT_CALL_WINDOW_MS),
   };
 }
 

@@ -78,30 +78,9 @@ export const TOOL_REGISTRY = {
     enabled: false,
     group: "search",
   },
-  agent_create_run: {
-    name: "Create Exa Agent Run",
-    description: "Start an async Exa Agent run for multi-step research, list-building, enrichment, or structured output.",
-    enabled: false,
-    group: "agent",
-    requiresUserProvidedApiKey: true,
-  },
-  agent_wait_for_run: {
-    name: "Wait for Exa Agent Run",
-    description: "Poll an Exa Agent run until terminal status or a bounded timeout.",
-    enabled: false,
-    group: "agent",
-    requiresUserProvidedApiKey: true,
-  },
-  agent_get_run_output: {
-    name: "Get Exa Agent Run Output",
-    description: "Retrieve completed text, structured output, grounding, usage, and cost.",
-    enabled: false,
-    group: "agent",
-    requiresUserProvidedApiKey: true,
-  },
-  agent_cancel_run: {
-    name: "Cancel Exa Agent Run",
-    description: "Cancel a queued or running Exa Agent run.",
+  agent_run: {
+    name: "Run Exa Agent",
+    description: "Run an Exa Agent for multi-step research, list-building, enrichment, or structured output. Returns the final output or a run ID for retained-run continuation.",
     enabled: false,
     group: "agent",
     requiresUserProvidedApiKey: true,
@@ -119,6 +98,15 @@ export const AGENT_TOOL_IDS = AVAILABLE_TOOL_IDS.filter(
 export const TOOL_SELECTION_ALIASES = {
   agent_tools: AGENT_TOOL_IDS,
 } as const;
+
+// Preserve existing MCP URLs but forward to agent_run
+const LEGACY_AGENT_TOOL_SELECTIONS = new Set([
+  "agent_create_run",
+  "agent_run_stream",
+  "agent_wait_for_run",
+  "agent_get_run_output",
+  "agent_cancel_run",
+]);
 
 export type ToolSelectionValue = ToolId | keyof typeof TOOL_SELECTION_ALIASES;
 
@@ -154,8 +142,9 @@ export function expandToolSelection(values: string[]): ToolId[] {
   const seen = new Set<ToolId>();
 
   for (const value of values) {
-    const aliasTools = TOOL_SELECTION_ALIASES[value as keyof typeof TOOL_SELECTION_ALIASES];
-    const toolIds = aliasTools ?? [value as ToolId];
+    const normalizedValue = LEGACY_AGENT_TOOL_SELECTIONS.has(value) ? "agent_tools" : value;
+    const aliasTools = TOOL_SELECTION_ALIASES[normalizedValue as keyof typeof TOOL_SELECTION_ALIASES];
+    const toolIds = aliasTools ?? [normalizedValue as ToolId];
 
     for (const toolId of toolIds) {
       if (!(toolId in TOOL_REGISTRY) || seen.has(toolId)) {

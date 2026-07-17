@@ -3,7 +3,8 @@ process.env.AGNOST_LOG_LEVEL = 'error';
 import { randomUUID } from 'node:crypto';
 import { createMcpHandler } from 'mcp-handler';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
-import { initializeMcpServer } from '../src/mcp-handler.js';
+import { initializeMcpServer, type McpConfig } from '../src/mcp-handler.js';
+import { DEFAULT_MCP_MAX_DURATION_SECONDS, parsePositiveInteger } from '../src/tools/agentRun.js';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { isJwtToken, verifyOAuthToken } from '../src/utils/auth.js';
@@ -373,6 +374,8 @@ interface RequestConfig {
   oauthAccessToken?: string;
   /** True when a Bearer token was a JWT but failed OAuth verification (expired, bad sig, wrong issuer/audience). */
   invalidOAuthJwt: boolean;
+  agentCallWindowMs?: number;
+  mcpMaxDurationSeconds?: number;
 }
 
 /**
@@ -491,7 +494,20 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   const exaSource = request.headers.get('x-exa-source') || undefined;
   const mcpSessionId = request.headers.get('MCP-Session-Id') || undefined;
 
-  return { exaApiKey, enabledTools, debug, userProvidedApiKey, authMethod, exaSource, mcpSessionId, defaultSearchType, oauthAccessToken, invalidOAuthJwt };
+  return {
+    exaApiKey,
+    enabledTools,
+    debug,
+    userProvidedApiKey,
+    authMethod,
+    exaSource,
+    mcpSessionId,
+    defaultSearchType,
+    oauthAccessToken,
+    invalidOAuthJwt,
+    mcpMaxDurationSeconds: parsePositiveInteger(process.env.MCP_MAX_DURATION_SECONDS),
+    agentCallWindowMs: parsePositiveInteger(process.env.AGENT_CALL_WINDOW_MS),
+  };
 }
 
 /**
@@ -500,7 +516,9 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
  * configuration (tools and API key). This prevents API key leakage between
  * different users who might pass different keys via URL.
  */
-function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; debug: boolean; userProvidedApiKey: boolean; exaSource?: string; mcpSessionId?: string; mcpClient?: McpClientMetadata; defaultSearchType?: 'auto' | 'fast' | 'instant'; oauthAccessToken?: string }) {
+function createHandler(config: McpConfig) {
+  const maxDuration = config.mcpMaxDurationSeconds ?? DEFAULT_MCP_MAX_DURATION_SECONDS;
+
   return createMcpHandler(
     (server: any) => {
       initializeMcpServer(server, config);
@@ -516,7 +534,7 @@ function createHandler(config: { exaApiKey?: string; enabledTools?: string[]; de
         ],
       } satisfies Implementation as { name: string; version: string },
     },
-    { basePath: '/api' } // Config - basePath for Vercel Functions
+    { basePath: '/api', maxDuration }
   );
 }
 
@@ -617,8 +635,14 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   const requestUrl = new URL(request.url);
   const isPluginClient = requestUrl.searchParams.get('client')?.includes('plugin') ?? false;
 
-  // Gate: require auth for /mcp/oauth endpoint, matching user agents, or plugin clients (unless bypassed)
-  const requireOAuth = options?.forceOAuth || userAgentMatchesOAuth || isPluginClient;
+  const loginParam = requestUrl.searchParams.get('login');
+  const wantsLogin =
+    loginParam !== null &&
+    (loginParam === '' || ['1', 'true', 'yes'].includes(loginParam.toLowerCase()));
+
+  // Gate: require auth for the dedicated /mcp/oauth endpoint, ?login opt-in,
+  // matching user agents, or plugin clients (unless bypassed).
+  const requireOAuth = options?.forceOAuth || userAgentMatchesOAuth || isPluginClient || wantsLogin;
   const resourcePath = options?.resourcePath ?? 'mcp';
   if (!bypassRateLimit && requireOAuth && !hasAuth(request)) {
     return create401Response('missing', resourcePath);
