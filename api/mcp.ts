@@ -559,15 +559,15 @@ function hasAuth(request: Request): boolean {
  *                      client can distinguish "refresh/re-auth" from "start over from scratch" and trigger its
  *                      refresh-token exchange against the authorization server.
  */
-const PROTECTED_RESOURCE_METADATA_URL = 'https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp';
-
-function create401Response(reason: 'missing' | 'invalid_token' = 'missing'): Response {
+function create401Response(reason: 'missing' | 'invalid_token' = 'missing', resourcePath: string = 'mcp'): Response {
   const params: string[] = [];
   if (reason === 'invalid_token') {
     params.push('error="invalid_token"');
     params.push('error_description="The access token is invalid or expired"');
   }
-  params.push(`resource_metadata="${PROTECTED_RESOURCE_METADATA_URL}"`);
+  // RFC 9728: metadata lives at /.well-known/oauth-protected-resource/<resource path>,
+  // and its `resource` field must exactly match the URL the client connected to.
+  params.push(`resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/${resourcePath}"`);
 
   const message =
     reason === 'invalid_token'
@@ -595,7 +595,7 @@ function create401Response(reason: 'missing' | 'invalid_token' = 'missing'): Res
 }
 
 // Wrap so uncaught throws still return CORS headers — otherwise browsers see an opaque CORS error masking the real failure.
-async function handleRequest(request: Request, options?: { forceOAuth?: boolean }): Promise<Response> {
+async function handleRequest(request: Request, options?: { forceOAuth?: boolean; resourcePath?: string }): Promise<Response> {
   try {
     return await processRequest(request, options);
   } catch (error) {
@@ -615,7 +615,7 @@ async function handleRequest(request: Request, options?: { forceOAuth?: boolean 
  * Main request handler that extracts config from URL and creates
  * a fresh handler for each request
  */
-async function processRequest(request: Request, options?: { forceOAuth?: boolean }): Promise<Response> {
+async function processRequest(request: Request, options?: { forceOAuth?: boolean; resourcePath?: string }): Promise<Response> {
   const debug = process.env.DEBUG === 'true';
   const body = request.method === 'POST' ? await request.clone().text() : undefined;
   const isInitializeRequest = isInitializeMethod(body ?? '');
@@ -643,8 +643,9 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   // Gate: require auth for the dedicated /mcp/oauth endpoint, ?login opt-in,
   // matching user agents, or plugin clients (unless bypassed).
   const requireOAuth = options?.forceOAuth || userAgentMatchesOAuth || isPluginClient || wantsLogin;
+  const resourcePath = options?.resourcePath ?? 'mcp';
   if (!bypassRateLimit && requireOAuth && !hasAuth(request)) {
-    return create401Response();
+    return create401Response('missing', resourcePath);
   }
 
   // Extract configuration from request headers, URL, and env vars
@@ -657,11 +658,11 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   // Use the `invalid_token` reason so the WWW-Authenticate header carries the standard
   // OAuth error code that clients listen for when deciding to exchange a refresh token.
   if (config.invalidOAuthJwt) {
-    return create401Response('invalid_token');
+    return create401Response('invalid_token', resourcePath);
   }
 
   if (!config.userProvidedApiKey && config.enabledTools?.some(requiresUserProvidedApiKey)) {
-    return create401Response();
+    return create401Response('missing', resourcePath);
   }
 
   const storedMcpClient = isInitializeRequest ? undefined : await loadMcpClientMetadata(config.mcpSessionId, config.debug);

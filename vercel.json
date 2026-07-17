@@ -30,7 +30,7 @@
     },
     {
       "source": "/.well-known/oauth-protected-resource/:path*",
-      "destination": "/api/well-known-oauth-protected-resource"
+      "destination": "/api/well-known-oauth-protected-resource?path=:path*"
     },
     {
       "source": "/.well-known/openai-apps-challenge",
