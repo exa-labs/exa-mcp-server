@@ -878,7 +878,9 @@ describe("api/mcp handler", () => {
   it("serves OAuth protected resource metadata for the MCP resource", async () => {
     const { GET } = await import("../../../api/well-known-oauth-protected-resource.js");
 
-    const response = GET();
+    const response = GET(
+      new Request("https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"),
+    );
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
