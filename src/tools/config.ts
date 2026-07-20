@@ -1,6 +1,12 @@
 import { Exa } from 'exa-js';
 import { serializeMcpClientMetadata } from '../utils/mcpClientMetadata.js';
 
+function encodeIntegrationSource(source: string): string {
+  return Array.from(new TextEncoder().encode(source), byte =>
+    byte <= 127 ? String.fromCharCode(byte) : `%${byte.toString(16).toUpperCase().padStart(2, '0')}`,
+  ).join('');
+}
+
 // Build Exa reporting headers, appending x-exa-source if present
 export function integrationHeaders(tool: string, config?: Record<string, unknown>) {
   const source = config?.exaSource;
@@ -8,7 +14,7 @@ export function integrationHeaders(tool: string, config?: Record<string, unknown
   const mcpClient = serializeMcpClientMetadata(config?.mcpClient);
   const oauthAccessToken = config?.oauthAccessToken;
   const headers: Record<string, string> = {
-    'x-exa-integration': typeof source === 'string' ? `${tool}:${source}` : tool,
+    'x-exa-integration': typeof source === 'string' ? `${tool}:${encodeIntegrationSource(source)}` : tool,
   };
 
   if (typeof oauthAccessToken === 'string' && oauthAccessToken.length > 0) {

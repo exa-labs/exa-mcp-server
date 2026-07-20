@@ -73,6 +73,22 @@ describe("integrationHeaders", () => {
       "x-exa-integration": "web-search-mcp",
     });
   });
+
+  it("encodes non-ASCII client-controlled header values", () => {
+    const headers = integrationHeaders("web-search-mcp", {
+      exaSource: "你hao",
+      mcpClient: {
+        clientInfo: { name: "你🚀" },
+        userAgent: "agent/é",
+      },
+    });
+
+    expect(headers["x-exa-integration"]).toBe("web-search-mcp:%E4%BD%A0hao");
+    expect(headers["x-exa-mcp-client"]).toBe(
+      '{"clientInfo":{"name":"\\u4f60\\ud83d\\ude80"},"userAgent":"agent/\\u00e9"}',
+    );
+    expect(() => new Headers(headers)).not.toThrow();
+  });
 });
 
 describe("createExaClient", () => {
