@@ -5,6 +5,12 @@ const MCP_CLIENT_USER_AGENT_MAX_LENGTH = 512;
 const MCP_CLIENT_HEADER_MAX_LENGTH = 2048;
 const UNKNOWN_MCP_CLIENT_NAME = 'unknown';
 
+function escapeNonAsciiJsonCharacters(value: string): string {
+  return value.replace(/[\u0080-\uFFFF]/g, character =>
+    `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,
+  );
+}
+
 export interface McpClientInfo {
   name?: string;
   title?: string;
@@ -140,7 +146,7 @@ export function serializeMcpClientMetadata(value: unknown): string | undefined {
   }
 
   try {
-    const serialized = JSON.stringify(value);
+    const serialized = escapeNonAsciiJsonCharacters(JSON.stringify(value));
     if (serialized === '{}' || serialized.length > MCP_CLIENT_HEADER_MAX_LENGTH) {
       return undefined;
     }
