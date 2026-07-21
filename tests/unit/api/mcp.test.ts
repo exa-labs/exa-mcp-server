@@ -113,6 +113,7 @@ describe("api/mcp handler", () => {
     vi.spyOn(console, "log").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
 
+    delete process.env.AGENT_CALL_WINDOW_MS;
     delete process.env.DEBUG;
     delete process.env.DEFAULT_SEARCH_TYPE;
     delete process.env.ENABLED_TOOLS;
@@ -587,6 +588,18 @@ describe("api/mcp handler", () => {
 
     expect(config).toMatchObject({
       defaultSearchType: "instant",
+    });
+  });
+
+  it("uses agentCallWindowMs from the query parameter before the environment", async () => {
+    process.env.AGENT_CALL_WINDOW_MS = "60000";
+
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?agentCallWindowMs=45000"),
+    );
+
+    expect(config).toMatchObject({
+      agentCallWindowMs: 45000,
     });
   });
 
