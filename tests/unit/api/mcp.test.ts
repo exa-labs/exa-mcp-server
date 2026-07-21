@@ -194,6 +194,26 @@ describe("api/mcp handler", () => {
     });
   });
 
+  it("uses the client query parameter as the Exa source when the source header is absent", async () => {
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?client=kiro-power", {
+        headers: {
+          "MCP-Session-Id": "session-123",
+          "User-Agent": "Kiro/1.0",
+        },
+      }),
+    );
+
+    expect(config).toMatchObject({
+      exaSource: "kiro-power",
+      mcpClient: {
+        source: "kiro-power",
+        sessionId: "session-123",
+        userAgent: "Kiro/1.0",
+      },
+    });
+  });
+
   it("falls back to unknown when initialize clientInfo cannot be extracted", async () => {
     const { config } = await callHandleRequest(
       new Request("https://mcp.exa.ai/mcp", {
