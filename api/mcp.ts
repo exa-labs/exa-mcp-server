@@ -327,7 +327,8 @@ async function checkRateLimits(ip: string | null, count: number, debug: boolean)
  * Other URL query parameters:
  * - ?tools=web_search_exa,web_fetch_exa - Enable specific tools
  * - ?debug=true - Enable debug logging
- * 
+ * - ?agentCallWindowMs=45000 - Set the agent_run call window in milliseconds
+ *
  * Also supports environment variables:
  * - EXA_API_KEY: Your Exa AI API key
  * - DEBUG: Enable debug logging (true/false)
@@ -391,6 +392,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let defaultSearchType: 'auto' | 'fast' | 'instant' | undefined;
   let oauthAccessToken: string | undefined;
   let invalidOAuthJwt = false;
+  let agentCallWindowMs: number | undefined;
 
   // 1. Check x-api-key header (highest priority)
   const xApiKey = request.headers.get('x-api-key');
@@ -460,6 +462,9 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
       debug = params.get('debug') === 'true';
     }
 
+    // Support ?agentCallWindowMs
+    agentCallWindowMs = parsePositiveInteger(params.get('agentCallWindowMs') ?? undefined);
+
     // Support ?defaultSearchType
     if (params.has('defaultSearchType')) {
       const dst = params.get('defaultSearchType');
@@ -506,7 +511,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
     oauthAccessToken,
     invalidOAuthJwt,
     mcpMaxDurationSeconds: parsePositiveInteger(process.env.MCP_MAX_DURATION_SECONDS),
-    agentCallWindowMs: parsePositiveInteger(process.env.AGENT_CALL_WINDOW_MS),
+    agentCallWindowMs: agentCallWindowMs ?? parsePositiveInteger(process.env.AGENT_CALL_WINDOW_MS),
   };
 }
 
