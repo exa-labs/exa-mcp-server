@@ -564,14 +564,16 @@ function hasAuth(request: Request): boolean {
  *                      client can distinguish "refresh/re-auth" from "start over from scratch" and trigger its
  *                      refresh-token exchange against the authorization server.
  */
-function create401Response(reason: 'missing' | 'invalid_token' = 'missing', resourcePath: string = 'mcp'): Response {
+function create401Response(reason: 'missing' | 'invalid_token' = 'missing', resourcePath: string = 'mcp/oauth'): Response {
   const params: string[] = [];
   if (reason === 'invalid_token') {
     params.push('error="invalid_token"');
     params.push('error_description="The access token is invalid or expired"');
   }
-  // RFC 9728: metadata lives at /.well-known/oauth-protected-resource/<resource path>,
-  // and its `resource` field must exactly match the URL the client connected to.
+  // RFC 9728: metadata lives at /.well-known/oauth-protected-resource/<resource path>.
+  // We always point at the `mcp/oauth` resource (the only one whose metadata is
+  // served), so the client discovers the authorization server even when it was
+  // challenged on the default `/mcp` endpoint.
   params.push(`resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/${resourcePath}"`);
 
   const message =
@@ -648,7 +650,14 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   // Gate: require auth for the dedicated /mcp/oauth endpoint, ?login opt-in,
   // matching user agents, or plugin clients (unless bypassed).
   const requireOAuth = options?.forceOAuth || userAgentMatchesOAuth || isPluginClient || wantsLogin;
-  const resourcePath = options?.resourcePath ?? 'mcp';
+  // OAuth is anchored on the dedicated `mcp/oauth` resource — the only resource
+  // whose protected-resource metadata is served (see
+  // well-known-oauth-protected-resource.ts). Every OAuth challenge, including the
+  // ones raised on the default `/mcp` endpoint (?login, plugin clients, matching
+  // user agents, missing key for a key-gated tool, expired JWT), must point there
+  // so the client can discover the authorization server; the default `/mcp`
+  // resource intentionally advertises no OAuth.
+  const resourcePath = options?.resourcePath ?? 'mcp/oauth';
   if (!bypassRateLimit && requireOAuth && !hasAuth(request)) {
     return create401Response('missing', resourcePath);
   }
