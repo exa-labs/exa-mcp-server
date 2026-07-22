@@ -412,7 +412,7 @@ describe("api/mcp handler", () => {
     expect(wwwAuthenticate).toContain('error="invalid_token"');
     expect(wwwAuthenticate).toContain('error_description="The access token is invalid or expired"');
     expect(wwwAuthenticate).toContain(
-      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth"',
     );
     expectMcpCorsHeaders(response);
     expect(config).toBeUndefined();
@@ -435,7 +435,7 @@ describe("api/mcp handler", () => {
     const wwwAuthenticate = response.headers.get("WWW-Authenticate");
     expect(wwwAuthenticate).toContain('error="invalid_token"');
     expect(wwwAuthenticate).toContain(
-      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth"',
     );
     expectMcpCorsHeaders(response);
     expect(initializeMcpServerMock).not.toHaveBeenCalled();
@@ -526,7 +526,7 @@ describe("api/mcp handler", () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get("WWW-Authenticate")).toContain(
-      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth"',
     );
     await expect(response.json()).resolves.toMatchObject({
       jsonrpc: "2.0",
@@ -549,7 +549,7 @@ describe("api/mcp handler", () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get("WWW-Authenticate")).toContain(
-      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth"',
     );
     expectMcpCorsHeaders(response);
     expect(config).toBeUndefined();
@@ -620,7 +620,7 @@ describe("api/mcp handler", () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get("WWW-Authenticate")).toContain(
-      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth"',
     );
     await expect(response.json()).resolves.toMatchObject({
       jsonrpc: "2.0",
@@ -673,6 +673,107 @@ describe("api/mcp handler", () => {
       authMethod: "api_key",
     });
     expect(initializeMcpServerMock).toHaveBeenCalled();
+  });
+
+  it("challenges ?login toward an OAuth resource whose metadata is actually served (end-to-end)", async () => {
+    // Making OAuth opt-in turned the default /mcp resource into a 404 at the
+    // metadata endpoint, so ?login must steer clients at the one resource that
+    // still serves metadata (mcp/oauth). Otherwise discovery dead-ends on a 404
+    // and the login flow silently breaks. Walk the whole loop to prove it closes.
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?login&tools=web_search_exa"),
+    );
+
+    expect(response.status).toBe(401);
+    const resourceMetadata = response.headers
+      .get("WWW-Authenticate")
+      ?.match(/resource_metadata="([^"]+)"/)?.[1];
+    expect(resourceMetadata).toBe(
+      "https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth",
+    );
+
+    // Follow that URL as an RFC 9728 client would. The vercel.json rewrite forwards
+    // the resource-path suffix along as ?path=, so replay that mapping here.
+    const metadataUrl = new URL(resourceMetadata!);
+    metadataUrl.searchParams.set(
+      "path",
+      metadataUrl.pathname.replace("/.well-known/oauth-protected-resource/", ""),
+    );
+
+    const { GET } = await import("../../../api/well-known-oauth-protected-resource.js");
+    const metadataResponse = GET(new Request(metadataUrl.toString()));
+
+    expect(metadataResponse.status).toBe(200);
+    await expect(metadataResponse.json()).resolves.toMatchObject({
+      resource: "https://mcp.exa.ai/mcp/oauth",
+      authorization_servers: ["https://auth.exa.ai"],
+    });
+  });
+
+  it.each(["login=1", "login=yes"])(
+    "treats ?%s as an OAuth opt-in challenging toward mcp/oauth",
+    async (query) => {
+      const { response, config } = await callHandleRequest(
+        new Request(`https://mcp.exa.ai/mcp?${query}`),
+      );
+
+      expect(response.status).toBe(401);
+      expect(response.headers.get("WWW-Authenticate")).toContain(
+        'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth"',
+      );
+      expect(config).toBeUndefined();
+      expect(initializeMcpServerMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("forces OAuth for a user agent listed in OAUTH_USER_AGENTS when no credentials are present", async () => {
+    process.env.OAUTH_USER_AGENTS = "ChatGPT, MyConnector";
+
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        headers: { "user-agent": "ChatGPT/1.0 (connector)" },
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth"',
+    );
+    expect(config).toBeUndefined();
+    expect(initializeMcpServerMock).not.toHaveBeenCalled();
+  });
+
+  it("does not force OAuth for a matching user agent that already provides an API key", async () => {
+    // The whole point of the opt-out: a client carrying a key must never be
+    // bounced into OAuth, even if its user agent is on the force list.
+    process.env.OAUTH_USER_AGENTS = "ChatGPT";
+
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        headers: { "user-agent": "ChatGPT/1.0", "x-api-key": "user-key" },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(config).toMatchObject({
+      exaApiKey: "user-key",
+      userProvidedApiKey: true,
+      authMethod: "api_key",
+    });
+    expect(initializeMcpServerMock).toHaveBeenCalled();
+  });
+
+  it("forces OAuth for plugin clients (?client=…plugin) when no credentials are present", async () => {
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?client=claude-code-plugin"),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth"',
+    );
+    expect(config).toBeUndefined();
+    expect(initializeMcpServerMock).not.toHaveBeenCalled();
   });
 
   it("uses the internal bypass API key without treating it as user-provided", async () => {
@@ -745,7 +846,7 @@ describe("api/mcp handler", () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get("WWW-Authenticate")).toContain(
-      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth"',
     );
     expectMcpCorsHeaders(response);
   });
@@ -868,7 +969,7 @@ describe("api/mcp handler", () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get("WWW-Authenticate")).toContain(
-      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth"',
     );
     expectMcpCorsHeaders(response);
     expect(config).toBeUndefined();
@@ -888,19 +989,35 @@ describe("api/mcp handler", () => {
     expectMcpCorsHeaders(response);
   });
 
-  it("serves OAuth protected resource metadata for the MCP resource", async () => {
+  it("serves OAuth protected resource metadata for the mcp/oauth resource", async () => {
     const { GET } = await import("../../../api/well-known-oauth-protected-resource.js");
 
     const response = GET(
-      new Request("https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"),
+      new Request(
+        "https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth?path=mcp/oauth",
+      ),
     );
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      resource: "https://mcp.exa.ai/mcp",
+      resource: "https://mcp.exa.ai/mcp/oauth",
       authorization_servers: ["https://auth.exa.ai"],
       scopes_supported: ["mcp:tools"],
       bearer_methods_supported: ["header"],
     });
+  });
+
+  it("does not advertise OAuth for the default /mcp resource or the bare request", async () => {
+    const { GET } = await import("../../../api/well-known-oauth-protected-resource.js");
+
+    const defaultResourceResponse = GET(
+      new Request("https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp?path=mcp"),
+    );
+    const barePathResponse = GET(
+      new Request("https://mcp.exa.ai/.well-known/oauth-protected-resource"),
+    );
+
+    expect(defaultResourceResponse.status).toBe(404);
+    expect(barePathResponse.status).toBe(404);
   });
 });
