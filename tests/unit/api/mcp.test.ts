@@ -726,6 +726,56 @@ describe("api/mcp handler", () => {
     },
   );
 
+  it("forces OAuth for a user agent listed in OAUTH_USER_AGENTS when no credentials are present", async () => {
+    process.env.OAUTH_USER_AGENTS = "ChatGPT, MyConnector";
+
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        headers: { "user-agent": "ChatGPT/1.0 (connector)" },
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth"',
+    );
+    expect(config).toBeUndefined();
+    expect(initializeMcpServerMock).not.toHaveBeenCalled();
+  });
+
+  it("does not force OAuth for a matching user agent that already provides an API key", async () => {
+    // The whole point of the opt-out: a client carrying a key must never be
+    // bounced into OAuth, even if its user agent is on the force list.
+    process.env.OAUTH_USER_AGENTS = "ChatGPT";
+
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        headers: { "user-agent": "ChatGPT/1.0", "x-api-key": "user-key" },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(config).toMatchObject({
+      exaApiKey: "user-key",
+      userProvidedApiKey: true,
+      authMethod: "api_key",
+    });
+    expect(initializeMcpServerMock).toHaveBeenCalled();
+  });
+
+  it("forces OAuth for plugin clients (?client=…plugin) when no credentials are present", async () => {
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?client=claude-code-plugin"),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp/oauth"',
+    );
+    expect(config).toBeUndefined();
+    expect(initializeMcpServerMock).not.toHaveBeenCalled();
+  });
+
   it("uses the internal bypass API key without treating it as user-provided", async () => {
     process.env.RATE_LIMIT_BYPASS = "BypassClient";
     process.env.EXA_API_KEY_BYPASS = "bypass-key";
