@@ -32,10 +32,10 @@ Write queries as natural grammatical phrases.
 
 Never use numResults above 25. If you need more coverage, run more queries with different angles at n=10-15 rather than one query at n=50.
 
-**Use category filters** when searching for a specific entity type. Available inline categories: `company`, `research paper`, `news`, `personal site`, `people`. Add `category:<type>` at the start of your query string.
+**Use category filters** when searching for a specific entity type. Available inline categories: `company`, `publication`, `news`, `personal site`, `people`. Add `category:<type>` at the start of your query string.
 
 ```
-web_search_exa { "query": "category:research paper sparse attention mechanisms for long context", "numResults": 10 }
+web_search_exa { "query": "category:publication sparse attention mechanisms for long context", "numResults": 10 }
 web_search_exa { "query": "category:people VP Engineering AI infrastructure San Francisco", "numResults": 10 }
 web_search_exa { "query": "category:company developer tools for API testing", "numResults": 10 }
 ```
@@ -72,7 +72,7 @@ If your task involves any of these domains, read the relevant pattern file(s) fo
 |---|---|
 | `patterns-people.md` | People by role, company, location |
 | `patterns-companies.md` | Companies by category, stage, competitors, funding |
-| `patterns-papers.md` | Academic/research papers |
+| `patterns-papers.md` | Academic publications/research papers |
 | `patterns-relationships.md` | Hidden connections (clients, collaborators) |
 | `patterns-code.md` | Code, APIs, docs, errors |
 | `patterns-news.md` | News, recent events, reactions |

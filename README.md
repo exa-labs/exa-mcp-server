@@ -875,7 +875,7 @@ You should ask the user to restart Claude Code to have the config changes take e
 </details>
 
 <details>
-<summary><b>Research Paper Search</b></summary>
+<summary><b>Research Paper/Publication Search</b></summary>
 
 Copy the content below and paste it into Claude Code. It will set up the MCP connection and skill for you.
 
@@ -891,7 +891,7 @@ Step 2: Add this Claude skill
 
 ---
 name: web-search-advanced-research-paper
-description: Search for research papers and academic content using Exa advanced search. Full filter support including date ranges and text filtering. Use when searching for academic papers, arXiv preprints, or scientific research.
+description: Search for research papers, publications and other academic content using Exa advanced search. Full filter support including date ranges and text filtering. Use when searching for academic papers, arXiv preprints, or scientific research.
 context: fork
 ---
 
@@ -899,11 +899,11 @@ context: fork
 
 ## Tool Restriction (Critical)
 
-ONLY use `web_search_advanced_exa` with `category: "research paper"`. Do NOT use other categories or tools.
+ONLY use `web_search_advanced_exa` with `category: "publication"`. Do NOT use other categories or tools.
 
 ## Full Filter Support
 
-The `research paper` category supports ALL available parameters:
+The `publication` category supports ALL available parameters:
 
 ### Core
 - `query` (required)
@@ -939,7 +939,7 @@ The `research paper` category supports ALL available parameters:
 ## Token Isolation (Critical)
 
 Never run Exa searches in main context. Always spawn Task agents:
-- Agent calls `web_search_advanced_exa` with `category: "research paper"`
+- Agent calls `web_search_advanced_exa` with `category: "publication"`
 - Agent merges + deduplicates results before presenting
 - Agent returns distilled output (brief markdown or compact JSON)
 - Main context stays clean regardless of search volume
@@ -958,7 +958,7 @@ Recent papers on a topic:
 ```
 web_search_advanced_exa {
   "query": "transformer attention mechanisms efficiency",
-  "category": "research paper",
+  "category": "publication",
   "startPublishedDate": "2024-01-01",
   "numResults": 15,
   "type": "auto"
@@ -969,7 +969,7 @@ Papers from specific venues:
 ```
 web_search_advanced_exa {
   "query": "large language model agents",
-  "category": "research paper",
+  "category": "publication",
   "includeDomains": ["arxiv.org", "openreview.net"],
   "includeText": ["LLM"],
   "numResults": 20,
