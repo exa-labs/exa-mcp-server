@@ -43,8 +43,8 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
       const logger = createRequestLogger(toolId);
 
       // Extract category:<type> from query string if present
-      const categoryMatch = query.match(/\bcategory:(company|research\s*paper|news|personal\s*site|people)\b/i);
-      const category = categoryMatch ? categoryMatch[1].toLowerCase().replace(/\s+/g, ' ') as "company" | "research paper" | "news" | "personal site" | "people" : undefined;
+      const categoryMatch = query.match(/\bcategory:(company|publication|news|personal\s*site|people)\b/i);
+      const category = categoryMatch ? categoryMatch[1].toLowerCase().replace(/\s+/g, ' ') as "company" | "publication" | "news" | "personal site" | "people" : undefined;
       const cleanedQuery = categoryMatch ? query.replace(categoryMatch[0], '').replace(/\s+/g, ' ').trim() : query;
 
       logger.start(cleanedQuery);
