@@ -1,8 +1,6 @@
-process.env.AGNOST_LOG_LEVEL = process.env.AGNOST_LOG_LEVEL ?? "error";
-
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { EXA_PUBLIC_AGNOST_ORG_ID, initializeMcpServer, type McpConfig } from "./mcp-handler.js";
+import { initializeMcpServer, type McpConfig } from "./mcp-handler.js";
 import { expandToolSelection } from "./toolRegistry.js";
 import { log } from "./utils/logger.js";
 import { parsePositiveInteger } from "./tools/agentRun.js";
@@ -38,7 +36,6 @@ export function buildConfigFromEnv(env: NodeJS.ProcessEnv = process.env): McpCon
     userProvidedApiKey: Boolean(exaApiKey),
     mcpMaxDurationSeconds: parsePositiveInteger(env.MCP_MAX_DURATION_SECONDS),
     agentCallWindowMs: parsePositiveInteger(env.AGENT_CALL_WINDOW_MS),
-    analytics: { agnostOrgId: EXA_PUBLIC_AGNOST_ORG_ID },
   };
 }
 
@@ -48,7 +45,7 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<void> 
   const server = new McpServer({
     name: "exa-search-server",
     title: "Exa",
-    version: "3.4.0",
+    version: "3.5.0",
     websiteUrl: "https://exa.ai",
     icons: [
       { src: "https://exa.ai/images/favicon-32x32.png", mimeType: "image/png", sizes: ["32x32"] },

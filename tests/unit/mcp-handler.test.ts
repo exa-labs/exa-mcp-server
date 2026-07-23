@@ -1,13 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { trackMCP } from "agnost";
 import { initializeMcpServer } from "../../src/mcp-handler.js";
 import { FakeMcpServer } from "../helpers/fakeMcpServer.js";
-
-vi.mock("agnost", () => ({
-  checkpoint: vi.fn(),
-  createConfig: vi.fn((config: unknown) => config),
-  trackMCP: vi.fn(),
-}));
 
 describe("initializeMcpServer", () => {
   beforeEach(() => {
@@ -123,21 +116,30 @@ describe("initializeMcpServer", () => {
     });
   });
 
-  it("does not attach analytics unless an Agnost org id is explicitly provided", () => {
-    initializeMcpServer(new FakeMcpServer());
-    initializeMcpServer(new FakeMcpServer(), { analytics: false });
-    initializeMcpServer(new FakeMcpServer(), { analytics: {} });
-
-    expect(trackMCP).not.toHaveBeenCalled();
-  });
-
-  it("attaches analytics with the provided Agnost org id", () => {
+  it("applies the analytics wrapServer hook to the underlying server when provided", () => {
+    const wrapServer = vi.fn();
     const server = new FakeMcpServer();
 
-    initializeMcpServer(server, { analytics: { agnostOrgId: "org-123" } });
+    initializeMcpServer(server, { analytics: { wrapServer } });
 
-    expect(trackMCP).toHaveBeenCalledTimes(1);
-    expect(trackMCP).toHaveBeenCalledWith(server.server, "org-123", expect.anything());
+    expect(wrapServer).toHaveBeenCalledTimes(1);
+    expect(wrapServer).toHaveBeenCalledWith(server.server);
+  });
+
+  it("initializes without analytics and survives a throwing wrapServer hook", () => {
+    initializeMcpServer(new FakeMcpServer());
+    initializeMcpServer(new FakeMcpServer(), { analytics: {} });
+
+    const server = new FakeMcpServer();
+    initializeMcpServer(server, {
+      analytics: {
+        wrapServer: () => {
+          throw new Error("provider failure");
+        },
+      },
+    });
+
+    expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_exa", "web_fetch_exa"]);
   });
 
   it("does not register Agent tools without user-provided auth", async () => {

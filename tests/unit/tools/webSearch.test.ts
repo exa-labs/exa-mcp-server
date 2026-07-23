@@ -25,14 +25,33 @@ vi.mock("exa-js", async (importOriginal) => ({
   Exa: ExaMock,
 }));
 
-vi.mock("agnost", () => ({
-  checkpoint: vi.fn(),
-}));
-
 describe("registerWebSearchTool", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  it("emits stable checkpoint event names through a provided analytics hook", async () => {
+    const { registerWebSearchTool } = await import("../../../src/tools/webSearch.js");
+    const server = new FakeMcpServer();
+    const checkpoint = vi.fn();
+    requestMock.mockResolvedValue(searchResponse);
+
+    registerWebSearchTool(server as any, {
+      exaApiKey: "test-key",
+      analytics: { checkpoint },
+    });
+
+    expect(checkpoint).not.toHaveBeenCalled();
+
+    await server.getTool("web_search_exa").handler({ query: "AI breakthroughs" });
+
+    // Event names are contract: downstream dashboards key on them.
+    expect(checkpoint.mock.calls.map(([event]) => event)).toEqual([
+      "web_search_request_prepared",
+      "exa_search_response_received",
+      "web_search_complete",
+    ]);
   });
 
   it("sends a sanitized search request and formats highlighted results", async () => {

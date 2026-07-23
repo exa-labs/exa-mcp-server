@@ -36,7 +36,6 @@ vi.mock("@modelcontextprotocol/sdk/server/stdio.js", () => ({
 }));
 
 vi.mock("../../src/mcp-handler.js", () => ({
-  EXA_PUBLIC_AGNOST_ORG_ID: "f0df908b-3703-40a0-a905-05c907da1ca3",
   initializeMcpServer: initializeMcpServerMock,
 }));
 
@@ -68,7 +67,6 @@ describe("Stdio entrypoint", () => {
       mcpSessionId: undefined,
       defaultSearchType: undefined,
       userProvidedApiKey: true,
-      analytics: { agnostOrgId: "f0df908b-3703-40a0-a905-05c907da1ca3" },
     });
   });
 
@@ -101,7 +99,6 @@ describe("Stdio entrypoint", () => {
       mcpSessionId: undefined,
       defaultSearchType: "fast",
       userProvidedApiKey: false,
-      analytics: { agnostOrgId: "f0df908b-3703-40a0-a905-05c907da1ca3" },
     });
   });
 

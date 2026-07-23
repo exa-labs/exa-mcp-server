@@ -5,9 +5,9 @@ import { DeepResearchRequest, DeepResearchStartResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { lenientString } from "./validation.js";
-import { checkpoint } from "agnost";
+import type { McpAnalytics } from "../analytics.js";
 
-export function registerDeepResearchStartTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+export function registerDeepResearchStartTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean; analytics?: McpAnalytics }): void {
   server.tool(
     "deep_researcher_start",
     `[Deprecated] Start an AI research agent that searches, reads, and writes a detailed report. Takes 15 seconds to 2 minutes.
@@ -39,7 +39,7 @@ Important: Call deep_researcher_check with the returned research ID to get the r
           ...(outputSchema && { outputSchema })
         };
         
-        checkpoint('deep_research_start_request_prepared', {
+        config?.analytics?.checkpoint?.('deep_research_start_request_prepared', {
           model: researchRequest.model
         });
         logger.log(`Starting research with model: ${researchRequest.model}`);
@@ -52,12 +52,12 @@ Important: Call deep_researcher_check with the returned research ID to get the r
           integrationHeaders('deep-research-mcp', config)
         ));
 
-        checkpoint('deep_research_start_response_received');
+        config?.analytics?.checkpoint?.('deep_research_start_response_received');
         logger.log(`Research task started with ID: ${response.researchId}`);
 
         if (!response || !response.researchId) {
           logger.log("Warning: Empty or invalid response from Exa Research API");
-          checkpoint('deep_research_start_complete');
+          config?.analytics?.checkpoint?.('deep_research_start_complete');
           return {
             content: [{
               type: "text" as const,
@@ -81,7 +81,7 @@ Important: Call deep_researcher_check with the returned research ID to get the r
           }]
         };
         
-        checkpoint('deep_research_start_complete');
+        config?.analytics?.checkpoint?.('deep_research_start_complete');
         logger.complete();
         return result;
       } catch (error) {

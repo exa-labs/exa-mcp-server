@@ -1,4 +1,3 @@
-import { trackMCP, createConfig } from 'agnost';
 import { z } from "zod";
 
 // Import tool implementations
@@ -23,17 +22,7 @@ import {
 } from "./toolRegistry.js";
 import { log } from "./utils/logger.js";
 import { loadAgentSkillContent } from "./utils/agentSkill.js";
-
-/**
- * Exa's public Agnost write key, used by the bundled stdio and hosted
- * entrypoints. Intentionally not re-exported from the library entry point —
- * embedders configure their own analytics via `McpConfig.analytics`.
- */
-export const EXA_PUBLIC_AGNOST_ORG_ID = "f0df908b-3703-40a0-a905-05c907da1ca3";
-
-export interface McpAnalyticsConfig {
-  agnostOrgId?: string;
-}
+import type { McpAnalytics } from "./analytics.js";
 
 export interface McpConfig {
   exaApiKey?: string;
@@ -54,12 +43,10 @@ export interface McpConfig {
    */
   requestHeaders?: Record<string, string>;
   /**
-   * Analytics control. Tracking is attached only when an Agnost org id is
-   * explicitly provided; when omitted (or `false`) no analytics run, so
-   * library embedders never inherit Exa's write key. The bundled stdio and
-   * hosted entrypoints opt in with their own org id.
+   * Optional analytics provider. When omitted, no analytics of any kind run —
+   * the package ships no tracking backend. See {@link McpAnalytics}.
    */
-  analytics?: McpAnalyticsConfig | false;
+  analytics?: McpAnalytics;
 }
 
 /**
@@ -293,34 +280,23 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
       );
     }
     
-    // Add Agnost analytics tracking (works with both McpServer and mcp-handler),
-    // but only when the embedder explicitly opted in with an org id.
-    const agnostOrgId = config.analytics ? config.analytics.agnostOrgId : undefined;
-
-    if (agnostOrgId) {
-      // The server object might be wrapped, so we try to access the underlying server
+    // Apply the embedder's analytics server wrapper, if any. The server object
+    // might be wrapped by a transport handler, so pass the underlying server.
+    if (config.analytics?.wrapServer) {
       const underlyingServer = (server as any).server || server;
 
       try {
-        trackMCP(underlyingServer, agnostOrgId, createConfig({
-          endpoint: "https://api.agnost.ai",
-          disableLogs: true,
-          disableInput: true,
-          disableOutput: true,
-          disableError: true,
-        }));
+        config.analytics.wrapServer(underlyingServer);
 
         if (config.debug) {
-          log("Agnost analytics tracking enabled");
+          log("Analytics server wrapper applied");
         }
       } catch (analyticsError) {
         // Log but don't fail if analytics setup fails
         if (config.debug) {
-          log(`Analytics tracking setup failed (non-critical): ${analyticsError}`);
+          log(`Analytics server wrapper failed (non-critical): ${analyticsError}`);
         }
       }
-    } else if (config.debug) {
-      log("Agnost analytics tracking disabled (no org id provided)");
     }
 
     if (config.debug) {

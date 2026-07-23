@@ -6,7 +6,7 @@ import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
-import { checkpoint } from "agnost"
+import type { McpAnalytics } from "../analytics.js";
 
 type WebSearchConfig = {
   exaApiKey?: string;
@@ -14,6 +14,7 @@ type WebSearchConfig = {
   defaultSearchType?: 'auto' | 'fast' | 'instant';
   exaSource?: string;
   mcpSessionId?: string;
+  analytics?: McpAnalytics;
 };
 
 export function registerWebSearchTool(server: McpServer, config?: WebSearchConfig, toolName?: string): void {
@@ -62,7 +63,7 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
           },
         };
 
-        checkpoint('web_search_request_prepared');
+        config?.analytics?.checkpoint?.('web_search_request_prepared');
         logger.log("Sending request to Exa API");
 
         const response = await withTimeout(
@@ -77,12 +78,12 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
           toolId,
         );
 
-        checkpoint('exa_search_response_received');
+        config?.analytics?.checkpoint?.('exa_search_response_received');
         logger.log("Received response from Exa API");
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
-          checkpoint('web_search_complete');
+          config?.analytics?.checkpoint?.('web_search_complete');
           return {
             content: [{
               type: "text" as const,
@@ -123,7 +124,7 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
           }]
         };
 
-        checkpoint('web_search_complete');
+        config?.analytics?.checkpoint?.('web_search_complete');
         logger.complete();
         return result;
       } catch (error) {

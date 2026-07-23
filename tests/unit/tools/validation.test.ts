@@ -9,8 +9,6 @@ import {
 } from "../../../src/tools/validation.js";
 import { FakeMcpServer } from "../../helpers/fakeMcpServer.js";
 
-vi.mock("agnost", () => ({ checkpoint: vi.fn() }));
-
 describe("validation helpers", () => {
   describe("lenientString", () => {
     const schema = lenientString();

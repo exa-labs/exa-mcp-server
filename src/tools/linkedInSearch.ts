@@ -6,9 +6,9 @@ import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
-import { checkpoint } from "agnost";
+import type { McpAnalytics } from "../analytics.js";
 
-export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean; analytics?: McpAnalytics }): void {
   server.tool(
     "linkedin_search_exa",
     "⚠️ DEPRECATED: This tool is deprecated. Please use 'people_search_exa' instead. This tool will be removed in a future version. For now, it searches for people on LinkedIn using Exa AI - finds professional profiles and people.",
@@ -42,7 +42,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
           },
         };
         
-        checkpoint('linkedin_search_request_prepared');
+        config?.analytics?.checkpoint?.('linkedin_search_request_prepared');
         logger.log("Sending request to Exa API for LinkedIn search");
         
         const response = await retryWithBackoff(() => exa.request<ExaSearchResponse>(
@@ -53,12 +53,12 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
           integrationHeaders('linkedin-search-mcp', config)
         ));
 
-        checkpoint('linkedin_search_response_received');
+        config?.analytics?.checkpoint?.('linkedin_search_response_received');
         logger.log("Received response from Exa API");
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
-          checkpoint('linkedin_search_complete');
+          config?.analytics?.checkpoint?.('linkedin_search_complete');
           return {
             content: [{
               type: "text" as const,
@@ -97,7 +97,7 @@ export function registerLinkedInSearchTool(server: McpServer, config?: { exaApiK
           }]
         };
         
-        checkpoint('linkedin_search_complete');
+        config?.analytics?.checkpoint?.('linkedin_search_complete');
         logger.complete();
         return result;
       } catch (error) {

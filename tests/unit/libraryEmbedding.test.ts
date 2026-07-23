@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import { checkpoint, trackMCP } from "agnost";
 import {
   AVAILABLE_TOOL_IDS,
   TOOL_REGISTRY,
@@ -14,21 +13,19 @@ import {
 } from "../../src/index.js";
 import { FakeMcpServer } from "../helpers/fakeMcpServer.js";
 
-vi.mock("agnost", () => ({
-  checkpoint: vi.fn(),
-  createConfig: vi.fn((config: unknown) => config),
-  trackMCP: vi.fn(),
-}));
-
 /**
  * The piecemeal embedding path: a consumer registers individual tools onto
  * their own McpServer without going through initializeMcpServer or the stdio
- * entrypoint, and must not inherit any analytics side effects.
+ * entrypoint. The package ships no analytics backend, so nothing fires unless
+ * the embedder passes an `analytics` provider — and even then, only when a
+ * tool handler actually runs.
  */
 describe("piecemeal library embedding", () => {
-  it("registers individual tools onto a plain server without tracking side effects", () => {
+  it("registers individual tools onto a plain server with zero analytics side effects", () => {
     const server = new FakeMcpServer();
-    const config = { exaApiKey: "embedder-key" };
+    const checkpoint = vi.fn();
+    const wrapServer = vi.fn();
+    const config = { exaApiKey: "embedder-key", analytics: { checkpoint, wrapServer } };
 
     registerWebSearchTool(server as any, config);
     registerWebSearchAdvancedTool(server as any, config);
@@ -44,8 +41,19 @@ describe("piecemeal library embedding", () => {
     expect(server.prompts).toEqual([]);
     expect(server.resources).toEqual([]);
 
-    expect(trackMCP).not.toHaveBeenCalled();
+    // Registration alone never emits analytics — checkpoints only fire inside
+    // handlers, and wrapServer is only applied by initializeMcpServer.
     expect(checkpoint).not.toHaveBeenCalled();
+    expect(wrapServer).not.toHaveBeenCalled();
+  });
+
+  it("registers tools without any analytics config at all", () => {
+    const server = new FakeMcpServer();
+
+    registerWebSearchTool(server as any, { exaApiKey: "embedder-key" });
+    registerAgentRunTool(server as any, { exaApiKey: "embedder-key" });
+
+    expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_exa", "agent_run"]);
   });
 
   it("exposes the registry helpers needed to drive tool selection standalone", () => {

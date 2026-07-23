@@ -1139,7 +1139,19 @@ initializeMcpServer(server, {
 
 Individual tools can also be registered piecemeal with `registerWebSearchTool`, `registerWebSearchAdvancedTool`, `registerWebFetchTool`, and `registerAgentRunTool`. Registered tool names, input schemas, and descriptions follow semver: breaking changes ship only in major versions.
 
-When embedded as a library, no analytics run by default. Only the bundled stdio server and Exa's hosted endpoint opt into Agnost tracking; embedders who want their own tracking can pass `analytics: { agnostOrgId: "..." }`.
+The package ships no analytics backend and phones home to nothing. To plug in your own tracking, pass an `analytics` provider — both hooks are optional:
+
+```ts
+initializeMcpServer(server, {
+  exaApiKey: process.env.EXA_API_KEY,
+  analytics: {
+    // Per-phase markers from inside tool handlers (stable event names)
+    checkpoint: (event, attributes) => myTracker.record(event, attributes),
+    // One-time hook to instrument the underlying server/transport
+    wrapServer: (server) => myTracker.instrument(server),
+  },
+});
+```
 
 ## Links
 

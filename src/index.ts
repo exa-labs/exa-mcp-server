@@ -8,11 +8,8 @@
  * tests/unit/contract.test.ts); breaking changes to them ship as major versions.
  */
 
-export {
-  initializeMcpServer,
-  type McpConfig,
-  type McpAnalyticsConfig,
-} from "./mcp-handler.js";
+export { initializeMcpServer, type McpConfig } from "./mcp-handler.js";
+export type { McpAnalytics } from "./analytics.js";
 export { buildConfigFromEnv, main as runStdioServer } from "./stdio.js";
 
 export {

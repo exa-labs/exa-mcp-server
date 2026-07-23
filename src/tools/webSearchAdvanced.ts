@@ -6,9 +6,9 @@ import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientString, lenientOptionalNumber, lenientOptionalPositiveNumber, lenientOptionalBoolean } from "./validation.js";
-import { checkpoint } from "agnost";
+import type { McpAnalytics } from "../analytics.js";
 
-export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+export function registerWebSearchAdvancedTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean; analytics?: McpAnalytics }): void {
   server.tool(
     "web_search_advanced_exa",
     `Advanced web search with full control over filters, domains, dates, and content options.
@@ -158,7 +158,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
           searchRequest.additionalQueries = params.additionalQueries;
         }
 
-        checkpoint('web_search_advanced_request_prepared');
+        config?.analytics?.checkpoint?.('web_search_advanced_request_prepared');
         logger.log("Sending advanced search request to Exa API");
 
         const response = await withTimeout(
@@ -173,12 +173,12 @@ Returns: Search results with optional highlights, summaries, and subpage content
           'web_search_advanced_exa',
         );
 
-        checkpoint('exa_advanced_search_response_received');
+        config?.analytics?.checkpoint?.('exa_advanced_search_response_received');
         logger.log("Received response from Exa API");
 
         if (!response) {
           logger.log("Warning: Empty response from Exa API");
-          checkpoint('web_search_advanced_complete');
+          config?.analytics?.checkpoint?.('web_search_advanced_complete');
           return {
             content: [{
               type: "text" as const,
@@ -202,7 +202,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
           }]
         };
 
-        checkpoint('web_search_advanced_complete');
+        config?.analytics?.checkpoint?.('web_search_advanced_complete');
         logger.complete();
         return result;
       } catch (error) {

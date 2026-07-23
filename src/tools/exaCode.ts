@@ -6,9 +6,9 @@ import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
-import { checkpoint } from "agnost";
+import type { McpAnalytics } from "../analytics.js";
 
-export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean; analytics?: McpAnalytics }): void {
   server.tool(
     "get_code_context_exa",
     `Find code examples, documentation, and programming solutions. 
@@ -47,7 +47,7 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
           }
         };
 
-        checkpoint('code_context_request_prepared');
+        config?.analytics?.checkpoint?.('code_context_request_prepared');
         logger.log("Sending code search request to Exa API");
 
         const response = await retryWithBackoff(() => exa.request<ExaSearchResponse>(
@@ -58,12 +58,12 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
           integrationHeaders('exa-code-mcp', config)
         ));
 
-        checkpoint('code_context_response_received');
+        config?.analytics?.checkpoint?.('code_context_response_received');
         logger.log("Received code search response from Exa API");
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
-          checkpoint('code_context_complete');
+          config?.analytics?.checkpoint?.('code_context_complete');
           return {
             content: [{
               type: "text" as const,
@@ -102,7 +102,7 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
           }]
         };
 
-        checkpoint('code_context_complete');
+        config?.analytics?.checkpoint?.('code_context_complete');
         logger.complete();
         return result;
       } catch (error) {

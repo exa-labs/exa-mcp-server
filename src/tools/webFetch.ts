@@ -5,7 +5,7 @@ import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { sanitizeContentsResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientOptionalPositiveNumber } from "./validation.js";
-import { checkpoint } from "agnost";
+import type { McpAnalytics } from "../analytics.js";
 
 interface CrawlStatus {
   id: string;
@@ -31,7 +31,7 @@ function formatCrawlResults(results: any[], errors: CrawlStatus[]): string {
   return lines.join('\n').trim();
 }
 
-export function registerWebFetchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }, toolName?: string): void {
+export function registerWebFetchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean; analytics?: McpAnalytics }, toolName?: string): void {
   server.tool(
     toolName || "web_fetch_exa",
     `Read a webpage's full content as clean markdown. Use after web_search_exa when highlights are insufficient or to read any URL.
@@ -71,7 +71,7 @@ Returns: Clean text content and metadata from the page(s).`,
           },
         };
 
-        checkpoint('crawl_request_prepared');
+        config?.analytics?.checkpoint?.('crawl_request_prepared');
         logger.log("Sending crawl request to Exa API");
 
         const response = await withTimeout(
@@ -86,7 +86,7 @@ Returns: Clean text content and metadata from the page(s).`,
           'web_fetch_exa',
         );
 
-        checkpoint('crawl_response_received');
+        config?.analytics?.checkpoint?.('crawl_response_received');
         logger.log("Received response from Exa API");
 
         const statuses: CrawlStatus[] = Array.isArray(response?.statuses) ? response.statuses : [];
@@ -94,7 +94,7 @@ Returns: Clean text content and metadata from the page(s).`,
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
-          checkpoint('crawl_complete');
+          config?.analytics?.checkpoint?.('crawl_complete');
           if (urlErrors.length > 0) {
             const msg = urlErrors.map((e) => `${e.id}: ${e.error?.tag ?? 'unknown error'}`).join('; ');
             return {
@@ -131,7 +131,7 @@ Returns: Clean text content and metadata from the page(s).`,
           }]
         };
 
-        checkpoint('crawl_complete');
+        config?.analytics?.checkpoint?.('crawl_complete');
         logger.complete();
         return result;
       } catch (error) {

@@ -6,9 +6,9 @@ import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
-import { checkpoint } from "agnost";
+import type { McpAnalytics } from "../analytics.js";
 
-export function registerPeopleSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+export function registerPeopleSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean; analytics?: McpAnalytics }): void {
   server.tool(
     "people_search_exa",
     `[Deprecated: Use web_search_advanced_exa instead] Find people and their professional profiles.
@@ -45,7 +45,7 @@ Returns: Profile information and links.`,
           },
         };
         
-        checkpoint('people_search_request_prepared');
+        config?.analytics?.checkpoint?.('people_search_request_prepared');
         logger.log("Sending request to Exa API for people search");
         
         const response = await retryWithBackoff(() => exa.request<ExaSearchResponse>(
@@ -56,12 +56,12 @@ Returns: Profile information and links.`,
           integrationHeaders('people-search-mcp', config)
         ));
 
-        checkpoint('people_search_response_received');
+        config?.analytics?.checkpoint?.('people_search_response_received');
         logger.log("Received response from Exa API");
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
-          checkpoint('people_search_complete');
+          config?.analytics?.checkpoint?.('people_search_complete');
           return {
             content: [{
               type: "text" as const,
@@ -99,7 +99,7 @@ Returns: Profile information and links.`,
           }]
         };
         
-        checkpoint('people_search_complete');
+        config?.analytics?.checkpoint?.('people_search_complete');
         logger.complete();
         return result;
       } catch (error) {
