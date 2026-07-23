@@ -1,10 +1,20 @@
 {
   "name": "exa-mcp-server",
-  "version": "3.2.1",
+  "version": "3.3.0",
   "description": "A Model Context Protocol server with Exa for web search and web crawling. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities. Supports customizable result counts, live crawling options, and returns content from the most relevant websites.",
   "mcpName": "io.github.exa-labs/exa-mcp-server",
   "type": "module",
-  "module": "./src/stdio.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/exa-labs/exa-mcp-server.git"
@@ -32,7 +42,9 @@
   ],
   "author": "Exa Labs",
   "scripts": {
-    "build": "npm run build:stdio",
+    "build": "rm -rf dist && npm run build:lib && npm run build:types && npm run build:stdio",
+    "build:lib": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --packages=external --outfile=dist/index.js && esbuild src/index.ts --bundle --platform=node --target=node20 --format=cjs --packages=external --outfile=dist/index.cjs",
+    "build:types": "tsc -p tsconfig.lib.json",
     "build:stdio": "esbuild src/stdio-cli.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/stdio.cjs --banner:js=\"#!/usr/bin/env node\" && chmod +x dist/stdio.cjs",
     "build:vercel": "npm install typescript && ./node_modules/.bin/tsc",
     "setup": "npm ci",
@@ -42,12 +54,12 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "ci": "npm run typecheck && npm run test",
-    "prepare": "npm run build:stdio",
+    "prepare": "npm run build",
     "watch": "./node_modules/.bin/tsc --watch",
     "dev": "tsx src/stdio-cli.ts",
     "dev:vercel": "vercel dev",
     "inspector": "npx @modelcontextprotocol/inspector dist/stdio.cjs",
-    "prepublishOnly": "npm run build:stdio"
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",

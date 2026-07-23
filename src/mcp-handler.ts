@@ -36,6 +36,12 @@ export interface McpConfig {
   oauthAccessToken?: string;
   agentCallWindowMs?: number;
   mcpMaxDurationSeconds?: number;
+  /**
+   * Extra headers merged into every Exa API request, applied after the built-in
+   * headers so embedders can add attribution or override auth. This is the
+   * stable extension point for servers that wrap this package.
+   */
+  requestHeaders?: Record<string, string>;
 }
 
 /**

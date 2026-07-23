@@ -24,6 +24,34 @@ describe("integrationHeaders", () => {
     });
   });
 
+  it("applies embedder requestHeaders last so they can override defaults", () => {
+    expect(
+      integrationHeaders("web-search-mcp", {
+        exaSource: "claude",
+        requestHeaders: {
+          "x-exa-integration": "overridden",
+          "x-exa-source": "wrapper",
+          "x-custom": "yes",
+        },
+      }),
+    ).toEqual({
+      "x-exa-integration": "overridden",
+      "x-exa-source": "wrapper",
+      "x-custom": "yes",
+    });
+  });
+
+  it("ignores non-string requestHeaders values", () => {
+    expect(
+      integrationHeaders("web-search-mcp", {
+        requestHeaders: { good: "yes", bad: 42 } as unknown as Record<string, string>,
+      }),
+    ).toEqual({
+      "x-exa-integration": "web-search-mcp",
+      good: "yes",
+    });
+  });
+
   it("includes Authorization bearer header when OAuth access token is present", () => {
     expect(
       integrationHeaders("web-search-mcp", {
@@ -112,6 +140,17 @@ describe("createExaClient", () => {
     expect(headers.get("x-api-key")).toBeNull();
     expect(headers.get("Authorization")).toBe("Bearer jwt-token");
     expect(headers.get("x-exa-integration")).toBe("agent-mcp");
+  });
+
+  it("applies embedder requestHeaders to clients created with a tool name", () => {
+    const exa = createExaClient({
+      exaApiKey: "exa_test_key",
+      requestHeaders: { "x-exa-source": "wrapper" },
+    }, "agent-mcp");
+    const headers = clientHeaders(exa);
+
+    expect(headers.get("x-api-key")).toBe("exa_test_key");
+    expect(headers.get("x-exa-source")).toBe("wrapper");
   });
 
   it("forwards MCP client metadata through shared header plumbing", () => {

@@ -1119,6 +1119,26 @@ You should ask the user to restart Claude Code to have the config changes take e
 
 </details>
 
+## Use as a Library
+
+The npm package also exposes the tool surface as a library, so you can embed Exa's MCP tools in your own MCP server on any transport:
+
+```ts
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { initializeMcpServer } from "exa-mcp-server";
+
+const server = new McpServer({ name: "my-server", version: "1.0.0" });
+
+initializeMcpServer(server, {
+  exaApiKey: process.env.EXA_API_KEY,
+  enabledTools: ["web_search_exa", "web_fetch_exa"],
+  // Optional: extra headers merged into every Exa API request
+  requestHeaders: { "x-exa-source": "my-app" },
+});
+```
+
+Individual tools can also be registered piecemeal with `registerWebSearchTool`, `registerWebSearchAdvancedTool`, `registerWebFetchTool`, and `registerAgentRunTool`. Registered tool names, input schemas, and descriptions follow semver: breaking changes ship only in major versions.
+
 ## Links
 
 - [Documentation](https://docs.exa.ai/reference/exa-mcp)
