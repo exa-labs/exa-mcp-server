@@ -25,10 +25,6 @@ vi.mock("exa-js", async (importOriginal) => ({
   Exa: ExaMock,
 }));
 
-vi.mock("agnost", () => ({
-  checkpoint: vi.fn(),
-}));
-
 describe("registerWebFetchTool", () => {
   beforeEach(() => {
     vi.resetAllMocks();

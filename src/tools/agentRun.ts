@@ -3,7 +3,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import type { ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
-import { checkpoint } from "agnost";
+import type { McpAnalytics } from "../analytics.js";
 import type { AgentEffort, AgentRunInput, ToolContent } from "../types.js";
 import { formatAgentToolError } from "../utils/agentErrorHandler.js";
 import { delay } from "../utils/errorHandler.js";
@@ -514,6 +514,7 @@ export type AgentRunConfig = {
   exaSource?: string;
   mcpSessionId?: string;
   mcpClient?: unknown;
+  analytics?: McpAnalytics;
 };
 
 export type AgentRunToolOptions = {
@@ -598,7 +599,7 @@ export function registerAgentRunTool(
 
         let outcome: RunOutcome;
         if (runId != null) {
-          checkpoint("agent_run_resume", { mode: "retained" });
+          config?.analytics?.checkpoint?.("agent_run_resume", { mode: "retained" });
           outcome = await pollAgentRun({
             client,
             runId,
@@ -625,7 +626,7 @@ export function registerAgentRunTool(
             effort: (effort ?? "low") as AgentEffort,
           };
 
-          checkpoint("agent_run_request_prepared", {
+          config?.analytics?.checkpoint?.("agent_run_request_prepared", {
             hasSchema: outputSchema != null,
             hasInputData: input?.data != null,
             hasDataSources: dataSources != null,
@@ -645,7 +646,7 @@ export function registerAgentRunTool(
           });
         }
 
-        checkpoint("agent_run_finished", {
+        config?.analytics?.checkpoint?.("agent_run_finished", {
           eventCount: outcome.eventCount,
           status: outcome.status,
           terminalEvent: outcome.terminalEvent?.event ?? "none",

@@ -10,12 +10,12 @@ import {
   lenientOptionalNumber,
   lenientOptionalPositiveNumber,
   lenientOptionalBoolean,
+import type { McpAnalytics } from "../analytics.js";
 } from "./validation.js";
-import { checkpoint } from "agnost";
 
 export function registerDeepSearchTool(
   server: McpServer,
-  config?: { exaApiKey?: string; userProvidedApiKey?: boolean },
+  config?: { exaApiKey?: string; userProvidedApiKey?: boolean; analytics?: McpAnalytics },
 ): void {
   server.tool(
     "deep_search_exa",
@@ -114,7 +114,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           logger.log("Using automatic query expansion");
         }
 
-        checkpoint("deep_search_request_prepared");
+        config?.analytics?.checkpoint?.("deep_search_request_prepared");
         logger.log("Sending deep search request to Exa API");
 
         const response = await retryWithBackoff(() =>
@@ -127,12 +127,12 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           ),
         );
 
-        checkpoint("deep_search_response_received");
+        config?.analytics?.checkpoint?.("deep_search_response_received");
         logger.log("Received response from Exa API");
 
         if (!response) {
           logger.log("Warning: Empty response from Exa API");
-          checkpoint("deep_search_complete");
+          config?.analytics?.checkpoint?.("deep_search_complete");
           return {
             content: [
               {
@@ -161,7 +161,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
             ],
           };
 
-          checkpoint("deep_search_complete");
+          config?.analytics?.checkpoint?.("deep_search_complete");
           logger.complete();
           return result;
         }
@@ -227,11 +227,11 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           ],
         };
 
-        checkpoint("deep_search_complete");
+        config?.analytics?.checkpoint?.("deep_search_complete");
         logger.complete();
         return result;
       } catch (error) {
-        checkpoint("deep_search_complete");
+        config?.analytics?.checkpoint?.("deep_search_complete");
         logger.error(error);
         return formatToolError(error, "deep_search_exa", config?.userProvidedApiKey);
       }

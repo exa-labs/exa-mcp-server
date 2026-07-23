@@ -41,20 +41,25 @@ describe("integrationHeaders", () => {
     });
   });
 
-  it("lets requestHeaders override built-in OAuth and session headers", () => {
+  it("lets requestHeaders override every built-in header", () => {
     expect(
       integrationHeaders("web-search-mcp", {
+        exaSource: "claude",
         oauthAccessToken: "jwt-token",
         mcpSessionId: "session-123",
+        mcpClient: { clientInfo: { name: "Claude" } },
         requestHeaders: {
+          "x-exa-integration": "wrapper-integration",
           Authorization: "Bearer wrapper-token",
           "x-exa-mcp-session-id": "wrapper-session",
+          "x-exa-mcp-client": '{"clientInfo":{"name":"Wrapper"}}',
         },
       }),
     ).toEqual({
-      "x-exa-integration": "web-search-mcp",
+      "x-exa-integration": "wrapper-integration",
       Authorization: "Bearer wrapper-token",
       "x-exa-mcp-session-id": "wrapper-session",
+      "x-exa-mcp-client": '{"clientInfo":{"name":"Wrapper"}}',
     });
   });
 
