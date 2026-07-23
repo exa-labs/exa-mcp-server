@@ -18,6 +18,39 @@ function initializeSurface(config: McpConfig): FakeMcpServer {
   return server;
 }
 
+/**
+ * Render a zod param schema as a stable type descriptor. Enum values are spelled
+ * out so accepted input values (e.g. the search `category` list) are part of the
+ * snapshotted contract, not just the param names.
+ */
+function describeZodParam(schema: unknown): string {
+  let current: any = schema;
+  for (let depth = 0; depth < 10 && current?._def; depth += 1) {
+    const def = current._def;
+    if (def.innerType) {
+      current = def.innerType; // ZodOptional / ZodDefault / ZodNullable / ZodCatch
+      continue;
+    }
+    if (def.schema) {
+      current = def.schema; // ZodEffects (preprocess/refine)
+      continue;
+    }
+    break;
+  }
+
+  const def = current?._def;
+  if (def?.typeName === "ZodEnum" && Array.isArray(def.values)) {
+    return `enum(${def.values.join("|")})`;
+  }
+  return typeof def?.typeName === "string" ? def.typeName : "unknown";
+}
+
+function describeParams(inputSchema: unknown): string[] {
+  return Object.entries((inputSchema ?? {}) as Record<string, unknown>)
+    .map(([key, schema]) => `${key}: ${describeZodParam(schema)}`)
+    .sort();
+}
+
 describe("public API contract", () => {
   it("exports the documented library surface", () => {
     expect(Object.keys(publicApi).sort()).toEqual([
@@ -63,7 +96,7 @@ describe("public API contract", () => {
       tools: server.tools.map((tool) => ({
         name: tool.name,
         description: tool.description,
-        params: Object.keys((tool.inputSchema ?? {}) as Record<string, unknown>).sort(),
+        params: describeParams(tool.inputSchema),
         annotations: tool.annotations,
       })),
       prompts: server.prompts.map((prompt) => prompt.name),

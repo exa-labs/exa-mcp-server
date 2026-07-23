@@ -1,4 +1,4 @@
-import { trackMCP, createConfig } from "agnost";
+import { trackMCP, createConfig } from 'agnost';
 import { z } from "zod";
 
 // Import tool implementations
@@ -24,6 +24,17 @@ import {
 import { log } from "./utils/logger.js";
 import { loadAgentSkillContent } from "./utils/agentSkill.js";
 
+/**
+ * Exa's public Agnost write key, used by the bundled stdio and hosted
+ * entrypoints. Intentionally not re-exported from the library entry point —
+ * embedders configure their own analytics via `McpConfig.analytics`.
+ */
+export const EXA_PUBLIC_AGNOST_ORG_ID = "f0df908b-3703-40a0-a905-05c907da1ca3";
+
+export interface McpAnalyticsConfig {
+  agnostOrgId?: string;
+}
+
 export interface McpConfig {
   exaApiKey?: string;
   enabledTools?: string[];
@@ -32,7 +43,7 @@ export interface McpConfig {
   exaSource?: string;
   mcpSessionId?: string;
   mcpClient?: unknown;
-  defaultSearchType?: "auto" | "fast" | "instant";
+  defaultSearchType?: 'auto' | 'fast' | 'instant';
   oauthAccessToken?: string;
   agentCallWindowMs?: number;
   mcpMaxDurationSeconds?: number;
@@ -42,6 +53,13 @@ export interface McpConfig {
    * stable extension point for servers that wrap this package.
    */
   requestHeaders?: Record<string, string>;
+  /**
+   * Analytics control. Tracking is attached only when an Agnost org id is
+   * explicitly provided; when omitted (or `false`) no analytics run, so
+   * library embedders never inherit Exa's write key. The bundled stdio and
+   * hosted entrypoints opt in with their own org id.
+   */
+  analytics?: McpAnalyticsConfig | false;
 }
 
 /**
@@ -56,7 +74,7 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     if (config.debug) {
       log("Initializing Exa MCP Server in debug mode");
       if (config.enabledTools) {
-        log(`Enabled tools from config: ${config.enabledTools.join(", ")}`);
+        log(`Enabled tools from config: ${config.enabledTools.join(', ')}`);
       }
     }
 
@@ -83,61 +101,61 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     // Register tools based on configuration
     const registeredTools: string[] = [];
 
-    if (canRegisterTool("web_search_exa")) {
+    if (canRegisterTool('web_search_exa')) {
       registerWebSearchTool(server, config);
-      registeredTools.push("web_search_exa");
+      registeredTools.push('web_search_exa');
     }
 
-    if (canRegisterTool("web_search_advanced_exa")) {
+    if (canRegisterTool('web_search_advanced_exa')) {
       registerWebSearchAdvancedTool(server, config);
-      registeredTools.push("web_search_advanced_exa");
+      registeredTools.push('web_search_advanced_exa');
     }
 
-    if (canRegisterTool("company_research_exa")) {
+    if (canRegisterTool('company_research_exa')) {
       registerCompanyResearchTool(server, config);
-      registeredTools.push("company_research_exa");
+      registeredTools.push('company_research_exa');
     }
 
-    if (canRegisterTool("web_fetch_exa")) {
+    if (canRegisterTool('web_fetch_exa')) {
       registerWebFetchTool(server, config);
-      registeredTools.push("web_fetch_exa");
+      registeredTools.push('web_fetch_exa');
     }
 
     // Deprecated: crawling_exa - kept for backwards compatibility, points to web_fetch_exa
-    if (canRegisterTool("crawling_exa")) {
-      registerWebFetchTool(server, config, "crawling_exa");
-      registeredTools.push("crawling_exa");
+    if (canRegisterTool('crawling_exa')) {
+      registerWebFetchTool(server, config, 'crawling_exa');
+      registeredTools.push('crawling_exa');
     }
 
-    if (canRegisterTool("people_search_exa")) {
+    if (canRegisterTool('people_search_exa')) {
       registerPeopleSearchTool(server, config);
-      registeredTools.push("people_search_exa");
+      registeredTools.push('people_search_exa');
     }
 
     // Deprecated: linkedin_search_exa - kept for backwards compatibility
-    if (canRegisterTool("linkedin_search_exa")) {
+    if (canRegisterTool('linkedin_search_exa')) {
       registerLinkedInSearchTool(server, config);
-      registeredTools.push("linkedin_search_exa");
+      registeredTools.push('linkedin_search_exa');
     }
 
-    if (canRegisterTool("deep_researcher_start")) {
+    if (canRegisterTool('deep_researcher_start')) {
       registerDeepResearchStartTool(server, config);
-      registeredTools.push("deep_researcher_start");
+      registeredTools.push('deep_researcher_start');
     }
 
-    if (canRegisterTool("deep_researcher_check")) {
+    if (canRegisterTool('deep_researcher_check')) {
       registerDeepResearchCheckTool(server, config);
-      registeredTools.push("deep_researcher_check");
+      registeredTools.push('deep_researcher_check');
     }
 
-    if (canRegisterTool("get_code_context_exa")) {
+    if (canRegisterTool('get_code_context_exa')) {
       registerExaCodeTool(server, config);
-      registeredTools.push("get_code_context_exa");
+      registeredTools.push('get_code_context_exa');
     }
 
-    if (canRegisterTool("deep_search_exa")) {
+    if (canRegisterTool('deep_search_exa')) {
       registerDeepSearchTool(server, config);
-      registeredTools.push("deep_search_exa");
+      registeredTools.push('deep_search_exa');
     }
 
     if (canRegisterTool("agent_run")) {
@@ -151,23 +169,28 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     }
 
     if (config.debug) {
-      log(`Registered ${registeredTools.length} tools: ${registeredTools.join(", ")}`);
+      log(`Registered ${registeredTools.length} tools: ${registeredTools.join(', ')}`);
     }
 
     // Register prompts to help users get started
-    server.prompt("web_search_help", "Get help with web search using Exa", {}, async () => {
-      return {
-        messages: [
-          {
-            role: "user",
-            content: {
-              type: "text",
-              text: "I want to search the web for current information. Can you help me search for recent news about artificial intelligence breakthroughs?",
-            },
-          },
-        ],
-      };
-    });
+    server.prompt(
+      "web_search_help",
+      "Get help with web search using Exa",
+      {},
+      async () => {
+        return {
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: "I want to search the web for current information. Can you help me search for recent news about artificial intelligence breakthroughs?"
+              }
+            }
+          ]
+        };
+      }
+    );
 
     const registeredAgentTools = registeredTools.filter((toolId) => isAgentTool(toolId as ToolId));
 
@@ -178,7 +201,10 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
         "agent_research_help",
         "Get help structuring a multi-step Exa Agent research run.",
         {
-          task: z.string().optional().describe("The research task to turn into an Exa Agent run"),
+          task: z
+            .string()
+            .optional()
+            .describe("The research task to turn into an Exa Agent run"),
         },
         async (args?: { task?: string }) => {
           const task = args?.task?.trim();
@@ -218,19 +244,17 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
       "exa://tools/list",
       {
         mimeType: "application/json",
-        description: "List of available Exa tools and their descriptions",
+        description: "List of available Exa tools and their descriptions"
       },
       async () => {
         return {
-          contents: [
-            {
-              uri: "exa://tools/list",
-              text: JSON.stringify(listToolMetadata(registeredTools), null, 2),
-              mimeType: "application/json",
-            },
-          ],
+          contents: [{
+            uri: "exa://tools/list",
+            text: JSON.stringify(listToolMetadata(registeredTools), null, 2),
+            mimeType: "application/json"
+          }]
         };
-      },
+      }
     );
 
     if (registeredAgentTools.length > 0) {
@@ -244,13 +268,11 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
           description: "Exa Agent research workflow, schema rules, and coverage guidance",
         },
         async () => ({
-          contents: [
-            {
-              uri: "exa://agent/skill",
-              text: agentSkillContent,
-              mimeType: "text/markdown",
-            },
-          ],
+          contents: [{
+            uri: "exa://agent/skill",
+            text: agentSkillContent,
+            mimeType: "text/markdown",
+          }],
         }),
       );
 
@@ -262,47 +284,49 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
           description: "Starter JSON Schema templates for common Agent workflows",
         },
         async () => ({
-          contents: [
-            {
-              uri: "exa://agent/schema-templates",
-              text: JSON.stringify(agentSchemaTemplates, null, 2),
-              mimeType: "application/json",
-            },
-          ],
+          contents: [{
+            uri: "exa://agent/schema-templates",
+            text: JSON.stringify(agentSchemaTemplates, null, 2),
+            mimeType: "application/json",
+          }],
         }),
       );
     }
+    
+    // Add Agnost analytics tracking (works with both McpServer and mcp-handler),
+    // but only when the embedder explicitly opted in with an org id.
+    const agnostOrgId = config.analytics ? config.analytics.agnostOrgId : undefined;
 
-    // Add Agnost analytics tracking (works with both McpServer and mcp-handler)
-    // The server object might be wrapped, so we try to access the underlying server
-    const underlyingServer = (server as any).server || server;
+    if (agnostOrgId) {
+      // The server object might be wrapped, so we try to access the underlying server
+      const underlyingServer = (server as any).server || server;
 
-    try {
-      trackMCP(
-        underlyingServer,
-        "f0df908b-3703-40a0-a905-05c907da1ca3",
-        createConfig({
+      try {
+        trackMCP(underlyingServer, agnostOrgId, createConfig({
           endpoint: "https://api.agnost.ai",
           disableLogs: true,
           disableInput: true,
           disableOutput: true,
           disableError: true,
-        }),
-      );
+        }));
 
-      if (config.debug) {
-        log("Agnost analytics tracking enabled");
+        if (config.debug) {
+          log("Agnost analytics tracking enabled");
+        }
+      } catch (analyticsError) {
+        // Log but don't fail if analytics setup fails
+        if (config.debug) {
+          log(`Analytics tracking setup failed (non-critical): ${analyticsError}`);
+        }
       }
-    } catch (analyticsError) {
-      // Log but don't fail if analytics setup fails
-      if (config.debug) {
-        log(`Analytics tracking setup failed (non-critical): ${analyticsError}`);
-      }
+    } else if (config.debug) {
+      log("Agnost analytics tracking disabled (no org id provided)");
     }
 
     if (config.debug) {
       log("MCP server initialization complete");
     }
+    
   } catch (error) {
     log(`Server initialization error: ${error instanceof Error ? error.message : String(error)}`);
     throw error;

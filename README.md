@@ -131,4 +131,24 @@ The hosted MCP server works anonymously with rate limits. For higher limits and 
 
 If you prefer, you can get an API key from the [dashboard](https://dashboard.exa.ai/api-keys) and pass it on the URL as `?exaApiKey=…`. You can also send it as a `Authorization: Bearer …` header or an `x-api-key` header.
 
+
+## Use as a Library
+
+The npm package also exposes the tool surface as a library, so you can embed Exa's MCP tools in your own MCP server on any transport:
+
+```ts
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { initializeMcpServer } from "exa-mcp-server";
+
+const server = new McpServer({ name: "my-server", version: "1.0.0" });
+
+initializeMcpServer(server, {
+  exaApiKey: process.env.EXA_API_KEY,
+  enabledTools: ["web_search_exa", "web_fetch_exa"],
+  requestHeaders: { "x-exa-source": "my-app" },
+});
+```
+
+Individual tools can also be registered piecemeal with `registerWebSearchTool`, `registerWebSearchAdvancedTool`, `registerWebFetchTool`, and `registerAgentRunTool`. Registered tool names, input schemas, and descriptions follow semver: breaking changes ship only in major versions.
+
 Built with ❤️ by Exa

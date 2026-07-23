@@ -41,6 +41,23 @@ describe("integrationHeaders", () => {
     });
   });
 
+  it("lets requestHeaders override built-in OAuth and session headers", () => {
+    expect(
+      integrationHeaders("web-search-mcp", {
+        oauthAccessToken: "jwt-token",
+        mcpSessionId: "session-123",
+        requestHeaders: {
+          Authorization: "Bearer wrapper-token",
+          "x-exa-mcp-session-id": "wrapper-session",
+        },
+      }),
+    ).toEqual({
+      "x-exa-integration": "web-search-mcp",
+      Authorization: "Bearer wrapper-token",
+      "x-exa-mcp-session-id": "wrapper-session",
+    });
+  });
+
   it("ignores non-string requestHeaders values", () => {
     expect(
       integrationHeaders("web-search-mcp", {
