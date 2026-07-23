@@ -3,7 +3,7 @@ process.env.AGNOST_LOG_LEVEL = 'error';
 import { randomUUID } from 'node:crypto';
 import { createMcpHandler } from 'mcp-handler';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
-import { initializeMcpServer, type McpConfig } from '../src/mcp-handler.js';
+import { EXA_PUBLIC_AGNOST_ORG_ID, initializeMcpServer, type McpConfig } from '../src/mcp-handler.js';
 import { DEFAULT_MCP_MAX_DURATION_SECONDS, parsePositiveInteger } from '../src/tools/agentRun.js';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
@@ -526,13 +526,16 @@ function createHandler(config: McpConfig) {
 
   return createMcpHandler(
     (server: any) => {
-      initializeMcpServer(server, config);
+      initializeMcpServer(server, {
+        ...config,
+        analytics: config.analytics ?? { agnostOrgId: EXA_PUBLIC_AGNOST_ORG_ID },
+      });
     },
     {
       serverInfo: {
         name: 'exa-search-server',
         title: 'Exa',
-        version: '3.3.0',
+        version: '3.4.0',
         websiteUrl: 'https://exa.ai',
         icons: [
           { src: 'https://exa.ai/images/favicon-32x32.png', mimeType: 'image/png', sizes: ['32x32'] },

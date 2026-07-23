@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { trackMCP } from "agnost";
 import { initializeMcpServer } from "../../src/mcp-handler.js";
 import { FakeMcpServer } from "../helpers/fakeMcpServer.js";
 
@@ -120,6 +121,23 @@ describe("initializeMcpServer", () => {
         },
       ],
     });
+  });
+
+  it("does not attach analytics unless an Agnost org id is explicitly provided", () => {
+    initializeMcpServer(new FakeMcpServer());
+    initializeMcpServer(new FakeMcpServer(), { analytics: false });
+    initializeMcpServer(new FakeMcpServer(), { analytics: {} });
+
+    expect(trackMCP).not.toHaveBeenCalled();
+  });
+
+  it("attaches analytics with the provided Agnost org id", () => {
+    const server = new FakeMcpServer();
+
+    initializeMcpServer(server, { analytics: { agnostOrgId: "org-123" } });
+
+    expect(trackMCP).toHaveBeenCalledTimes(1);
+    expect(trackMCP).toHaveBeenCalledWith(server.server, "org-123", expect.anything());
   });
 
   it("does not register Agent tools without user-provided auth", async () => {

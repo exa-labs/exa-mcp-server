@@ -1139,6 +1139,8 @@ initializeMcpServer(server, {
 
 Individual tools can also be registered piecemeal with `registerWebSearchTool`, `registerWebSearchAdvancedTool`, `registerWebFetchTool`, and `registerAgentRunTool`. Registered tool names, input schemas, and descriptions follow semver: breaking changes ship only in major versions.
 
+When embedded as a library, no analytics run by default. Only the bundled stdio server and Exa's hosted endpoint opt into Agnost tracking; embedders who want their own tracking can pass `analytics: { agnostOrgId: "..." }`.
+
 ## Links
 
 - [Documentation](https://docs.exa.ai/reference/exa-mcp)

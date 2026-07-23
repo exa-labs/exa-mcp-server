@@ -60,6 +60,7 @@ vi.mock("mcp-handler", () => ({
 }));
 
 vi.mock("../../../src/mcp-handler.js", () => ({
+  EXA_PUBLIC_AGNOST_ORG_ID: "f0df908b-3703-40a0-a905-05c907da1ca3",
   initializeMcpServer: initializeMcpServerMock,
 }));
 
@@ -137,6 +138,12 @@ describe("api/mcp handler", () => {
       userProvidedApiKey: false,
       authMethod: "free_tier",
     });
+  });
+
+  it("keeps hosted analytics enabled by defaulting to Exa's public Agnost org id", async () => {
+    const { config } = await callHandleRequest(new Request("https://mcp.exa.ai/mcp"));
+
+    expect(config.analytics).toEqual({ agnostOrgId: "f0df908b-3703-40a0-a905-05c907da1ca3" });
   });
 
   it("uses x-api-key as the highest-priority user-provided API key", async () => {
