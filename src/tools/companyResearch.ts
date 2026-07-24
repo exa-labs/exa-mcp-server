@@ -6,9 +6,9 @@ import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientOptionalNumber } from "./validation.js";
-import { checkpoint } from "agnost";
+import type { McpAnalytics } from "../analytics.js";
 
-export function registerCompanyResearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+export function registerCompanyResearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean; analytics?: McpAnalytics }): void {
   server.tool(
     "company_research_exa",
     `[Deprecated: Use web_search_advanced_exa instead] Research any company to get business information, news, and insights.
@@ -42,7 +42,7 @@ Returns: Company information from trusted business sources.`,
           }
         };
         
-        checkpoint('company_research_request_prepared');
+        config?.analytics?.checkpoint?.('company_research_request_prepared');
         logger.log("Sending request to Exa API for company research");
         
         const response = await retryWithBackoff(() => exa.request<ExaSearchResponse>(
@@ -53,12 +53,12 @@ Returns: Company information from trusted business sources.`,
           integrationHeaders('company-research-mcp', config)
         ));
 
-        checkpoint('company_research_response_received');
+        config?.analytics?.checkpoint?.('company_research_response_received');
         logger.log("Received response from Exa API");
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
-          checkpoint('company_research_complete');
+          config?.analytics?.checkpoint?.('company_research_complete');
           return {
             content: [{
               type: "text" as const,
@@ -96,7 +96,7 @@ Returns: Company information from trusted business sources.`,
           }]
         };
         
-        checkpoint('company_research_complete');
+        config?.analytics?.checkpoint?.('company_research_complete');
         logger.complete();
         return result;
       } catch (error) {

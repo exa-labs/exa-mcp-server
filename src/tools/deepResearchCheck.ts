@@ -5,14 +5,14 @@ import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { DeepResearchCheckResponse, DeepResearchErrorResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
-import { checkpoint } from "agnost";
+import type { McpAnalytics } from "../analytics.js";
 
 // Helper function to create a delay
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function registerDeepResearchCheckTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+export function registerDeepResearchCheckTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean; analytics?: McpAnalytics }): void {
   server.tool(
     "deep_researcher_check",
     `[Deprecated] Check status and get results from a deep research task.
@@ -37,13 +37,13 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
         // Built-in delay to allow processing time
         logger.log("Waiting 5 seconds before checking status...");
         await delay(5000);
-        checkpoint('deep_research_check_delay_complete');
+        config?.analytics?.checkpoint?.('deep_research_check_delay_complete');
 
         const exa = createExaClient(config);
 
         logger.log(`Checking status for research: ${researchId}`);
         
-        checkpoint('deep_research_check_request_prepared');
+        config?.analytics?.checkpoint?.('deep_research_check_request_prepared');
         const response = await retryWithBackoff(() => exa.request<DeepResearchCheckResponse>(
           `${API_CONFIG.ENDPOINTS.RESEARCH}/${researchId}`,
           'GET',
@@ -52,12 +52,12 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
           integrationHeaders('deep-research-mcp', config)
         ));
 
-        checkpoint('deep_research_check_response_received');
+        config?.analytics?.checkpoint?.('deep_research_check_response_received');
         logger.log(`Task status: ${response.status}`);
 
         if (!response) {
           logger.log("Warning: Empty response from Exa Research API");
-          checkpoint('deep_research_check_complete');
+          config?.analytics?.checkpoint?.('deep_research_check_complete');
           return {
             content: [{
               type: "text" as const,
@@ -127,7 +127,7 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
           }]
         };
         
-        checkpoint('deep_research_check_complete');
+        config?.analytics?.checkpoint?.('deep_research_check_complete');
         logger.complete();
         return result;
       } catch (error) {

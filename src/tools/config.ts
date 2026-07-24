@@ -29,6 +29,16 @@ export function integrationHeaders(tool: string, config?: Record<string, unknown
     headers['x-exa-mcp-client'] = mcpClient;
   }
 
+  // Embedder-provided headers apply last so they can override the defaults.
+  const requestHeaders = config?.requestHeaders;
+  if (requestHeaders && typeof requestHeaders === 'object' && !Array.isArray(requestHeaders)) {
+    for (const [key, value] of Object.entries(requestHeaders)) {
+      if (typeof value === 'string') {
+        headers[key] = value;
+      }
+    }
+  }
+
   return headers;
 }
 

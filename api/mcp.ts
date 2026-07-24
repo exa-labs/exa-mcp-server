@@ -1,5 +1,3 @@
-process.env.AGNOST_LOG_LEVEL = 'error';
-
 import { randomUUID } from 'node:crypto';
 import { createMcpHandler } from 'mcp-handler';
 import type { Implementation } from '@modelcontextprotocol/sdk/types.js';
@@ -532,7 +530,7 @@ function createHandler(config: McpConfig) {
       serverInfo: {
         name: 'exa-search-server',
         title: 'Exa',
-        version: '3.2.1',
+        version: '3.3.0',
         websiteUrl: 'https://exa.ai',
         icons: [
           { src: 'https://exa.ai/images/favicon-32x32.png', mimeType: 'image/png', sizes: ['32x32'] },
@@ -733,11 +731,12 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   }
   
   // Strip sensitive credentials from the request before passing to the MCP handler.
-  // Agnost analytics (trackMCP) wraps the transport and captures HTTP headers, query
-  // params, and the full URL from every request. Without sanitization, user API keys
-  // sent via x-api-key header or ?exaApiKey= query param would be forwarded to the
-  // external analytics endpoint. The API key has already been extracted into `config`
-  // above, so tools still have access to it — we just prevent it from leaking.
+  // Any analytics wrapper applied to the transport (via McpConfig.analytics) may
+  // capture HTTP headers, query params, and the full URL from every request; without
+  // sanitization, user API keys sent via x-api-key header or ?exaApiKey= query param
+  // could be forwarded to an external analytics endpoint. The API key has already
+  // been extracted into `config` above, so tools still have access to it — we just
+  // prevent it from leaking.
   url.searchParams.delete('exaApiKey');
   const sanitizedHeaders = new Headers(request.headers);
   sanitizedHeaders.delete('x-api-key');

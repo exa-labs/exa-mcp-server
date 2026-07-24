@@ -2,12 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { initializeMcpServer } from "../../src/mcp-handler.js";
 import { FakeMcpServer } from "../helpers/fakeMcpServer.js";
 
-vi.mock("agnost", () => ({
-  checkpoint: vi.fn(),
-  createConfig: vi.fn((config: unknown) => config),
-  trackMCP: vi.fn(),
-}));
-
 describe("initializeMcpServer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -120,6 +114,32 @@ describe("initializeMcpServer", () => {
         },
       ],
     });
+  });
+
+  it("applies the analytics wrapServer hook to the underlying server when provided", () => {
+    const wrapServer = vi.fn();
+    const server = new FakeMcpServer();
+
+    initializeMcpServer(server, { analytics: { wrapServer } });
+
+    expect(wrapServer).toHaveBeenCalledTimes(1);
+    expect(wrapServer).toHaveBeenCalledWith(server.server);
+  });
+
+  it("initializes without analytics and survives a throwing wrapServer hook", () => {
+    initializeMcpServer(new FakeMcpServer());
+    initializeMcpServer(new FakeMcpServer(), { analytics: {} });
+
+    const server = new FakeMcpServer();
+    initializeMcpServer(server, {
+      analytics: {
+        wrapServer: () => {
+          throw new Error("provider failure");
+        },
+      },
+    });
+
+    expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_exa", "web_fetch_exa"]);
   });
 
   it("does not register Agent tools without user-provided auth", async () => {

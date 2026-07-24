@@ -6,9 +6,9 @@ import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
 import { sanitizeDeepSearchStructuredResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientString, lenientOptionalNumber, lenientOptionalPositiveNumber, lenientOptionalBoolean } from "./validation.js";
-import { checkpoint } from "agnost";
+import type { McpAnalytics } from "../analytics.js";
 
-export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+export function registerDeepSearchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean; analytics?: McpAnalytics }): void {
   server.tool(
     "deep_search_exa",
     `[Deprecated: Use web_search_advanced_exa instead] Deep search with automatic query expansion for thorough research. Generates multiple search variations to find results from multiple angles, then synthesizes a short answer with citations.
@@ -70,7 +70,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           logger.log("Using automatic query expansion");
         }
 
-        checkpoint('deep_search_request_prepared');
+        config?.analytics?.checkpoint?.('deep_search_request_prepared');
         logger.log("Sending deep search request to Exa API");
 
         const response = await retryWithBackoff(() => exa.request<ExaDeepSearchResponse>(
@@ -81,12 +81,12 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           integrationHeaders('deep-search-mcp', config)
         ));
 
-        checkpoint('deep_search_response_received');
+        config?.analytics?.checkpoint?.('deep_search_response_received');
         logger.log("Received response from Exa API");
 
         if (!response) {
           logger.log("Warning: Empty response from Exa API");
-          checkpoint('deep_search_complete');
+          config?.analytics?.checkpoint?.('deep_search_complete');
           return {
             content: [{
               type: "text" as const,
@@ -111,7 +111,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
             }]
           };
 
-          checkpoint('deep_search_complete');
+          config?.analytics?.checkpoint?.('deep_search_complete');
           logger.complete();
           return result;
         }
@@ -174,11 +174,11 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
           }]
         };
 
-        checkpoint('deep_search_complete');
+        config?.analytics?.checkpoint?.('deep_search_complete');
         logger.complete();
         return result;
       } catch (error) {
-        checkpoint('deep_search_complete');
+        config?.analytics?.checkpoint?.('deep_search_complete');
         logger.error(error);
         return formatToolError(error, 'deep_search_exa', config?.userProvidedApiKey);
       }
