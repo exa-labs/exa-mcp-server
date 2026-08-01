@@ -3,11 +3,12 @@ export const MCP_CLIENT_SESSION_TTL_SECONDS = 24 * 60 * 60;
 const MCP_CLIENT_FIELD_MAX_LENGTH = 256;
 const MCP_CLIENT_USER_AGENT_MAX_LENGTH = 512;
 const MCP_CLIENT_HEADER_MAX_LENGTH = 2048;
-const UNKNOWN_MCP_CLIENT_NAME = 'unknown';
+const UNKNOWN_MCP_CLIENT_NAME = "unknown";
 
 function escapeNonAsciiJsonCharacters(value: string): string {
-  return value.replace(/[\u0080-\uFFFF]/g, character =>
-    `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,
+  return value.replace(
+    /[\u0080-\uFFFF]/g,
+    (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
   );
 }
 
@@ -28,15 +29,18 @@ function unknownMcpClientInfo(): McpClientInfo {
   return { name: UNKNOWN_MCP_CLIENT_NAME };
 }
 
-function sanitizeMcpClientField(value: unknown, maxLength = MCP_CLIENT_FIELD_MAX_LENGTH): string | undefined {
-  if (typeof value !== 'string') {
+function sanitizeMcpClientField(
+  value: unknown,
+  maxLength = MCP_CLIENT_FIELD_MAX_LENGTH,
+): string | undefined {
+  if (typeof value !== "string") {
     return undefined;
   }
 
-  let withoutControlCharacters = '';
+  let withoutControlCharacters = "";
   for (const character of value) {
     const codePoint = character.charCodeAt(0);
-    withoutControlCharacters += codePoint <= 31 || codePoint === 127 ? ' ' : character;
+    withoutControlCharacters += codePoint <= 31 || codePoint === 127 ? " " : character;
   }
 
   const sanitized = withoutControlCharacters.trim();
@@ -61,7 +65,7 @@ function compactMcpClientMetadata(metadata: McpClientMetadata): McpClientMetadat
 }
 
 function isMcpClientRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
 function sanitizeMcpClientInfo(clientInfo: unknown): McpClientInfo | undefined {
@@ -88,7 +92,7 @@ export function extractInitializeClientInfo(body: string | undefined): McpClient
 
   try {
     const parsed: unknown = JSON.parse(body);
-    if (!isMcpClientRecord(parsed) || parsed.method !== 'initialize') {
+    if (!isMcpClientRecord(parsed) || parsed.method !== "initialize") {
       return undefined;
     }
 
@@ -127,7 +131,10 @@ export function buildMcpClientMetadata(input: {
       source: sanitizeMcpClientField(input.source ?? input.stored?.source),
       sessionId: sanitizeMcpClientField(input.sessionId ?? input.stored?.sessionId),
       clientInfo: sanitizeMcpClientInfo(input.clientInfo ?? input.stored?.clientInfo),
-      userAgent: sanitizeMcpClientField(input.userAgent ?? input.stored?.userAgent, MCP_CLIENT_USER_AGENT_MAX_LENGTH),
+      userAgent: sanitizeMcpClientField(
+        input.userAgent ?? input.stored?.userAgent,
+        MCP_CLIENT_USER_AGENT_MAX_LENGTH,
+      ),
     }) ?? { clientInfo: unknownMcpClientInfo() };
 
     if (!metadata.clientInfo && !metadata.userAgent) {
@@ -141,13 +148,13 @@ export function buildMcpClientMetadata(input: {
 }
 
 export function serializeMcpClientMetadata(value: unknown): string | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
     return undefined;
   }
 
   try {
     const serialized = escapeNonAsciiJsonCharacters(JSON.stringify(value));
-    if (serialized === '{}' || serialized.length > MCP_CLIENT_HEADER_MAX_LENGTH) {
+    if (serialized === "{}" || serialized.length > MCP_CLIENT_HEADER_MAX_LENGTH) {
       return undefined;
     }
 

@@ -36,7 +36,9 @@ function sanitizeObjectArray(value: unknown): Record<string, unknown>[] | undefi
   return sanitized.length > 0 ? sanitized : undefined;
 }
 
-function sanitizeStatuses(value: unknown): Array<{ id: string; status: string; source: string }> | undefined {
+function sanitizeStatuses(
+  value: unknown,
+): Array<{ id: string; status: string; source: string }> | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
@@ -165,7 +167,16 @@ export function sanitizeSearchResult(value: unknown): Record<string, unknown> | 
 
   const sanitized: Record<string, unknown> = {};
 
-  const stringFields = ["id", "url", "publishedDate", "author", "text", "summary", "image", "favicon"] as const;
+  const stringFields = [
+    "id",
+    "url",
+    "publishedDate",
+    "author",
+    "text",
+    "summary",
+    "image",
+    "favicon",
+  ] as const;
   for (const field of stringFields) {
     if (typeof value[field] === "string") {
       sanitized[field] = value[field];
@@ -279,18 +290,24 @@ function sanitizeTopLevelResponse(value: unknown): Record<string, unknown> {
   return sanitized;
 }
 
-export function sanitizeSearchResponse(response: ExaSearchResponse | unknown): Record<string, unknown> {
+export function sanitizeSearchResponse(
+  response: ExaSearchResponse | unknown,
+): Record<string, unknown> {
   return sanitizeTopLevelResponse(response);
 }
 
-export function sanitizeDeepSearchStructuredResponse(response: ExaDeepSearchResponse | unknown): Record<string, unknown> {
+export function sanitizeDeepSearchStructuredResponse(
+  response: ExaDeepSearchResponse | unknown,
+): Record<string, unknown> {
   const sanitized = sanitizeTopLevelResponse(response);
   const structured: Record<string, unknown> = {};
 
   if ("output" in sanitized && isRecord(sanitized.output)) {
     const output = { ...sanitized.output };
     if (isRecord(response) && isRecord((response as Record<string, unknown>).output)) {
-      output.content = ((response as Record<string, unknown>).output as Record<string, unknown>).content;
+      output.content = (
+        (response as Record<string, unknown>).output as Record<string, unknown>
+      ).content;
     }
     structured.output = output;
   }

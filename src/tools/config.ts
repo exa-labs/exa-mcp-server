@@ -1,10 +1,12 @@
-import { Exa } from 'exa-js';
-import { serializeMcpClientMetadata } from '../utils/mcpClientMetadata.js';
+import { Exa } from "exa-js";
+import { serializeMcpClientMetadata } from "../utils/mcpClientMetadata.js";
 
 function encodeIntegrationSource(source: string): string {
-  return Array.from(new TextEncoder().encode(source), byte =>
-    byte <= 127 ? String.fromCharCode(byte) : `%${byte.toString(16).toUpperCase().padStart(2, '0')}`,
-  ).join('');
+  return Array.from(new TextEncoder().encode(source), (byte) =>
+    byte <= 127
+      ? String.fromCharCode(byte)
+      : `%${byte.toString(16).toUpperCase().padStart(2, "0")}`,
+  ).join("");
 }
 
 // Build Exa reporting headers, appending x-exa-source if present
@@ -14,19 +16,20 @@ export function integrationHeaders(tool: string, config?: Record<string, unknown
   const mcpClient = serializeMcpClientMetadata(config?.mcpClient);
   const oauthAccessToken = config?.oauthAccessToken;
   const headers: Record<string, string> = {
-    'x-exa-integration': typeof source === 'string' ? `${tool}:${encodeIntegrationSource(source)}` : tool,
+    "x-exa-integration":
+      typeof source === "string" ? `${tool}:${encodeIntegrationSource(source)}` : tool,
   };
 
-  if (typeof oauthAccessToken === 'string' && oauthAccessToken.length > 0) {
-    headers['Authorization'] = `Bearer ${oauthAccessToken}`;
+  if (typeof oauthAccessToken === "string" && oauthAccessToken.length > 0) {
+    headers["Authorization"] = `Bearer ${oauthAccessToken}`;
   }
 
-  if (typeof mcpSessionId === 'string' && mcpSessionId.length > 0) {
-    headers['x-exa-mcp-session-id'] = mcpSessionId;
+  if (typeof mcpSessionId === "string" && mcpSessionId.length > 0) {
+    headers["x-exa-mcp-session-id"] = mcpSessionId;
   }
 
   if (mcpClient) {
-    headers['x-exa-mcp-client'] = mcpClient;
+    headers["x-exa-mcp-client"] = mcpClient;
   }
 
   return headers;
@@ -42,19 +45,23 @@ export function createExaClient(config?: Record<string, unknown>, tool?: string)
 
 function createBaseExaClient(config?: Record<string, unknown>) {
   const oauthAccessToken = config?.oauthAccessToken;
-  if (typeof oauthAccessToken === 'string' && oauthAccessToken.length > 0) {
-    const exa = new Exa('oauth');
-    (exa as unknown as { headers: Headers }).headers.delete('x-api-key');
+  if (typeof oauthAccessToken === "string" && oauthAccessToken.length > 0) {
+    const exa = new Exa("oauth");
+    (exa as unknown as { headers: Headers }).headers.delete("x-api-key");
     return exa;
   }
   const exaApiKey = config?.exaApiKey;
-  return new Exa(typeof exaApiKey === 'string' && exaApiKey.length > 0 ? exaApiKey : process.env.EXA_API_KEY || '');
+  return new Exa(
+    typeof exaApiKey === "string" && exaApiKey.length > 0
+      ? exaApiKey
+      : process.env.EXA_API_KEY || "",
+  );
 }
 
 function applyClientHeaders(exa: Exa, headers: Record<string, string>) {
   const client = exa as unknown as { headers: Headers | Record<string, string> };
   const headerBag = client.headers as Headers;
-  if (typeof headerBag.set === 'function') {
+  if (typeof headerBag.set === "function") {
     Object.entries(headers).forEach(([key, value]) => headerBag.set(key, value));
     return;
   }
@@ -68,8 +75,8 @@ function applyClientHeaders(exa: Exa, headers: Record<string, string>) {
 // Configuration for API
 export const API_CONFIG = {
   ENDPOINTS: {
-    SEARCH: '/search',
-    RESEARCH: '/research/v1',
+    SEARCH: "/search",
+    RESEARCH: "/research/v1",
   },
   TOOL_TIMEOUTS: {
     SEARCH_MS: 60_000,
@@ -77,5 +84,5 @@ export const API_CONFIG = {
     ADVANCED_SEARCH_MS: 300_000,
   },
   DEFAULT_NUM_RESULTS: 10,
-  DEFAULT_MAX_CHARACTERS: 3000
+  DEFAULT_MAX_CHARACTERS: 3000,
 } as const;

@@ -8,28 +8,35 @@ export function formatAgentToolError(error: unknown, toolName: string): ToolCont
     const apiMessage = error.message;
     const guidance = guidanceForStatus(status);
     return {
-      content: [{
-        type: "text",
-        text: [`${toolName} error (${status}): ${apiMessage}`, guidance].filter(Boolean).join("\n\n"),
-      }],
+      content: [
+        {
+          type: "text",
+          text: [`${toolName} error (${status}): ${apiMessage}`, guidance]
+            .filter(Boolean)
+            .join("\n\n"),
+        },
+      ],
       isError: true,
     };
   }
 
   return {
-    content: [{
-      type: "text",
-      text: `${toolName} error: ${error instanceof Error ? error.message : String(error)}`,
-    }],
+    content: [
+      {
+        type: "text",
+        text: `${toolName} error: ${error instanceof Error ? error.message : String(error)}`,
+      },
+    ],
     isError: true,
   };
 }
 
 function isExaError(error: unknown): error is ExaError {
-  return error instanceof ExaError || (
-    error instanceof Error &&
-    "statusCode" in error &&
-    typeof (error as { statusCode?: unknown }).statusCode === "number"
+  return (
+    error instanceof ExaError ||
+    (error instanceof Error &&
+      "statusCode" in error &&
+      typeof (error as { statusCode?: unknown }).statusCode === "number")
   );
 }
 

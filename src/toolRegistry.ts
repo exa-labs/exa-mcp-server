@@ -17,19 +17,22 @@ export const TOOL_REGISTRY = {
   },
   web_search_advanced_exa: {
     name: "Advanced Web Search (Exa)",
-    description: "Advanced web search with full Exa API control including category filters, domain restrictions, date ranges, highlights, summaries, and subpage crawling",
+    description:
+      "Advanced web search with full Exa API control including category filters, domain restrictions, date ranges, highlights, summaries, and subpage crawling",
     enabled: false,
     group: "search",
   },
   get_code_context_exa: {
     name: "Code Context Search (Deprecated)",
-    description: "Deprecated: Use web_search_exa instead. Search for code snippets, examples, and documentation from open source repositories",
+    description:
+      "Deprecated: Use web_search_exa instead. Search for code snippets, examples, and documentation from open source repositories",
     enabled: false,
     group: "search",
   },
   company_research_exa: {
     name: "Company Research (Deprecated)",
-    description: "Deprecated: Use web_search_advanced_exa instead. Research companies and organizations",
+    description:
+      "Deprecated: Use web_search_advanced_exa instead. Research companies and organizations",
     enabled: false,
     group: "search",
   },
@@ -55,7 +58,8 @@ export const TOOL_REGISTRY = {
   },
   people_search_exa: {
     name: "People Search (Deprecated)",
-    description: "Deprecated: Use web_search_advanced_exa instead. Search for people and professional profiles",
+    description:
+      "Deprecated: Use web_search_advanced_exa instead. Search for people and professional profiles",
     enabled: false,
     group: "search",
   },
@@ -67,7 +71,8 @@ export const TOOL_REGISTRY = {
   },
   deep_search_exa: {
     name: "Deep Search (Deprecated)",
-    description: "Deprecated: Use web_search_advanced_exa instead. Deep search with query expansion and synthesized answers (requires API key)",
+    description:
+      "Deprecated: Use web_search_advanced_exa instead. Deep search with query expansion and synthesized answers (requires API key)",
     enabled: false,
     group: "search",
     requiresUserProvidedApiKey: true,
@@ -80,7 +85,8 @@ export const TOOL_REGISTRY = {
   },
   agent_run: {
     name: "Run Exa Agent",
-    description: "Run an Exa Agent for multi-step research, list-building, enrichment, or structured output. Returns the final output or a run ID for retained-run continuation.",
+    description:
+      "Run an Exa Agent for multi-step research, list-building, enrichment, or structured output. Returns the final output or a run ID for retained-run continuation.",
     enabled: false,
     group: "agent",
     requiresUserProvidedApiKey: true,
@@ -143,7 +149,8 @@ export function expandToolSelection(values: string[]): ToolId[] {
 
   for (const value of values) {
     const normalizedValue = LEGACY_AGENT_TOOL_SELECTIONS.has(value) ? "agent_tools" : value;
-    const aliasTools = TOOL_SELECTION_ALIASES[normalizedValue as keyof typeof TOOL_SELECTION_ALIASES];
+    const aliasTools =
+      TOOL_SELECTION_ALIASES[normalizedValue as keyof typeof TOOL_SELECTION_ALIASES];
     const toolIds = aliasTools ?? [normalizedValue as ToolId];
 
     for (const toolId of toolIds) {

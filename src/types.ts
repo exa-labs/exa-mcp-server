@@ -1,8 +1,16 @@
 // Exa API Types
 export interface ExaSearchRequest {
   query: string;
-  type: 'auto' | 'fast' | 'instant' | 'deep' | 'deep-reasoning';
-  category?: 'company' | 'publication' | 'news' | 'pdf' | 'github' | 'personal site' | 'people' | 'financial report';
+  type: "auto" | "fast" | "instant" | "deep" | "deep-reasoning";
+  category?:
+    | "company"
+    | "publication"
+    | "news"
+    | "pdf"
+    | "github"
+    | "personal site"
+    | "people"
+    | "financial report";
   includeDomains?: string[];
   excludeDomains?: string[];
   startPublishedDate?: string;
@@ -11,19 +19,25 @@ export interface ExaSearchRequest {
   additionalQueries?: string[];
   outputSchema?: Record<string, unknown>;
   contents: {
-    text?: {
-      maxCharacters?: number;
-    } | boolean;
-    highlights?: {
-      maxCharacters?: number;
-      numSentences?: number;
-      highlightsPerUrl?: number;
-      query?: string;
-    } | boolean;
-    summary?: {
-      query?: string;
-    } | boolean;
-    livecrawl?: 'fallback' | 'preferred';
+    text?:
+      | {
+          maxCharacters?: number;
+        }
+      | boolean;
+    highlights?:
+      | {
+          maxCharacters?: number;
+          numSentences?: number;
+          highlightsPerUrl?: number;
+          query?: string;
+        }
+      | boolean;
+    summary?:
+      | {
+          query?: string;
+        }
+      | boolean;
+    livecrawl?: "fallback" | "preferred";
     maxAgeHours?: number;
     subpages?: number;
     subpageTarget?: string[];
@@ -32,9 +46,17 @@ export interface ExaSearchRequest {
 
 export interface ExaAdvancedSearchRequest {
   query: string;
-  type: 'auto' | 'fast' | 'instant';
+  type: "auto" | "fast" | "instant";
   numResults?: number;
-  category?: 'company' | 'publication' | 'news' | 'pdf' | 'github' | 'personal site' | 'people' | 'financial report';
+  category?:
+    | "company"
+    | "publication"
+    | "news"
+    | "pdf"
+    | "github"
+    | "personal site"
+    | "people"
+    | "financial report";
   includeDomains?: string[];
   excludeDomains?: string[];
   startPublishedDate?: string;
@@ -47,22 +69,28 @@ export interface ExaAdvancedSearchRequest {
   moderation?: boolean;
   additionalQueries?: string[];
   contents: {
-    text?: {
-      maxCharacters?: number;
-    } | boolean;
-    context?: {
-      maxCharacters?: number;
-    } | boolean;
-    summary?: {
-      query?: string;
-    } | boolean;
+    text?:
+      | {
+          maxCharacters?: number;
+        }
+      | boolean;
+    context?:
+      | {
+          maxCharacters?: number;
+        }
+      | boolean;
+    summary?:
+      | {
+          query?: string;
+        }
+      | boolean;
     highlights?: {
       maxCharacters?: number;
       numSentences?: number;
       highlightsPerUrl?: number;
       query?: string;
     };
-    livecrawl?: 'never' | 'fallback' | 'always' | 'preferred';
+    livecrawl?: "never" | "fallback" | "always" | "preferred";
     maxAgeHours?: number;
     livecrawlTimeout?: number;
     subpages?: number;
@@ -133,7 +161,7 @@ export interface ExaSearchResponse {
 // Deep Search API Types
 export interface ExaDeepSearchRequest {
   query: string;
-  type: 'deep' | 'deep-reasoning';
+  type: "deep" | "deep-reasoning";
   numResults?: number;
   additionalQueries?: string[];
   outputSchema?: Record<string, unknown>;
@@ -180,7 +208,7 @@ export interface ExaContentsResponse {
 
 // Deep Research API Types (v1)
 export interface DeepResearchRequest {
-  model: 'exa-research-fast' | 'exa-research' | 'exa-research-pro';
+  model: "exa-research-fast" | "exa-research" | "exa-research-pro";
   instructions: string;
   outputSchema?: Record<string, unknown>;
 }
@@ -201,7 +229,7 @@ export interface DeepResearchCheckResponse {
   instructions: string;
   outputSchema?: Record<string, unknown>;
   finishedAt?: number;
-  status: 'pending' | 'running' | 'completed' | 'canceled' | 'failed';
+  status: "pending" | "running" | "completed" | "canceled" | "failed";
   output?: {
     content: string;
     parsed?: Record<string, unknown>;

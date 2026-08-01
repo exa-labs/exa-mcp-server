@@ -9,10 +9,13 @@ import { checkpoint } from "agnost";
 
 // Helper function to create a delay
 function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function registerDeepResearchCheckTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+export function registerDeepResearchCheckTool(
+  server: McpServer,
+  config?: { exaApiKey?: string; userProvidedApiKey?: boolean },
+): void {
   server.tool(
     "deep_researcher_check",
     `[Deprecated] Check status and get results from a deep research task.
@@ -21,48 +24,52 @@ Best for: Getting the research report after calling deep_researcher_start.
 Returns: Research report when complete, or status update if still running.
 Important: Keep calling with the same research ID until status is 'completed'.`,
     {
-      researchId: z.string().describe("The research ID returned from deep_researcher_start tool")
+      researchId: z.string().describe("The research ID returned from deep_researcher_start tool"),
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: true
+      idempotentHint: true,
     },
     async ({ researchId }) => {
-      const logger = createRequestLogger('deep_researcher_check');
-      
+      const logger = createRequestLogger("deep_researcher_check");
+
       logger.start(researchId);
-      
+
       try {
         // Built-in delay to allow processing time
         logger.log("Waiting 5 seconds before checking status...");
         await delay(5000);
-        checkpoint('deep_research_check_delay_complete');
+        checkpoint("deep_research_check_delay_complete");
 
         const exa = createExaClient(config);
 
         logger.log(`Checking status for research: ${researchId}`);
-        
-        checkpoint('deep_research_check_request_prepared');
-        const response = await retryWithBackoff(() => exa.request<DeepResearchCheckResponse>(
-          `${API_CONFIG.ENDPOINTS.RESEARCH}/${researchId}`,
-          'GET',
-          undefined,
-          undefined,
-          integrationHeaders('deep-research-mcp', config)
-        ));
 
-        checkpoint('deep_research_check_response_received');
+        checkpoint("deep_research_check_request_prepared");
+        const response = await retryWithBackoff(() =>
+          exa.request<DeepResearchCheckResponse>(
+            `${API_CONFIG.ENDPOINTS.RESEARCH}/${researchId}`,
+            "GET",
+            undefined,
+            undefined,
+            integrationHeaders("deep-research-mcp", config),
+          ),
+        );
+
+        checkpoint("deep_research_check_response_received");
         logger.log(`Task status: ${response.status}`);
 
         if (!response) {
           logger.log("Warning: Empty response from Exa Research API");
-          checkpoint('deep_research_check_complete');
+          checkpoint("deep_research_check_complete");
           return {
-            content: [{
-              type: "text" as const,
-              text: "Failed to check research task status. Please try again."
-            }],
+            content: [
+              {
+                type: "text" as const,
+                text: "Failed to check research task status. Please try again.",
+              },
+            ],
             isError: true,
           };
         }
@@ -70,64 +77,87 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
         // Format the response based on status
         let resultText: string;
 
-        if (response.status === 'completed') {
-          resultText = JSON.stringify({
-            success: true,
-            status: response.status,
-            researchId: response.researchId,
-            report: response.output?.content || "No report generated",
-            parsedOutput: response.output?.parsed,
-            citations: response.citations,
-            model: response.model,
-            costDollars: response.costDollars,
-            message: "Deep research completed! Here's your comprehensive research report."
-          }, null, 2);
+        if (response.status === "completed") {
+          resultText = JSON.stringify(
+            {
+              success: true,
+              status: response.status,
+              researchId: response.researchId,
+              report: response.output?.content || "No report generated",
+              parsedOutput: response.output?.parsed,
+              citations: response.citations,
+              model: response.model,
+              costDollars: response.costDollars,
+              message: "Deep research completed! Here's your comprehensive research report.",
+            },
+            null,
+            2,
+          );
           logger.log("Research completed successfully");
-        } else if (response.status === 'running' || response.status === 'pending') {
-          resultText = JSON.stringify({
-            success: true,
-            status: response.status,
-            researchId: response.researchId,
-            message: "Research in progress. Continue polling...",
-            nextAction: "Call deep_researcher_check again with the same research ID"
-          }, null, 2);
+        } else if (response.status === "running" || response.status === "pending") {
+          resultText = JSON.stringify(
+            {
+              success: true,
+              status: response.status,
+              researchId: response.researchId,
+              message: "Research in progress. Continue polling...",
+              nextAction: "Call deep_researcher_check again with the same research ID",
+            },
+            null,
+            2,
+          );
           logger.log("Research still in progress");
-        } else if (response.status === 'failed') {
-          resultText = JSON.stringify({
-            success: false,
-            status: response.status,
-            researchId: response.researchId,
-            createdAt: new Date(response.createdAt).toISOString(),
-            instructions: response.instructions,
-            message: "Deep research task failed. Please try starting a new research task with different instructions."
-          }, null, 2);
+        } else if (response.status === "failed") {
+          resultText = JSON.stringify(
+            {
+              success: false,
+              status: response.status,
+              researchId: response.researchId,
+              createdAt: new Date(response.createdAt).toISOString(),
+              instructions: response.instructions,
+              message:
+                "Deep research task failed. Please try starting a new research task with different instructions.",
+            },
+            null,
+            2,
+          );
           logger.log("Research task failed");
-        } else if (response.status === 'canceled') {
-          resultText = JSON.stringify({
-            success: false,
-            status: response.status,
-            researchId: response.researchId,
-            message: "Research task was canceled."
-          }, null, 2);
+        } else if (response.status === "canceled") {
+          resultText = JSON.stringify(
+            {
+              success: false,
+              status: response.status,
+              researchId: response.researchId,
+              message: "Research task was canceled.",
+            },
+            null,
+            2,
+          );
           logger.log("Research task canceled");
         } else {
-          resultText = JSON.stringify({
-            success: false,
-            status: response.status,
-            researchId: response.researchId,
-            message: `Unknown status: ${response.status}. Continue polling or restart the research task.`
-          }, null, 2);
+          resultText = JSON.stringify(
+            {
+              success: false,
+              status: response.status,
+              researchId: response.researchId,
+              message: `Unknown status: ${response.status}. Continue polling or restart the research task.`,
+            },
+            null,
+            2,
+          );
           logger.log(`Unknown status: ${response.status}`);
         }
 
         const result = {
-          content: [{
-            type: "text" as const,
-            text: resultText
-          }]
+          content: [
+            {
+              type: "text" as const,
+              text: resultText,
+            },
+          ],
         };
-        
-        checkpoint('deep_research_check_complete');
+
+        checkpoint("deep_research_check_complete");
         logger.complete();
         return result;
       } catch (error) {
@@ -137,21 +167,28 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
         if (error instanceof ExaError && error.statusCode === 404) {
           logger.log(`Research not found: ${researchId}`);
           return {
-            content: [{
-              type: "text" as const,
-              text: JSON.stringify({
-                success: false,
-                error: "Research not found",
-                researchId: researchId,
-                message: "The specified research ID was not found. Please check the ID or start a new research task using deep_researcher_start."
-              }, null, 2)
-            }],
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(
+                  {
+                    success: false,
+                    error: "Research not found",
+                    researchId: researchId,
+                    message:
+                      "The specified research ID was not found. Please check the ID or start a new research task using deep_researcher_start.",
+                  },
+                  null,
+                  2,
+                ),
+              },
+            ],
             isError: true,
           };
         }
 
-        return formatToolError(error, 'deep_researcher_check', config?.userProvidedApiKey);
+        return formatToolError(error, "deep_researcher_check", config?.userProvidedApiKey);
       }
-    }
+    },
   );
-}                                                                                                                                                                                                                                                                                                
+}

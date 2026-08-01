@@ -142,7 +142,11 @@ describe("web_fetch_exa urls preprocess", () => {
 
     const cases: Array<[string, unknown, string[] | "fail"]> = [
       ["passthrough array", ["https://a.com", "https://b.com"], ["https://a.com", "https://b.com"]],
-      ["JSON-encoded array", '["https://a.com","https://b.com"]', ["https://a.com", "https://b.com"]],
+      [
+        "JSON-encoded array",
+        '["https://a.com","https://b.com"]',
+        ["https://a.com", "https://b.com"],
+      ],
       ["bare URL string", "https://example.com", ["https://example.com"]],
       ["object (not an array)", { foo: "bar" }, "fail"],
       ["JSON-encoded object", '{"foo":"bar"}', "fail"],
@@ -193,14 +197,19 @@ describe("advertised JSON Schema retains usable type info", () => {
 
     for (const toolName of ["web_search_exa", "web_fetch_exa"]) {
       const inputSchema = server.getTool(toolName).inputSchema as Record<string, z.ZodTypeAny>;
-      expect(Object.keys(inputSchema).length, `${toolName} should expose fields`).toBeGreaterThan(0);
+      expect(Object.keys(inputSchema).length, `${toolName} should expose fields`).toBeGreaterThan(
+        0,
+      );
 
       const json = zodToJsonSchema(z.object(inputSchema)) as {
         properties?: Record<string, { type?: string | string[]; description?: string }>;
       };
       const props = json.properties ?? {};
       for (const [fieldName, fieldSchema] of Object.entries(props)) {
-        expect(fieldSchema.type, `${toolName}.${fieldName} should have a JSON Schema type`).toBeDefined();
+        expect(
+          fieldSchema.type,
+          `${toolName}.${fieldName} should have a JSON Schema type`,
+        ).toBeDefined();
       }
     }
   });

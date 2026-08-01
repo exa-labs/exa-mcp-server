@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { fakeServer, initializeMcpServerMock, mcpServerConstructorMock, stdioTransportConstructorMock, connectMock } = vi.hoisted(() => {
+const {
+  fakeServer,
+  initializeMcpServerMock,
+  mcpServerConstructorMock,
+  stdioTransportConstructorMock,
+  connectMock,
+} = vi.hoisted(() => {
   const fakeServer = { id: "underlying-server" };
   const initializeMcpServerMock = vi.fn();
   const mcpServerConstructorMock = vi.fn();
@@ -77,9 +83,7 @@ describe("Stdio entrypoint", () => {
       ENABLED_TOOLS: "agent_tools",
     });
 
-    expect(config.enabledTools).toEqual([
-      "agent_run",
-    ]);
+    expect(config.enabledTools).toEqual(["agent_run"]);
   });
 
   it("buildConfigFromEnv leaves userProvidedApiKey false when EXA_API_KEY is missing", async () => {

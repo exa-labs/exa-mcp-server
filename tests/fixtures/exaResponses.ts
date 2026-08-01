@@ -1,8 +1,7 @@
 import type { SearchResponse } from "exa-js";
 import type { ExaContentsResponse, ExaSearchResponse } from "../../src/types.js";
 
-type WebSearchFixtureResponse = ExaSearchResponse &
-  SearchResponse<{ highlights: true }>;
+type WebSearchFixtureResponse = ExaSearchResponse & SearchResponse<{ highlights: true }>;
 
 type WebContentsFixtureResponse = ExaContentsResponse &
   SearchResponse<{ text: { maxCharacters: number } }>;

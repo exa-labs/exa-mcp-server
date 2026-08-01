@@ -52,7 +52,10 @@ describe("initializeMcpServer", () => {
       userProvidedApiKey: false,
     });
 
-    expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_advanced_exa", "crawling_exa"]);
+    expect(server.tools.map((tool) => tool.name)).toEqual([
+      "web_search_advanced_exa",
+      "crawling_exa",
+    ]);
   });
 
   it("only registers deep_search_exa when the user provided an API key", () => {
@@ -74,11 +77,16 @@ describe("initializeMcpServer", () => {
       userProvidedApiKey: true,
     });
 
-    expect(server.tools.map((tool) => tool.name)).toEqual([
-      "agent_run",
+    expect(server.tools.map((tool) => tool.name)).toEqual(["agent_run"]);
+    expect(server.prompts.map((prompt) => prompt.name)).toEqual([
+      "web_search_help",
+      "agent_research_help",
     ]);
-    expect(server.prompts.map((prompt) => prompt.name)).toEqual(["web_search_help", "agent_research_help"]);
-    expect(server.resources.map((resource) => resource.name)).toEqual(["tools_list", "agent_research_guide", "agent_schema_templates"]);
+    expect(server.resources.map((resource) => resource.name)).toEqual([
+      "tools_list",
+      "agent_research_guide",
+      "agent_schema_templates",
+    ]);
 
     const agentGuide = await server.resources[1].handler();
     expect(agentGuide).toMatchObject({
@@ -137,9 +145,7 @@ describe("initializeMcpServer", () => {
     const resourceResult = await server.resources[0].handler();
     const toolsList = JSON.parse((resourceResult as any).contents[0].text);
     expect(toolsList).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "agent_run", enabled: false }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ id: "agent_run", enabled: false })]),
     );
   });
 });

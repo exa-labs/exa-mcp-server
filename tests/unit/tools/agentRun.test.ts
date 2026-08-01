@@ -56,21 +56,23 @@ const COMPLETED_EVENTS = [
 
 type Notification = { method: string; params: Record<string, unknown> };
 
-function setup(options: {
-  events?: AsyncIterable<AgentEvent>;
-  createStream?: AgentRunClient["createStream"];
-  getRun?: AgentRunClient["getRun"];
-  cancelRun?: AgentRunClient["cancelRun"];
-  config?: { exaApiKey?: string; oauthAccessToken?: string };
-  callWindowMs?: number;
-  heartbeatMs?: number;
-  progressThrottleMs?: number;
-  pollIntervalMs?: number;
-  progressTimeoutMs?: number;
-  progressToken?: string | number;
-  signal?: AbortSignal;
-  sendNotification?: (notification: Notification) => void | Promise<void>;
-} = {}) {
+function setup(
+  options: {
+    events?: AsyncIterable<AgentEvent>;
+    createStream?: AgentRunClient["createStream"];
+    getRun?: AgentRunClient["getRun"];
+    cancelRun?: AgentRunClient["cancelRun"];
+    config?: { exaApiKey?: string; oauthAccessToken?: string };
+    callWindowMs?: number;
+    heartbeatMs?: number;
+    progressThrottleMs?: number;
+    pollIntervalMs?: number;
+    progressTimeoutMs?: number;
+    progressToken?: string | number;
+    signal?: AbortSignal;
+    sendNotification?: (notification: Notification) => void | Promise<void>;
+  } = {},
+) {
   const fake = new FakeMcpServer();
   const createStream = vi.fn(
     options.createStream ?? (async () => options.events ?? streamOf(COMPLETED_EVENTS)),
@@ -79,18 +81,14 @@ function setup(options: {
   const cancelRun = vi.fn(options.cancelRun ?? (async () => completedRun({ status: "cancelled" })));
   const client: AgentRunClient = { createStream, getRun, cancelRun };
 
-  registerAgentRunTool(
-    fake as unknown as McpServer,
-    options.config ?? { exaApiKey: "test-key" },
-    {
-      clientFactory: () => client,
-      callWindowMs: options.callWindowMs,
-      heartbeatMs: options.heartbeatMs ?? 10_000,
-      progressThrottleMs: options.progressThrottleMs,
-      pollIntervalMs: options.pollIntervalMs,
-      progressTimeoutMs: options.progressTimeoutMs,
-    },
-  );
+  registerAgentRunTool(fake as unknown as McpServer, options.config ?? { exaApiKey: "test-key" }, {
+    clientFactory: () => client,
+    callWindowMs: options.callWindowMs,
+    heartbeatMs: options.heartbeatMs ?? 10_000,
+    progressThrottleMs: options.progressThrottleMs,
+    pollIntervalMs: options.pollIntervalMs,
+    progressTimeoutMs: options.progressTimeoutMs,
+  });
 
   const notifications: Notification[] = [];
   const sendNotification = vi.fn(async (notification: Notification) => {
@@ -169,7 +167,9 @@ describe("agentRunInputShape", () => {
 
   it("rejects malformed run IDs, providers, and effort values", () => {
     expect(schema.safeParse({ runId: "wrong" }).success).toBe(false);
-    expect(schema.safeParse({ query: "x", dataSources: [{ provider: "unknown" }] }).success).toBe(false);
+    expect(schema.safeParse({ query: "x", dataSources: [{ provider: "unknown" }] }).success).toBe(
+      false,
+    );
     expect(schema.safeParse({ query: "x", effort: "turbo" }).success).toBe(false);
   });
 });
@@ -185,8 +185,9 @@ describe("formatProgressMessage", () => {
   });
 
   it("caps progress messages", () => {
-    expect(formatProgressMessage(event("agent_run.step", { title: "x".repeat(500) }), null).length)
-      .toBeLessThanOrEqual(200);
+    expect(
+      formatProgressMessage(event("agent_run.step", { title: "x".repeat(500) }), null).length,
+    ).toBeLessThanOrEqual(200);
   });
 });
 
@@ -397,13 +398,15 @@ describe("agent_run tool", () => {
     await invoke({ query: "test" });
 
     expect(notifications.length).toBeGreaterThanOrEqual(2);
-    expect(notifications.every((notification) => notification.method === "notifications/progress"))
-      .toBe(true);
+    expect(
+      notifications.every((notification) => notification.method === "notifications/progress"),
+    ).toBe(true);
     expect(notifications.map((notification) => notification.params.progress)).toEqual(
       notifications.map((_, index) => index + 1),
     );
-    expect(notifications.every((notification) => notification.params.progressToken === "progress-1"))
-      .toBe(true);
+    expect(
+      notifications.every((notification) => notification.params.progressToken === "progress-1"),
+    ).toBe(true);
   });
 
   it("returns a non-error run-ID handoff without cancelling at the stream boundary", async () => {

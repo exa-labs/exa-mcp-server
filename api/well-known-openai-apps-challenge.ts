@@ -19,7 +19,7 @@
  */
 
 function getTokens(): string[] {
-  const raw = process.env.OPENAI_APPS_CHALLENGE_TOKEN || '';
+  const raw = process.env.OPENAI_APPS_CHALLENGE_TOKEN || "";
   return raw
     .split(/[\n,]+/)
     .map((t) => t.trim())
@@ -30,25 +30,22 @@ export function GET(): Response {
   const tokens = getTokens();
 
   if (tokens.length === 0) {
-    return new Response(
-      'OPENAI_APPS_CHALLENGE_TOKEN is not configured on this deployment.\n',
-      {
-        status: 503,
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Cache-Control': 'no-store',
-        },
+    return new Response("OPENAI_APPS_CHALLENGE_TOKEN is not configured on this deployment.\n", {
+      status: 503,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
       },
-    );
+    });
   }
 
-  return new Response(tokens.join('\n') + '\n', {
+  return new Response(tokens.join("\n") + "\n", {
     status: 200,
     headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'no-store',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
     },
   });
 }
@@ -57,9 +54,9 @@ export function OPTIONS(): Response {
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
     },
   });
 }

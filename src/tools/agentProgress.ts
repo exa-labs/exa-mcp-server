@@ -1,4 +1,4 @@
-import type { AgentEvent } from 'exa-js';
+import type { AgentEvent } from "exa-js";
 
 export const DEFAULT_PROGRESS_THROTTLE_MS = 1_000;
 
@@ -23,26 +23,24 @@ export type AgentProgressState = {
 
 export type AgentProgressUpdate = {
   state: AgentProgressState;
-  kind: 'immediate' | 'coalesced' | 'ignored';
+  kind: "immediate" | "coalesced" | "ignored";
   message?: string;
 };
 
 type RecordValue = Record<string, unknown>;
 
 function asRecord(value: unknown): RecordValue | undefined {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+  return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as RecordValue)
     : undefined;
 }
 
 function stringValue(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
+  return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
 function numberValue(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? value
-    : undefined;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function eventData(event: AgentEvent): RecordValue | undefined {
@@ -57,10 +55,7 @@ function itemParentCallId(item: RecordValue): string | undefined {
   return stringValue(item.parent_call_id) ?? stringValue(item.parentCallId);
 }
 
-function addSource(
-  state: AgentProgressState,
-  callId: string | undefined,
-): void {
+function addSource(state: AgentProgressState, callId: string | undefined): void {
   if (callId === undefined) {
     state.sourcesFound += 1;
     return;
@@ -70,10 +65,7 @@ function addSource(
   state.sourcesFound += 1;
 }
 
-function toolActivityLabel(
-  tool: string,
-  suffix: 'started' | 'finished',
-): string {
+function toolActivityLabel(tool: string, suffix: "started" | "finished"): string {
   return `${tool} ${suffix}`;
 }
 
@@ -91,7 +83,7 @@ export function createAgentProgressState(
     latestNarrationByCallId: new Map(),
     latestNarration: null,
     latestPreliminaryList: null,
-    lastActivity: 'run started',
+    lastActivity: "run started",
   };
 }
 
@@ -107,32 +99,31 @@ export function ingestAgentEvent(
     if (eventRunId !== undefined) state.runId = eventRunId;
   }
 
-  if (event.event === 'agent_run.created') {
+  if (event.event === "agent_run.created") {
     state.lastMeaningfulAt = now;
-    state.lastActivity = 'run queued';
+    state.lastActivity = "run queued";
     return {
       state,
-      kind: 'immediate',
-      message: `run ${state.runId ?? 'pending'} queued`,
+      kind: "immediate",
+      message: `run ${state.runId ?? "pending"} queued`,
     };
   }
 
-  if (event.event === 'agent_run.started') {
+  if (event.event === "agent_run.started") {
     state.lastMeaningfulAt = now;
-    state.lastActivity = 'run started';
+    state.lastActivity = "run started";
     return {
       state,
-      kind: 'immediate',
-      message: `run ${state.runId ?? 'pending'} started`,
+      kind: "immediate",
+      message: `run ${state.runId ?? "pending"} started`,
     };
   }
 
-  if (event.event === 'agent_run.preliminary_list') {
+  if (event.event === "agent_run.preliminary_list") {
     const list = asRecord(data?.preliminaryList);
     const round = numberValue(list?.round);
     const answer = stringValue(list?.answer);
-    if (round === undefined || answer === undefined)
-      return { state, kind: 'ignored' };
+    if (round === undefined || answer === undefined) return { state, kind: "ignored" };
     const entryCount = Array.isArray(list?.entryKeys)
       ? list.entryKeys.length
       : answer.split(/\s*;\s*/).filter(Boolean).length;
@@ -141,14 +132,14 @@ export function ingestAgentEvent(
     state.lastActivity = `preliminary list round ${round}`;
     return {
       state,
-      kind: 'immediate',
+      kind: "immediate",
       message: `preliminary list (round ${round}): ${entryCount} entries`,
     };
   }
 
-  if (event.event === 'agent_run.search_trace') {
+  if (event.event === "agent_run.search_trace") {
     const text = stringValue(data?.text);
-    if (text === undefined) return { state, kind: 'ignored' };
+    if (text === undefined) return { state, kind: "ignored" };
     const callId = stringValue(data?.callId);
     const tool = stringValue(data?.tool);
     if (callId !== undefined) {
@@ -167,47 +158,40 @@ export function ingestAgentEvent(
     state.latestNarration = text;
     state.lastMeaningfulAt = now;
     state.lastActivity = text;
-    return { state, kind: 'coalesced' };
+    return { state, kind: "coalesced" };
   }
 
-  if (event.event === 'agent_run.source.added') {
+  if (event.event === "agent_run.source.added") {
     const source = asRecord(data?.source);
-    if (stringValue(source?.url) === undefined)
-      return { state, kind: 'ignored' };
-    addSource(
-      state,
-      stringValue(source?.callId) ?? stringValue(source?.parentCallId),
-    );
+    if (stringValue(source?.url) === undefined) return { state, kind: "ignored" };
+    addSource(state, stringValue(source?.callId) ?? stringValue(source?.parentCallId));
     state.lastMeaningfulAt = now;
     state.lastActivity = `${state.sourcesFound} sources found`;
-    return { state, kind: 'coalesced' };
+    return { state, kind: "coalesced" };
   }
 
-  if (event.event === 'agent_run.source.truncated') {
+  if (event.event === "agent_run.source.truncated") {
     const callId = stringValue(data?.callId);
     state.lastMeaningfulAt = now;
     state.lastActivity =
-      callId === undefined
-        ? 'source limit reached'
-        : `source limit reached for ${callId}`;
-    return { state, kind: 'coalesced' };
+      callId === undefined ? "source limit reached" : `source limit reached for ${callId}`;
+    return { state, kind: "coalesced" };
   }
 
   if (
-    event.event === 'agent_run.output_item.added' ||
-    event.event === 'agent_run.output_item.done'
+    event.event === "agent_run.output_item.added" ||
+    event.event === "agent_run.output_item.done"
   ) {
     const item = asRecord(data?.item);
     const itemId = stringValue(item?.id);
     const callId = item === undefined ? undefined : itemCallId(item);
-    const parentCallId =
-      item === undefined ? undefined : itemParentCallId(item);
+    const parentCallId = item === undefined ? undefined : itemParentCallId(item);
     const key =
-      event.event === 'agent_run.output_item.done'
+      event.event === "agent_run.output_item.done"
         ? (parentCallId ?? callId ?? itemId)
         : (callId ?? itemId);
-    const name = stringValue(item?.name) ?? 'tool';
-    if (key === undefined) return { state, kind: 'ignored' };
+    const name = stringValue(item?.name) ?? "tool";
+    if (key === undefined) return { state, kind: "ignored" };
     const nestedStarted =
       parentCallId !== undefined && callId !== undefined
         ? state.toolsByCallId.get(callId)
@@ -218,21 +202,21 @@ export function ingestAgentEvent(
     const existing = nestedStarted ??
       state.toolsByCallId.get(key) ?? { name, started: false, finished: false };
     existing.name = name;
-    if (event.event.endsWith('.added')) existing.started = true;
+    if (event.event.endsWith(".added")) existing.started = true;
     else existing.finished = true;
     state.toolsByCallId.set(key, existing);
     const metadata = asRecord(item?.metadata);
     const metadataSourceCount = numberValue(metadata?.sourceCount);
     state.lastMeaningfulAt = now;
-    const suffix = event.event.endsWith('.added') ? 'started' : 'finished';
+    const suffix = event.event.endsWith(".added") ? "started" : "finished";
     state.lastActivity =
-      metadataSourceCount !== undefined && suffix === 'finished'
+      metadataSourceCount !== undefined && suffix === "finished"
         ? `${toolActivityLabel(name, suffix)} (${metadataSourceCount} sources)`
         : toolActivityLabel(name, suffix);
-    return { state, kind: 'coalesced' };
+    return { state, kind: "coalesced" };
   }
 
-  return { state, kind: 'ignored' };
+  return { state, kind: "ignored" };
 }
 
 function latestActivity(state: AgentProgressState): string {
@@ -240,29 +224,19 @@ function latestActivity(state: AgentProgressState): string {
 }
 
 export function summarizeAgentProgress(state: AgentProgressState): string {
-  const activeTools = [...state.toolsByCallId.values()].filter(
-    (tool) => !tool.finished,
-  ).length;
+  const activeTools = [...state.toolsByCallId.values()].filter((tool) => !tool.finished).length;
   const toolCalls = state.toolsByCallId.size;
   const parts = [
-    activeTools > 0
-      ? `working (${activeTools} tool${activeTools === 1 ? '' : 's'})`
-      : 'working',
-    `${toolCalls} tool call${toolCalls === 1 ? '' : 's'}`,
-    `${state.sourcesFound} source${state.sourcesFound === 1 ? '' : 's'}`,
+    activeTools > 0 ? `working (${activeTools} tool${activeTools === 1 ? "" : "s"})` : "working",
+    `${toolCalls} tool call${toolCalls === 1 ? "" : "s"}`,
+    `${state.sourcesFound} source${state.sourcesFound === 1 ? "" : "s"}`,
     `latest: ${latestActivity(state)}`,
   ];
-  return parts.join(' · ').slice(0, 200);
+  return parts.join(" · ").slice(0, 200);
 }
 
-export function heartbeatMessage(
-  state: AgentProgressState,
-  now = Date.now(),
-): string {
-  const elapsedSeconds = Math.max(
-    0,
-    Math.floor((now - state.startedAt) / 1_000),
-  );
+export function heartbeatMessage(state: AgentProgressState, now = Date.now()): string {
+  const elapsedSeconds = Math.max(0, Math.floor((now - state.startedAt) / 1_000));
   return `still working (elapsed ${elapsedSeconds}s, ${state.sourcesFound} sources) — last: ${latestActivity(state)}`.slice(
     0,
     200,
@@ -287,10 +261,7 @@ export class AgentProgressBridge {
     now?: () => number;
   }) {
     this.emit = options.emit;
-    this.state = createAgentProgressState(
-      options.runId ?? null,
-      options.now?.() ?? Date.now(),
-    );
+    this.state = createAgentProgressState(options.runId ?? null, options.now?.() ?? Date.now());
     this.throttleMs = options.throttleMs ?? DEFAULT_PROGRESS_THROTTLE_MS;
     this.now = options.now ?? Date.now;
   }
@@ -302,8 +273,8 @@ export class AgentProgressBridge {
   async handle(event: AgentEvent): Promise<void> {
     if (this.closed) return;
     const update = ingestAgentEvent(this.state, event, this.now());
-    if (update.kind === 'ignored') return;
-    if (update.kind === 'immediate') {
+    if (update.kind === "ignored") return;
+    if (update.kind === "immediate") {
       if (update.message === undefined) return;
       await this.flushTrailing();
       await this.emit(update.message);
@@ -311,10 +282,7 @@ export class AgentProgressBridge {
     }
 
     const current = this.now();
-    if (
-      !this.hasCoalescedEmission ||
-      current - this.lastCoalescedEmitAt >= this.throttleMs
-    ) {
+    if (!this.hasCoalescedEmission || current - this.lastCoalescedEmitAt >= this.throttleMs) {
       this.lastCoalescedEmitAt = current;
       this.hasCoalescedEmission = true;
       await this.emit(summarizeAgentProgress(this.state));
@@ -322,9 +290,7 @@ export class AgentProgressBridge {
     }
 
     this.pendingTrailing = true;
-    this.scheduleTrailing(
-      this.throttleMs - (current - this.lastCoalescedEmitAt),
-    );
+    this.scheduleTrailing(this.throttleMs - (current - this.lastCoalescedEmitAt));
   }
 
   private scheduleTrailing(delayMs: number): void {

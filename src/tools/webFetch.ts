@@ -14,24 +14,28 @@ interface CrawlStatus {
 }
 
 function formatCrawlResults(results: any[], errors: CrawlStatus[]): string {
-  if (results.length === 0 && errors.length === 0) return 'No content found.';
+  if (results.length === 0 && errors.length === 0) return "No content found.";
   const lines: string[] = [];
   for (const r of results) {
-    lines.push(`# ${r.title || '(no title)'}`);
+    lines.push(`# ${r.title || "(no title)"}`);
     lines.push(`URL: ${r.url}`);
-    if (r.publishedDate) lines.push(`Published: ${r.publishedDate.split('T')[0]}`);
+    if (r.publishedDate) lines.push(`Published: ${r.publishedDate.split("T")[0]}`);
     if (r.author) lines.push(`Author: ${r.author}`);
-    lines.push('');
+    lines.push("");
     if (r.text) lines.push(r.text);
-    lines.push('');
+    lines.push("");
   }
   for (const err of errors) {
-    lines.push(`Error fetching ${err.id}: ${err.error?.tag ?? 'unknown error'}`);
+    lines.push(`Error fetching ${err.id}: ${err.error?.tag ?? "unknown error"}`);
   }
-  return lines.join('\n').trim();
+  return lines.join("\n").trim();
 }
 
-export function registerWebFetchTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }, toolName?: string): void {
+export function registerWebFetchTool(
+  server: McpServer,
+  config?: { exaApiKey?: string; userProvidedApiKey?: boolean },
+  toolName?: string,
+): void {
   server.tool(
     toolName || "web_fetch_exa",
     `Read a webpage's full content as clean markdown. Use after web_search_exa when highlights are insufficient or to read any URL.
@@ -39,27 +43,32 @@ export function registerWebFetchTool(server: McpServer, config?: { exaApiKey?: s
 Best for: Extracting full content from known URLs. Batch multiple URLs in one call.
 Returns: Clean text content and metadata from the page(s).`,
     {
-      urls: z.preprocess(
-        (val) => {
-          if (typeof val === 'string') {
-            try { return JSON.parse(val); } catch { return [val]; }
+      urls: z
+        .preprocess((val) => {
+          if (typeof val === "string") {
+            try {
+              return JSON.parse(val);
+            } catch {
+              return [val];
+            }
           }
           return val;
-        },
-        z.array(z.string())
-      ).describe("URLs to read. Batch multiple URLs in one call."),
-      maxCharacters: lenientOptionalPositiveNumber().describe("Maximum characters to extract per page (default: 3000)"),
+        }, z.array(z.string()))
+        .describe("URLs to read. Batch multiple URLs in one call."),
+      maxCharacters: lenientOptionalPositiveNumber().describe(
+        "Maximum characters to extract per page (default: 3000)",
+      ),
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
       openWorldHint: false,
-      idempotentHint: true
+      idempotentHint: true,
     },
     async ({ urls, maxCharacters }) => {
-      const logger = createRequestLogger('web_fetch_exa');
+      const logger = createRequestLogger("web_fetch_exa");
 
-      logger.start(urls.join(', '));
+      logger.start(urls.join(", "));
 
       try {
         const exa = createExaClient(config);
@@ -67,49 +76,58 @@ Returns: Clean text content and metadata from the page(s).`,
         const crawlRequest = {
           urls,
           text: {
-            maxCharacters: maxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS
+            maxCharacters: maxCharacters || API_CONFIG.DEFAULT_MAX_CHARACTERS,
           },
         };
 
-        checkpoint('crawl_request_prepared');
+        checkpoint("crawl_request_prepared");
         logger.log("Sending crawl request to Exa API");
 
         const response = await withTimeout(
-          () => retryWithBackoff(() => exa.request<any>(
-            '/contents',
-            'POST',
-            crawlRequest,
-            undefined,
-            integrationHeaders('crawling-mcp', config)
-          )),
+          () =>
+            retryWithBackoff(() =>
+              exa.request<any>(
+                "/contents",
+                "POST",
+                crawlRequest,
+                undefined,
+                integrationHeaders("crawling-mcp", config),
+              ),
+            ),
           API_CONFIG.TOOL_TIMEOUTS.FETCH_MS,
-          'web_fetch_exa',
+          "web_fetch_exa",
         );
 
-        checkpoint('crawl_response_received');
+        checkpoint("crawl_response_received");
         logger.log("Received response from Exa API");
 
         const statuses: CrawlStatus[] = Array.isArray(response?.statuses) ? response.statuses : [];
-        const urlErrors = statuses.filter((s) => s.status === 'error');
+        const urlErrors = statuses.filter((s) => s.status === "error");
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
-          checkpoint('crawl_complete');
+          checkpoint("crawl_complete");
           if (urlErrors.length > 0) {
-            const msg = urlErrors.map((e) => `${e.id}: ${e.error?.tag ?? 'unknown error'}`).join('; ');
+            const msg = urlErrors
+              .map((e) => `${e.id}: ${e.error?.tag ?? "unknown error"}`)
+              .join("; ");
             return {
-              content: [{
-                type: "text" as const,
-                text: `Error fetching URL(s): ${msg}`
-              }],
+              content: [
+                {
+                  type: "text" as const,
+                  text: `Error fetching URL(s): ${msg}`,
+                },
+              ],
               isError: true,
             };
           }
           return {
-            content: [{
-              type: "text" as const,
-              text: "No content found for the provided URL(s)."
-            }]
+            content: [
+              {
+                type: "text" as const,
+                text: "No content found for the provided URL(s).",
+              },
+            ],
           };
         }
 
@@ -119,25 +137,28 @@ Returns: Clean text content and metadata from the page(s).`,
         const results = Array.isArray(sanitized.results) ? sanitized.results : [];
         const formattedText = formatCrawlResults(results, urlErrors);
 
-        const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
+        const searchTime =
+          typeof sanitized.searchTime === "number" ? sanitized.searchTime : undefined;
 
         const result = {
-          content: [{
-            type: "text" as const,
-            text: formattedText,
-            _meta: { 
-              searchTime: searchTime
-            }
-          }]
+          content: [
+            {
+              type: "text" as const,
+              text: formattedText,
+              _meta: {
+                searchTime: searchTime,
+              },
+            },
+          ],
         };
 
-        checkpoint('crawl_complete');
+        checkpoint("crawl_complete");
         logger.complete();
         return result;
       } catch (error) {
         logger.error(error);
-        return formatToolError(error, 'web_fetch_exa', config?.userProvidedApiKey);
+        return formatToolError(error, "web_fetch_exa", config?.userProvidedApiKey);
       }
-    }
+    },
   );
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}

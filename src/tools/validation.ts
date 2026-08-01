@@ -6,8 +6,8 @@ import { z } from "zod";
  */
 export function lenientString() {
   return z.preprocess(
-    (v) => typeof v === 'number' || typeof v === 'boolean' ? String(v) : v,
-    z.string().trim().min(1)
+    (v) => (typeof v === "number" || typeof v === "boolean" ? String(v) : v),
+    z.string().trim().min(1),
   );
 }
 
@@ -32,15 +32,14 @@ export function lenientOptionalPositiveNumber() {
  * falls back to undefined on unrecognised input.
  */
 export function lenientOptionalBoolean() {
-  return z.preprocess(
-    (v) => {
-      if (typeof v === 'string') {
+  return z
+    .preprocess((v) => {
+      if (typeof v === "string") {
         const lower = v.toLowerCase();
-        if (['true', '1', 'yes'].includes(lower)) return true;
-        if (['false', '0', 'no'].includes(lower)) return false;
+        if (["true", "1", "yes"].includes(lower)) return true;
+        if (["false", "0", "no"].includes(lower)) return false;
       }
       return v;
-    },
-    z.boolean().optional()
-  ).catch(undefined);
+    }, z.boolean().optional())
+    .catch(undefined);
 }
