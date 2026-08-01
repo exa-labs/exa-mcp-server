@@ -93,11 +93,14 @@ describe("integrationHeaders", () => {
 
 describe("createExaClient", () => {
   it("sets API key auth and Agent integration headers", () => {
-    const exa = createExaClient({
-      exaApiKey: "exa_test_key",
-      exaSource: "claude",
-      mcpSessionId: "session-123",
-    }, "agent-mcp");
+    const exa = createExaClient(
+      {
+        exaApiKey: "exa_test_key",
+        exaSource: "claude",
+        mcpSessionId: "session-123",
+      },
+      "agent-mcp",
+    );
     const headers = clientHeaders(exa);
 
     expect(headers.get("x-api-key")).toBe("exa_test_key");
@@ -115,21 +118,26 @@ describe("createExaClient", () => {
   });
 
   it("forwards MCP client metadata through shared header plumbing", () => {
-    const exa = createExaClient({
-      exaApiKey: "exa_test_key",
-      mcpClient: {
-        source: "claude-code",
-        sessionId: "session-123",
-        clientInfo: { name: "Claude Code", version: "1.0.0" },
+    const exa = createExaClient(
+      {
+        exaApiKey: "exa_test_key",
+        mcpClient: {
+          source: "claude-code",
+          sessionId: "session-123",
+          clientInfo: { name: "Claude Code", version: "1.0.0" },
+        },
       },
-    }, "agent-mcp");
+      "agent-mcp",
+    );
     const headers = clientHeaders(exa);
 
     expect(headers.get("x-exa-integration")).toBe("agent-mcp");
-    expect(headers.get("x-exa-mcp-client")).toBe(JSON.stringify({
-      source: "claude-code",
-      sessionId: "session-123",
-      clientInfo: { name: "Claude Code", version: "1.0.0" },
-    }));
+    expect(headers.get("x-exa-mcp-client")).toBe(
+      JSON.stringify({
+        source: "claude-code",
+        sessionId: "session-123",
+        clientInfo: { name: "Claude Code", version: "1.0.0" },
+      }),
+    );
   });
 });

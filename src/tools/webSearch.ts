@@ -6,17 +6,21 @@ import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
-import { checkpoint } from "agnost"
+import { checkpoint } from "agnost";
 
 type WebSearchConfig = {
   exaApiKey?: string;
   userProvidedApiKey?: boolean;
-  defaultSearchType?: 'auto' | 'fast' | 'instant';
+  defaultSearchType?: "auto" | "fast" | "instant";
   exaSource?: string;
   mcpSessionId?: string;
 };
 
-export function registerWebSearchTool(server: McpServer, config?: WebSearchConfig, toolName?: string): void {
+export function registerWebSearchTool(
+  server: McpServer,
+  config?: WebSearchConfig,
+  toolName?: string,
+): void {
   server.tool(
     toolName || "web_search_exa",
     `Search the web for any topic and get clean, ready-to-use content.
@@ -29,23 +33,38 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
       Use category:people / category:company to search through Linkedin profiles / companies respectively.
       If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
     {
-      query: lenientString().describe("Natural language search query. Should be a semantically rich description of the ideal page, not just keywords. Optionally include category:<type> (company, people) to focus results — e.g. 'category:people John Doe software engineer'."),
-      numResults: lenientOptionalNumber().describe("Number of search results to return (default: 10)."),
+      query: lenientString().describe(
+        "Natural language search query. Should be a semantically rich description of the ideal page, not just keywords. Optionally include category:<type> (company, people) to focus results — e.g. 'category:people John Doe software engineer'.",
+      ),
+      numResults: lenientOptionalNumber().describe(
+        "Number of search results to return (default: 10).",
+      ),
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
       openWorldHint: false,
-      idempotentHint: true
+      idempotentHint: true,
     },
     async ({ query, numResults }) => {
-      const toolId = toolName || 'web_search_exa';
+      const toolId = toolName || "web_search_exa";
       const logger = createRequestLogger(toolId);
 
       // Extract category:<type> from query string if present
-      const categoryMatch = query.match(/\bcategory:(company|publication|news|personal\s*site|people)\b/i);
-      const category = categoryMatch ? categoryMatch[1].toLowerCase().replace(/\s+/g, ' ') as "company" | "publication" | "news" | "personal site" | "people" : undefined;
-      const cleanedQuery = categoryMatch ? query.replace(categoryMatch[0], '').replace(/\s+/g, ' ').trim() : query;
+      const categoryMatch = query.match(
+        /\bcategory:(company|publication|news|personal\s*site|people)\b/i,
+      );
+      const category = categoryMatch
+        ? (categoryMatch[1].toLowerCase().replace(/\s+/g, " ") as
+            | "company"
+            | "publication"
+            | "news"
+            | "personal site"
+            | "people")
+        : undefined;
+      const cleanedQuery = categoryMatch
+        ? query.replace(categoryMatch[0], "").replace(/\s+/g, " ").trim()
+        : query;
 
       logger.start(cleanedQuery);
 
@@ -62,32 +81,37 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
           },
         };
 
-        checkpoint('web_search_request_prepared');
+        checkpoint("web_search_request_prepared");
         logger.log("Sending request to Exa API");
 
         const response = await withTimeout(
-          () => retryWithBackoff(() => exa.request<ExaSearchResponse>(
-            API_CONFIG.ENDPOINTS.SEARCH,
-            'POST',
-            searchRequest,
-            undefined,
-            integrationHeaders('web-search-mcp', config)
-          )),
+          () =>
+            retryWithBackoff(() =>
+              exa.request<ExaSearchResponse>(
+                API_CONFIG.ENDPOINTS.SEARCH,
+                "POST",
+                searchRequest,
+                undefined,
+                integrationHeaders("web-search-mcp", config),
+              ),
+            ),
           API_CONFIG.TOOL_TIMEOUTS.SEARCH_MS,
           toolId,
         );
 
-        checkpoint('exa_search_response_received');
+        checkpoint("exa_search_response_received");
         logger.log("Received response from Exa API");
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
-          checkpoint('web_search_complete');
+          checkpoint("web_search_complete");
           return {
-            content: [{
-              type: "text" as const,
-              text: "No search results found. Please try a different query."
-            }]
+            content: [
+              {
+                type: "text" as const,
+                text: "No search results found. Please try a different query.",
+              },
+            ],
           };
         }
 
@@ -96,40 +120,45 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
         const sanitized = sanitizeSearchResponse(response);
         const results = Array.isArray(sanitized.results) ? sanitized.results : [];
 
-        const formattedResults = results.map((r) => {
-          const lines = [
-            `Title: ${r.title || 'N/A'}`,
-            `URL: ${r.url}`,
-            `Published: ${r.publishedDate || 'N/A'}`,
-            `Author: ${r.author || 'N/A'}`,
-          ];
-          if (Array.isArray(r.highlights) && r.highlights.length > 0) {
-            lines.push(`Highlights:\n${r.highlights.join('\n')}`);
-          } else if (r.text) {
-            lines.push(`Text: ${r.text}`);
-          }
-          return lines.join('\n');
-        }).join('\n\n---\n\n');
+        const formattedResults = results
+          .map((r) => {
+            const lines = [
+              `Title: ${r.title || "N/A"}`,
+              `URL: ${r.url}`,
+              `Published: ${r.publishedDate || "N/A"}`,
+              `Author: ${r.author || "N/A"}`,
+            ];
+            if (Array.isArray(r.highlights) && r.highlights.length > 0) {
+              lines.push(`Highlights:\n${r.highlights.join("\n")}`);
+            } else if (r.text) {
+              lines.push(`Text: ${r.text}`);
+            }
+            return lines.join("\n");
+          })
+          .join("\n\n---\n\n");
 
-        const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
+        const searchTime =
+          typeof sanitized.searchTime === "number" ? sanitized.searchTime : undefined;
 
         const result = {
-          content: [{
-            type: "text" as const,
-            text: formattedResults,
-            _meta: {
-              searchTime: searchTime
-            }
-          }]
+          content: [
+            {
+              type: "text" as const,
+              text: formattedResults,
+              _meta: {
+                searchTime: searchTime,
+              },
+            },
+          ],
         };
 
-        checkpoint('web_search_complete');
+        checkpoint("web_search_complete");
         logger.complete();
         return result;
       } catch (error) {
         logger.error(error);
         return formatToolError(error, toolId, config?.userProvidedApiKey);
       }
-    }
+    },
   );
 }

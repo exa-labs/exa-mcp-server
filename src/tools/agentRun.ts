@@ -34,7 +34,9 @@ export const agentRunInputShape = {
     .string()
     .min(1)
     .optional()
-    .describe("Natural-language research or enrichment objective. Provide query or runId, not both."),
+    .describe(
+      "Natural-language research or enrichment objective. Provide query or runId, not both.",
+    ),
   runId: z
     .string()
     .startsWith("agent_run_")
@@ -50,7 +52,10 @@ export const agentRunInputShape = {
     ),
   input: z
     .object({
-      data: z.array(recordSchema()).optional().describe("Known rows/entities to enrich or process."),
+      data: z
+        .array(recordSchema())
+        .optional()
+        .describe("Known rows/entities to enrich or process."),
       exclusion: z
         .array(recordSchema())
         .optional()
@@ -142,7 +147,10 @@ export type RunOutcome = {
   handoffReason?: HandoffReason;
 };
 
-function createInterrupt(signal: AbortSignal | undefined, windowMs: number): {
+function createInterrupt(
+  signal: AbortSignal | undefined,
+  windowMs: number,
+): {
   promise: Promise<Interrupt>;
   cleanup: () => void;
 } {
@@ -320,10 +328,7 @@ export async function streamAgentRun(params: {
       const next = await raceWithInterrupt(iterator.next(), interrupt.promise);
       if (next.kind === "interrupt") {
         if (next.reason === "client_aborted") return finish("client_aborted");
-        return finish(
-          runId == null ? "unrecoverable_stream" : "running",
-          "stream_window_exceeded",
-        );
+        return finish(runId == null ? "unrecoverable_stream" : "running", "stream_window_exceeded");
       }
       if (next.value.done) {
         return finish(runId == null ? "unrecoverable_stream" : "running", "stream_interrupted");
@@ -374,7 +379,10 @@ export async function pollAgentRun(params: {
   let run: AgentRun | null = null;
   let updateCount = 0;
 
-  const finish = async (status: RunOutcomeStatus, handoffReason?: HandoffReason): Promise<RunOutcome> => {
+  const finish = async (
+    status: RunOutcomeStatus,
+    handoffReason?: HandoffReason,
+  ): Promise<RunOutcome> => {
     interrupt.cleanup();
     return {
       status,
@@ -390,7 +398,10 @@ export async function pollAgentRun(params: {
 
   try {
     while (true) {
-      const fetched = await raceWithInterrupt(params.client.getRun(params.runId), interrupt.promise);
+      const fetched = await raceWithInterrupt(
+        params.client.getRun(params.runId),
+        interrupt.promise,
+      );
       if (fetched.kind === "interrupt") {
         return finish(
           "running",
@@ -484,10 +495,12 @@ function outcomeToToolContent(outcome: RunOutcome): ToolContent {
     }
     case "unrecoverable_stream":
       return {
-        content: [{
-          type: "text",
-          text: "agent_run error: the live stream ended before a run ID or terminal result was received. Upstream state is unknown, so retrying may start a duplicate run.",
-        }],
+        content: [
+          {
+            type: "text",
+            text: "agent_run error: the live stream ended before a run ID or terminal result was received. Upstream state is unknown, so retrying may start a duplicate run.",
+          },
+        ],
         isError: true,
       };
   }
@@ -559,7 +572,9 @@ export function registerAgentRunTool(
             (value) => value != null,
           )
         ) {
-          throw new Error("A runId resume call accepts only runId; create options apply only to a new query.");
+          throw new Error(
+            "A runId resume call accepts only runId; create options apply only to a new query.",
+          );
         }
 
         const client = (options?.clientFactory ?? defaultClientFactory)(config);

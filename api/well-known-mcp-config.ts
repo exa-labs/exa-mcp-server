@@ -8,50 +8,52 @@
 import { AVAILABLE_TOOL_SELECTION_VALUES } from "../src/toolRegistry.js";
 
 const configSchema = {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "/.well-known/mcp-config",
-  "title": "Exa MCP Server Configuration",
-  "description": "Configuration for connecting to the Exa MCP server",
+  $schema: "http://json-schema.org/draft-07/schema#",
+  $id: "/.well-known/mcp-config",
+  title: "Exa MCP Server Configuration",
+  description: "Configuration for connecting to the Exa MCP server",
   "x-query-style": "dot+bracket",
-  "type": "object",
-  "properties": {
-    "exaApiKey": {
-      "type": "string",
-      "title": "Exa API Key",
-      "description": "Your Exa AI API key for search operations (optional - server has a fallback key). Get one at https://exa.ai"
+  type: "object",
+  properties: {
+    exaApiKey: {
+      type: "string",
+      title: "Exa API Key",
+      description:
+        "Your Exa AI API key for search operations (optional - server has a fallback key). Get one at https://exa.ai",
     },
-    "tools": {
-      "type": "string",
-      "title": "Enabled Tools",
-      "description": "Comma-separated list of tools to enable. Leave empty for defaults (web_search_exa, web_fetch_exa). Agent tools require OAuth or an API key.",
-      "examples": [
+    tools: {
+      type: "string",
+      title: "Enabled Tools",
+      description:
+        "Comma-separated list of tools to enable. Leave empty for defaults (web_search_exa, web_fetch_exa). Agent tools require OAuth or an API key.",
+      examples: [
         "web_search_exa,web_search_advanced_exa",
         "web_search_exa,web_search_advanced_exa,web_fetch_exa",
         "agent_tools",
-        "web_search_exa,agent_tools"
+        "web_search_exa,agent_tools",
       ],
-      "x-available-values": AVAILABLE_TOOL_SELECTION_VALUES
+      "x-available-values": AVAILABLE_TOOL_SELECTION_VALUES,
     },
-    "debug": {
-      "type": "boolean",
-      "title": "Debug Mode",
-      "description": "Enable debug logging for troubleshooting",
-      "default": false
-    }
+    debug: {
+      type: "boolean",
+      title: "Debug Mode",
+      description: "Enable debug logging for troubleshooting",
+      default: false,
+    },
   },
-  "additionalProperties": false
+  additionalProperties: false,
 };
 
 export function GET(): Response {
   return new Response(JSON.stringify(configSchema, null, 2), {
     status: 200,
     headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Cache-Control': 'public, max-age=3600'
-    }
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Cache-Control": "public, max-age=3600",
+    },
   });
 }
 
@@ -59,9 +61,9 @@ export function OPTIONS(): Response {
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    }
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
   });
 }

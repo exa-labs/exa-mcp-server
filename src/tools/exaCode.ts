@@ -8,7 +8,10 @@ import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
 import { checkpoint } from "agnost";
 
-export function registerExaCodeTool(server: McpServer, config?: { exaApiKey?: string; userProvidedApiKey?: boolean }): void {
+export function registerExaCodeTool(
+  server: McpServer,
+  config?: { exaApiKey?: string; userProvidedApiKey?: boolean },
+): void {
   server.tool(
     "get_code_context_exa",
     `Find code examples, documentation, and programming solutions. 
@@ -19,16 +22,20 @@ Returns: Relevant code and documentation.
 Query tips: describe what you're looking for specifically. "Python requests library POST with JSON body" not "python http".
 If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
     {
-      query: lenientString().describe("Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"),
-      numResults: lenientOptionalNumber().describe("Number of search results to return (default: 8)"),
+      query: lenientString().describe(
+        "Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'",
+      ),
+      numResults: lenientOptionalNumber().describe(
+        "Number of search results to return (default: 8)",
+      ),
     },
     {
       readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: true
+      idempotentHint: true,
     },
     async ({ query, numResults }) => {
-      const logger = createRequestLogger('get_code_context_exa');
+      const logger = createRequestLogger("get_code_context_exa");
 
       logger.start(`Searching for code context: ${query}`);
 
@@ -44,31 +51,35 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
               query,
             },
             text: { maxCharacters: 300 },
-          }
+          },
         };
 
-        checkpoint('code_context_request_prepared');
+        checkpoint("code_context_request_prepared");
         logger.log("Sending code search request to Exa API");
 
-        const response = await retryWithBackoff(() => exa.request<ExaSearchResponse>(
-          API_CONFIG.ENDPOINTS.SEARCH,
-          'POST',
-          searchRequest,
-          undefined,
-          integrationHeaders('exa-code-mcp', config)
-        ));
+        const response = await retryWithBackoff(() =>
+          exa.request<ExaSearchResponse>(
+            API_CONFIG.ENDPOINTS.SEARCH,
+            "POST",
+            searchRequest,
+            undefined,
+            integrationHeaders("exa-code-mcp", config),
+          ),
+        );
 
-        checkpoint('code_context_response_received');
+        checkpoint("code_context_response_received");
         logger.log("Received code search response from Exa API");
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
-          checkpoint('code_context_complete');
+          checkpoint("code_context_complete");
           return {
-            content: [{
-              type: "text" as const,
-              text: "No code snippets or documentation found. Please try a different query, be more specific about the library or programming concept, or check the spelling of framework names."
-            }]
+            content: [
+              {
+                type: "text" as const,
+                text: "No code snippets or documentation found. Please try a different query, be more specific about the library or programming concept, or check the spelling of framework names.",
+              },
+            ],
           };
         }
 
@@ -77,38 +88,40 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
         const sanitized = sanitizeSearchResponse(response);
         const results = Array.isArray(sanitized.results) ? sanitized.results : [];
 
-        const formattedResults = results.map((r) => {
-          const lines = [
-            `Title: ${r.title || 'N/A'}`,
-            `URL: ${r.url}`,
-          ];
-          if (Array.isArray(r.highlights) && r.highlights.length > 0) {
-            lines.push(`Code/Highlights:\n${r.highlights.join('\n')}`);
-          } else if (r.text) {
-            lines.push(`Text: ${r.text}`);
-          }
-          return lines.join('\n');
-        }).join('\n\n---\n\n');
+        const formattedResults = results
+          .map((r) => {
+            const lines = [`Title: ${r.title || "N/A"}`, `URL: ${r.url}`];
+            if (Array.isArray(r.highlights) && r.highlights.length > 0) {
+              lines.push(`Code/Highlights:\n${r.highlights.join("\n")}`);
+            } else if (r.text) {
+              lines.push(`Text: ${r.text}`);
+            }
+            return lines.join("\n");
+          })
+          .join("\n\n---\n\n");
 
-        const searchTime = typeof sanitized.searchTime === 'number' ? sanitized.searchTime : undefined;
+        const searchTime =
+          typeof sanitized.searchTime === "number" ? sanitized.searchTime : undefined;
 
         const result = {
-          content: [{
-            type: "text" as const,
-            text: formattedResults,
-            _meta: {
-              searchTime: searchTime
-            }
-          }]
+          content: [
+            {
+              type: "text" as const,
+              text: formattedResults,
+              _meta: {
+                searchTime: searchTime,
+              },
+            },
+          ],
         };
 
-        checkpoint('code_context_complete');
+        checkpoint("code_context_complete");
         logger.complete();
         return result;
       } catch (error) {
         logger.error(error);
-        return formatToolError(error, 'get_code_context_exa', config?.userProvidedApiKey);
+        return formatToolError(error, "get_code_context_exa", config?.userProvidedApiKey);
       }
-    }
+    },
   );
 }

@@ -14,9 +14,9 @@ function parseTools(value: string | undefined): string[] | undefined {
   if (!value) return undefined;
   const tools = expandToolSelection(
     value
-    .split(",")
-    .map(tool => tool.trim())
-    .filter(tool => tool.length > 0),
+      .split(",")
+      .map((tool) => tool.trim())
+      .filter((tool) => tool.length > 0),
   );
   return tools.length > 0 ? tools : undefined;
 }

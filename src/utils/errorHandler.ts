@@ -76,7 +76,7 @@ export async function withTimeout<T>(
 export function handleRateLimitError(
   error: unknown,
   userProvidedApiKey: boolean | undefined,
-  toolName: string
+  toolName: string,
 ): ToolErrorResult | null {
   if (!(error instanceof ExaError)) {
     return null;
@@ -102,22 +102,27 @@ export function handleRateLimitError(
 export function formatToolError(
   error: unknown,
   toolName: string,
-  userProvidedApiKey?: boolean
+  userProvidedApiKey?: boolean,
 ): ToolErrorResult {
   const rateLimitResult = handleRateLimitError(error, userProvidedApiKey, toolName);
   if (rateLimitResult) return rateLimitResult;
 
   if (error instanceof ExaError) {
-    const statusCode = error.statusCode || 'unknown';
+    const statusCode = error.statusCode || "unknown";
     const lines = [
       `${toolName} error (${statusCode}): ${error.message}`,
       ...(error.timestamp ? [`Timestamp: ${error.timestamp}`] : []),
     ];
-    return { content: [{ type: "text" as const, text: lines.join('\n') }], isError: true };
+    return { content: [{ type: "text" as const, text: lines.join("\n") }], isError: true };
   }
 
   return {
-    content: [{ type: "text" as const, text: `${toolName} error: ${error instanceof Error ? error.message : String(error)}` }],
+    content: [
+      {
+        type: "text" as const,
+        text: `${toolName} error: ${error instanceof Error ? error.message : String(error)}`,
+      },
+    ],
     isError: true,
   };
 }

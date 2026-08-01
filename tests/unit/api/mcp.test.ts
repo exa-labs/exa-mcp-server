@@ -24,8 +24,16 @@ const {
   const rateLimitInstances: Array<{ limit: ReturnType<typeof vi.fn> }> = [];
   const redisValues = new Map<string, string>();
   class RatelimitMock {
-    static slidingWindow = vi.fn((limit: number, window: string) => ({ limit, window, type: "sliding" }));
-    static fixedWindow = vi.fn((limit: number, window: string) => ({ limit, window, type: "fixed" }));
+    static slidingWindow = vi.fn((limit: number, window: string) => ({
+      limit,
+      window,
+      type: "sliding",
+    }));
+    static fixedWindow = vi.fn((limit: number, window: string) => ({
+      limit,
+      window,
+      type: "fixed",
+    }));
 
     constructor() {
       return rateLimitInstances.shift() ?? { limit: vi.fn().mockResolvedValue({ success: true }) };
@@ -116,7 +124,10 @@ describe("api/mcp handler", () => {
     capturedRequests.length = 0;
     rateLimitInstances.length = 0;
     redisValues.clear();
-    isJwtTokenMock.mockImplementation((token: string) => token === "jwt-token" || token === "keyless-jwt" || token === "invalid-jwt");
+    isJwtTokenMock.mockImplementation(
+      (token: string) =>
+        token === "jwt-token" || token === "keyless-jwt" || token === "invalid-jwt",
+    );
     verifyOAuthTokenMock.mockResolvedValue(null);
     vi.spyOn(console, "log").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -472,9 +483,7 @@ describe("api/mcp handler", () => {
     );
 
     expect(config).toMatchObject({
-      enabledTools: [
-        "agent_run",
-      ],
+      enabledTools: ["agent_run"],
     });
   });
 
@@ -491,9 +500,7 @@ describe("api/mcp handler", () => {
       exaApiKey: "user-key",
       userProvidedApiKey: true,
       authMethod: "api_key",
-      enabledTools: [
-        "agent_run",
-      ],
+      enabledTools: ["agent_run"],
     });
     expect(forwardedRequest?.headers.get("x-api-key")).toBeNull();
   });
@@ -510,9 +517,7 @@ describe("api/mcp handler", () => {
     );
 
     expect(config).toMatchObject({
-      enabledTools: [
-        "agent_run",
-      ],
+      enabledTools: ["agent_run"],
     });
   });
 

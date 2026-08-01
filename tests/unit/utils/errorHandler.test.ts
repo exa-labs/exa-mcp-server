@@ -1,10 +1,6 @@
 import { ExaError } from "exa-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  formatToolError,
-  retryWithBackoff,
-  withTimeout,
-} from "../../../src/utils/errorHandler.js";
+import { formatToolError, retryWithBackoff, withTimeout } from "../../../src/utils/errorHandler.js";
 
 describe("errorHandler", () => {
   afterEach(() => {
