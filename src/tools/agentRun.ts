@@ -9,6 +9,12 @@ import { formatAgentToolError } from "../utils/agentErrorHandler.js";
 import { delay } from "../utils/errorHandler.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { jsonContent } from "../utils/response.js";
+import {
+  AgentProgressBridge,
+  DEFAULT_PROGRESS_THROTTLE_MS,
+  heartbeatMessage,
+  type AgentProgressState,
+} from "./agentProgress.js";
 import { createExaClient } from "./config.js";
 
 const effortSchema = z.enum(["minimal", "low", "medium", "high", "xhigh", "auto"]);
@@ -33,7 +39,9 @@ export const agentRunInputShape = {
     .string()
     .startsWith("agent_run_")
     .optional()
-    .describe("Retained agent_run_... ID returned by an earlier call. Waits for that run to finish."),
+    .describe(
+      "agent_run_... ID returned by an earlier call. Use it to check or continue waiting for the same run; do not start a duplicate run.",
+    ),
   systemPrompt: z.string().optional().describe("Optional system-level guidance for the Agent."),
   outputSchema: recordSchema()
     .optional()
@@ -73,7 +81,6 @@ export const DEFAULT_CALL_WINDOW_MS =
 export const DEFAULT_HEARTBEAT_MS = 15_000;
 export const DEFAULT_POLL_INTERVAL_MS = 4_000;
 export const DEFAULT_PROGRESS_TIMEOUT_MS = 2_000;
-export const DEFAULT_CANCEL_TIMEOUT_MS = 5_000;
 
 export function parsePositiveInteger(value: string | undefined): number | undefined {
   if (value == null || value.trim() === "") return undefined;
@@ -133,8 +140,6 @@ export type RunOutcome = {
   eventCount: number;
   runId: string | null;
   handoffReason?: HandoffReason;
-  runCancelAttempted: boolean;
-  runCancelSucceeded: boolean;
 };
 
 function createInterrupt(signal: AbortSignal | undefined, windowMs: number): {
@@ -200,18 +205,6 @@ async function completesWithin(
   }
 }
 
-async function cancelKnownRun(
-  client: AgentRunClient,
-  runId: string | null,
-  timeoutMs: number,
-): Promise<{ attempted: boolean; succeeded: boolean }> {
-  if (runId == null) return { attempted: false, succeeded: false };
-  return {
-    attempted: true,
-    succeeded: await completesWithin(() => client.cancelRun(runId), timeoutMs),
-  };
-}
-
 function createProgressEmitter(
   onProgress: ((progress: number, message: string) => void | Promise<void>) | undefined,
   timeoutMs: number,
@@ -255,8 +248,8 @@ export async function streamAgentRun(params: {
   signal?: AbortSignal;
   callWindowMs?: number;
   heartbeatMs?: number;
+  progressThrottleMs?: number;
   progressTimeoutMs?: number;
-  cancelTimeoutMs?: number;
 }): Promise<RunOutcome> {
   const callWindowMs = params.callWindowMs ?? DEFAULT_CALL_WINDOW_MS;
   const heartbeatMs = params.heartbeatMs ?? DEFAULT_HEARTBEAT_MS;
@@ -269,18 +262,25 @@ export async function streamAgentRun(params: {
   let eventCount = 0;
   let runId: string | null = null;
   let terminalEvent: AgentEvent | null = null;
-  let lastActivityAt = Date.now();
   let iterator: AsyncIterator<AgentEvent> | undefined;
+  const progressBridge = new AgentProgressBridge({
+    emit: emitProgress,
+    throttleMs: params.progressThrottleMs ?? DEFAULT_PROGRESS_THROTTLE_MS,
+  });
 
-  const heartbeatTimer = setInterval(() => {
-    if (Date.now() - lastActivityAt < heartbeatMs) return;
-    lastActivityAt = Date.now();
-    void emitProgress(`waiting: run ${runId ?? "pending"} in progress (${eventCount} events so far)`);
-  }, Math.max(heartbeatMs, 1));
+  const heartbeatTimer = setInterval(
+    () => {
+      const state: AgentProgressState = progressBridge.getState();
+      if (Date.now() - state.lastMeaningfulAt < heartbeatMs) return;
+      void emitProgress(heartbeatMessage(state));
+    },
+    Math.max(heartbeatMs, 1),
+  );
 
-  const cleanup = (): void => {
+  const cleanup = async (): Promise<void> => {
     interrupt.cleanup();
     clearInterval(heartbeatTimer);
+    await progressBridge.cleanup();
     void iterator?.return?.(undefined).catch(() => {});
   };
 
@@ -288,25 +288,16 @@ export async function streamAgentRun(params: {
     status: RunOutcomeStatus,
     handoffReason?: HandoffReason,
   ): Promise<RunOutcome> => {
-    cleanup();
-    const cancellation =
-      status === "client_aborted"
-        ? await cancelKnownRun(
-            params.client,
-            runId,
-            params.cancelTimeoutMs ?? DEFAULT_CANCEL_TIMEOUT_MS,
-          )
-        : { attempted: false, succeeded: false };
+    await cleanup();
+    const resultStatus = status === "client_aborted" && runId != null ? "running" : status;
 
     return {
-      status,
+      status: resultStatus,
       terminalEvent,
       run: null,
       eventCount,
       runId,
       ...(handoffReason != null ? { handoffReason } : {}),
-      runCancelAttempted: cancellation.attempted,
-      runCancelSucceeded: cancellation.succeeded,
     };
   };
 
@@ -340,14 +331,16 @@ export async function streamAgentRun(params: {
 
       const event = next.value.value;
       eventCount += 1;
-      lastActivityAt = Date.now();
-
       if (runId == null) {
-        const eventRunId = event.data?.id;
+        const eventData =
+          typeof event.data === "object" && event.data !== null && !Array.isArray(event.data)
+            ? (event.data as Record<string, unknown>)
+            : undefined;
+        const eventRunId = eventData?.id;
         if (typeof eventRunId === "string") runId = eventRunId;
       }
 
-      await emitProgress(formatProgressMessage(event, runId));
+      await progressBridge.handle(event);
 
       const terminalStatus = TERMINAL_EVENTS.get(event.event);
       if (terminalStatus != null) {
@@ -359,7 +352,7 @@ export async function streamAgentRun(params: {
     if (params.signal?.aborted) return finish("client_aborted");
     if (runId != null) return finish("running", "stream_interrupted");
     if (iterator != null) return finish("unrecoverable_stream", "stream_interrupted");
-    cleanup();
+    await cleanup();
     throw error;
   }
 }
@@ -390,8 +383,6 @@ export async function pollAgentRun(params: {
       eventCount: updateCount,
       runId: params.runId,
       ...(handoffReason != null ? { handoffReason } : {}),
-      runCancelAttempted: false,
-      runCancelSucceeded: false,
     };
   };
 
@@ -478,16 +469,16 @@ function outcomeToToolContent(outcome: RunOutcome): ToolContent {
         id,
         status: "running",
         outputReady: false,
-        message: `The run is still in progress. Call agent_run again with runId=${id} to continue waiting.`,
+        message: `The Agent run is still active. Call agent_run again with runId=${id} to continue waiting; do not create a replacement run or cancel it unless the user explicitly requests cancellation.`,
       });
     case "client_aborted": {
-      const cancelMessage = outcome.runCancelAttempted
-        ? outcome.runCancelSucceeded
-          ? `Run ${id} was cancelled upstream.`
-          : `Run ${id} could not be cancelled and may still be executing.`
-        : "No run ID was received, so the upstream run could not be cancelled.";
       return {
-        content: [{ type: "text", text: `agent_run cancelled by the client. ${cancelMessage}` }],
+        content: [
+          {
+            type: "text",
+            text: "agent_run was interrupted before a run ID was received, so the upstream run could not be safely resumed.",
+          },
+        ],
         isError: true,
       };
     }
@@ -515,9 +506,9 @@ export type AgentRunConfig = {
 export type AgentRunToolOptions = {
   callWindowMs?: number;
   heartbeatMs?: number;
+  progressThrottleMs?: number;
   pollIntervalMs?: number;
   progressTimeoutMs?: number;
-  cancelTimeoutMs?: number;
   clientFactory?: (config: AgentRunConfig | undefined) => AgentRunClient;
 };
 
@@ -538,7 +529,7 @@ export function registerAgentRunTool(
 ): void {
   server.tool(
     "agent_run",
-    "Run an Exa Agent with live progress. New runs always stream. If a run outlives one call window, the tool returns its ID; call agent_run again with runId to keep waiting. Effort defaults to low.",
+    "Start or resume an Exa Agent run; runs may take several minutes. Retain the returned run ID and resume with runId when the tool reports the run is still running. An interrupted tool call is not an explicit cancellation request.",
     agentRunInputShape,
     { readOnlyHint: true, destructiveHint: false, idempotentHint: false },
     async (
@@ -608,7 +599,13 @@ export function registerAgentRunTool(
             ...(systemPrompt != null ? { systemPrompt } : {}),
             ...(outputSchema != null ? { outputSchema } : {}),
             ...(input != null ? { input } : {}),
-            ...(dataSources != null ? { dataSources } : {}),
+            ...(dataSources != null
+              ? {
+                  dataSources: dataSources.flatMap(({ provider }) =>
+                    provider != null ? [{ provider }] : [],
+                  ),
+                }
+              : {}),
             ...(previousRunId != null ? { previousRunId } : {}),
             effort: (effort ?? "low") as AgentEffort,
           };
@@ -628,8 +625,8 @@ export function registerAgentRunTool(
             signal: extra?.signal,
             callWindowMs: options?.callWindowMs,
             heartbeatMs: options?.heartbeatMs,
+            progressThrottleMs: options?.progressThrottleMs,
             progressTimeoutMs: options?.progressTimeoutMs,
-            cancelTimeoutMs: options?.cancelTimeoutMs,
           });
         }
 

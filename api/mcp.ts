@@ -102,12 +102,12 @@ async function loadMcpClientMetadata(sessionId: string | undefined, debug: boole
   }
 
   try {
-    const value = await redisClient.get<string>(getMcpClientSessionKey(sessionId));
-    if (typeof value !== 'string') {
+    const value = await redisClient.get(getMcpClientSessionKey(sessionId));
+    if (value === null || value === undefined) {
       return undefined;
     }
 
-    const parsed: unknown = JSON.parse(value);
+    const parsed: unknown = typeof value === 'string' ? JSON.parse(value) : value;
     return sanitizeMcpClientMetadata(parsed);
   } catch (error) {
     if (debug) {
@@ -217,6 +217,33 @@ function countRateLimitedCalls(body: string): number {
   } catch {
     return 0;
   }
+}
+
+function declaresJsonBody(request: Request): boolean {
+  return (request.headers.get('content-type') || '').includes('application/json');
+}
+
+function isParsableJson(body: string): boolean {
+  try {
+    JSON.parse(body);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function createParseErrorResponse(): Response {
+  return new Response(
+    JSON.stringify({
+      jsonrpc: '2.0',
+      error: { code: -32700, message: 'Parse error' },
+      id: null,
+    }),
+    {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+    },
+  );
 }
 
 function isInitializeMethod(body: string): boolean {
@@ -623,6 +650,9 @@ async function handleRequest(request: Request, options?: { forceOAuth?: boolean;
 async function processRequest(request: Request, options?: { forceOAuth?: boolean; resourcePath?: string }): Promise<Response> {
   const debug = process.env.DEBUG === 'true';
   const body = request.method === 'POST' ? await request.clone().text() : undefined;
+  if (body !== undefined && declaresJsonBody(request) && !isParsableJson(body)) {
+    return createParseErrorResponse();
+  }
   const isInitializeRequest = isInitializeMethod(body ?? '');
   const initializeClientInfo = extractInitializeClientInfo(body);
 
@@ -745,10 +775,8 @@ async function processRequest(request: Request, options?: { forceOAuth?: boolean
   request = new Request(url.toString(), {
     method: request.method,
     headers: sanitizedHeaders,
-    body: request.body,
+    body,
     signal: request.signal,
-    // @ts-expect-error duplex is required for streaming request bodies in undici/Node
-    duplex: 'half',
   });
   
   const response = withCors(await handler(request));
