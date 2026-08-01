@@ -1,0 +1,74 @@
+name: Publish MCP Registry
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish ai.exa/exa to MCP Registry
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify server.json shape
+        run: |
+          NAME=$(jq -r .name server.json)
+          VERSION=$(jq -r .version server.json)
+          PKG_VERSION=$(jq -r .version package.json)
+          MCP_NAME=$(jq -r .mcpName package.json)
+          REMOTE_TYPE=$(jq -r '.remotes[0].type' server.json)
+          REMOTE_URL=$(jq -r '.remotes[0].url' server.json)
+          HAS_PACKAGES=$(jq 'has("packages")' server.json)
+
+          if [ "$NAME" != "ai.exa/exa" ] || [ "$MCP_NAME" != "ai.exa/exa" ]; then
+            echo "::error::expected ai.exa/exa, got server.json=$NAME mcpName=$MCP_NAME"
+            exit 1
+          fi
+          if [ "$VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::version mismatch: server.json=$VERSION package.json=$PKG_VERSION"
+            exit 1
+          fi
+          if [ "$HAS_PACKAGES" != "false" ]; then
+            echo "::error::server.json must be remote-only (no packages)"
+            exit 1
+          fi
+          if [ "$REMOTE_TYPE" != "streamable-http" ] || [ "$REMOTE_URL" != "https://mcp.exa.ai/mcp" ]; then
+            echo "::error::unexpected remote: type=$REMOTE_TYPE url=$REMOTE_URL"
+            exit 1
+          fi
+
+          echo "Name: $NAME"
+          echo "Version: $VERSION"
+          echo "Remote: $REMOTE_TYPE $REMOTE_URL"
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/
+          mcp-publisher --help
+
+      - name: Authenticate via DNS
+        env:
+          MCP_REGISTRY_DNS_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_DNS_PRIVATE_KEY }}
+        run: |
+          if [ -z "$MCP_REGISTRY_DNS_PRIVATE_KEY" ]; then
+            echo "::error::Missing secret MCP_REGISTRY_DNS_PRIVATE_KEY"
+            exit 1
+          fi
+          mcp-publisher login dns --domain exa.ai --private-key "$MCP_REGISTRY_DNS_PRIVATE_KEY"
+
+      - name: Publish server to MCP Registry
+        run: mcp-publisher publish
+
+      - name: Verify on registry
+        run: |
+          NAME=$(jq -r .name server.json)
+          VERSION=$(jq -r .version server.json)
+          sleep 5
+          curl -sS "https://registry.modelcontextprotocol.io/v0.1/servers?search=${NAME}" \
+            | jq --arg name "$NAME" --arg version "$VERSION" '{name: $name, version: $version, response: .}'
