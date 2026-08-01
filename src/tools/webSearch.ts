@@ -35,7 +35,7 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
     {
       readOnlyHint: true,
       destructiveHint: false,
-      openWorldHint: false,
+      openWorldHint: true,
       idempotentHint: true
     },
     async ({ query, numResults }) => {
