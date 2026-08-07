@@ -14,7 +14,9 @@
   },
   "files": [
     "dist",
-    "skills"
+    "skills",
+    "plugin.json",
+    "mcp.json"
   ],
   "keywords": [
     "mcp",
