@@ -1,7 +1,7 @@
 {
   "name": "exa-mcp-server",
   "version": "3.4.0",
-  "description": "A Model Context Protocol server with Exa for web search and web crawling. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities. Supports customizable result counts, live crawling options, and returns content from the most relevant websites.",
+  "description": "Connect AI agents to Exa for web search, content fetching, and multi-step research.",
   "mcpName": "io.github.exa-labs/exa-mcp-server",
   "type": "module",
   "module": "./src/stdio.ts",
@@ -13,7 +13,7 @@
     "exa-mcp-server": "dist/stdio.cjs"
   },
   "files": [
-    "dist",
+    "dist/stdio.cjs",
     "skills",
     "plugin.json",
     "mcp.json"
@@ -59,7 +59,6 @@
     "exa-js": "^2.16.0",
     "jose": "^6.2.2",
     "mcp-handler": "^1.0.4",
-    "whoami": "^0.0.3",
     "zod": "^3.22.4"
   },
   "devDependencies": {
