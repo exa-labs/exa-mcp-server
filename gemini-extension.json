@@ -1,7 +1,7 @@
 {
   "name": "exa-mcp-server",
   "version": "3.4.0",
-  "description": "Official Exa MCP for web search, web crawling and getting technical code docs.",
+  "description": "Official Exa MCP for web search, content fetching, and multi-step research.",
   "mcpServers": {
     "exa": {
       "httpUrl": "https://mcp.exa.ai/mcp"
