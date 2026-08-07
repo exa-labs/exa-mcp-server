@@ -14,7 +14,9 @@
   },
   "files": [
     "dist/stdio.cjs",
-    "skills"
+    "skills",
+    "plugin.json",
+    "mcp.json"
   ],
   "keywords": [
     "mcp",

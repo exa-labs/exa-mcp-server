@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "exa",
+  "version": "3.4.0",
+  "description": "A Model Context Protocol server with Exa for web search, code search, and web crawling. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities.",
+  "author": {
+    "name": "Exa",
+    "email": "hello@exa.ai"
+  },
+  "homepage": "https://docs.exa.ai/reference/exa-mcp",
+  "repository": "https://github.com/exa-labs/exa-mcp-server",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "search",
+    "web-search",
+    "code-search",
+    "exa",
+    "research",
+    "company-research",
+    "linkedin",
+    "crawling"
+  ]
+}

@@ -21,7 +21,7 @@ function moduleDir(): string {
 
 function findSkillFile(): string {
   for (let dir = moduleDir(); ; dir = resolve(dir, "..")) {
-    const skillPath = resolve(dir, "skills", "agent", "SKILL.md");
+    const skillPath = resolve(dir, "skills", "exa-agent", "SKILL.md");
     if (existsSync(skillPath)) return skillPath;
     if (dir === resolve(dir, "..")) throw new Error("Agent Skill file not found");
   }
