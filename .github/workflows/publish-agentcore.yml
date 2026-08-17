@@ -1,0 +1,107 @@
+name: Publish AgentCore image
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Image version to publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish-agentcore:
+    name: Build and publish AgentCore image
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      ECR_REPOSITORY_URI: ${{ vars.AGENTCORE_ECR_REPOSITORY_URI }}
+      AWS_ROLE_ARN: ${{ secrets.AGENTCORE_AWS_ROLE_ARN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate release configuration
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          : "${ECR_REPOSITORY_URI:?Set the AGENTCORE_ECR_REPOSITORY_URI repository variable}"
+          : "${AWS_ROLE_ARN:?Set the AGENTCORE_AWS_ROLE_ARN repository secret}"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            version="${VERSION_INPUT}"
+          else
+            version="${TAG_NAME}"
+          fi
+          version="${version#v}"
+
+          if [[ -z "${version}" || "${version}" == *[!0-9A-Za-z._-]* ]]; then
+            echo "Version must contain only letters, numbers, dots, underscores, and hyphens." >&2
+            exit 1
+          fi
+          if [[ "${ECR_REPOSITORY_URI}" != */* ]]; then
+            echo "AGENTCORE_ECR_REPOSITORY_URI must include a registry and repository path." >&2
+            exit 1
+          fi
+          if [[ "${ECR_REPOSITORY_URI}" != *.dkr.ecr.us-east-1.amazonaws.com/* ]]; then
+            echo "AGENTCORE_ECR_REPOSITORY_URI must be an AWS Marketplace ECR URI in us-east-1." >&2
+            exit 1
+          fi
+
+          echo "IMAGE_VERSION=${version}" >> "${GITHUB_ENV}"
+          echo "ECR_REGISTRY=${ECR_REPOSITORY_URI%%/*}" >> "${GITHUB_ENV}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AGENTCORE_AWS_ROLE_ARN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to AWS Marketplace ECR
+        run: |
+          set -euo pipefail
+          aws ecr get-login-password --region "${AWS_REGION}" |
+            docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+
+      - name: Build and push ARM64 image
+        env:
+          METADATA_FILE: ${{ runner.temp }}/agentcore-image-metadata.json
+        run: |
+          set -euo pipefail
+
+          image="${ECR_REPOSITORY_URI}:${IMAGE_VERSION}"
+          docker buildx build \
+            --platform linux/arm64 \
+            --file Dockerfile \
+            --tag "${image}" \
+            --push \
+            --metadata-file "${METADATA_FILE}" \
+            .
+
+          digest="$(jq -r '."containerimage.digest" // empty' "${METADATA_FILE}")"
+          if [[ -z "${digest}" ]]; then
+            echo "Buildx did not return an image digest." >&2
+            exit 1
+          fi
+
+          echo "Published ${image}@${digest}"
+          {
+            echo "### AgentCore image published"
+            echo
+            echo "- Image: \`${image}\`"
+            echo "- Digest: \`${digest}\`"
+            echo "- Platform: \`linux/arm64\`"
+          } >> "${GITHUB_STEP_SUMMARY}"

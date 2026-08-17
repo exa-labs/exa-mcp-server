@@ -35,10 +35,12 @@
   "author": "Exa Labs",
   "scripts": {
     "build": "npm run build:stdio",
+    "build:runtime": "tsc",
     "build:stdio": "esbuild src/stdio-cli.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/stdio.cjs --banner:js=\"#!/usr/bin/env node\" && chmod +x dist/stdio.cjs",
     "build:vercel": "npm install typescript && ./node_modules/.bin/tsc",
     "setup": "npm ci",
     "start": "npm run dev",
+    "start:runtime": "node dist/src/runtime-server.js",
     "typecheck": "tsc --noEmit -p tsconfig.test.json",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx}\"",
