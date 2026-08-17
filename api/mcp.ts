@@ -5,8 +5,8 @@ import { createMcpHandler } from "mcp-handler";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import { initializeMcpServer, type McpConfig } from "../src/mcp-handler.js";
 import { DEFAULT_MCP_MAX_DURATION_SECONDS, parsePositiveInteger } from "../src/tools/agentRun.js";
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import type { Ratelimit } from "@upstash/ratelimit";
+import type { Redis } from "@upstash/redis";
 import { isJwtToken, verifyOAuthToken } from "../src/utils/auth.js";
 import {
   expandToolSelection,
@@ -61,7 +61,7 @@ function withCors(response: Response): Response {
 // Lazy-initialize rate limiters only when Upstash is configured
 let qpsLimiter: Ratelimit | null = null;
 let dailyLimiter: Ratelimit | null = null;
-let rateLimitersInitialized = false;
+let rateLimitersInitialization: Promise<boolean> | undefined;
 let redisClient: Redis | null = null;
 
 function getMcpClientSessionKey(sessionId: string): string {
@@ -77,7 +77,7 @@ async function saveMcpClientMetadata(
     return;
   }
 
-  initializeRateLimiters();
+  await initializeRateLimiters();
 
   if (!redisClient) {
     return;
@@ -102,7 +102,7 @@ async function loadMcpClientMetadata(
     return undefined;
   }
 
-  initializeRateLimiters();
+  await initializeRateLimiters();
 
   if (!redisClient) {
     return undefined;
@@ -124,53 +124,56 @@ async function loadMcpClientMetadata(
   }
 }
 
-function initializeRateLimiters(): boolean {
-  if (rateLimitersInitialized) {
-    return qpsLimiter !== null;
+function initializeRateLimiters(): Promise<boolean> {
+  if (rateLimitersInitialization) {
+    return rateLimitersInitialization;
   }
 
-  rateLimitersInitialized = true;
+  rateLimitersInitialization = (async () => {
+    // Support both Vercel KV naming (KV_REST_API_*) and Upstash naming (UPSTASH_REDIS_REST_*)
+    const redisUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+    const redisToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  // Support both Vercel KV naming (KV_REST_API_*) and Upstash naming (UPSTASH_REDIS_REST_*)
-  const redisUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const redisToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+    if (!redisUrl || !redisToken) {
+      console.log(
+        "[EXA-MCP] Rate limiting disabled: KV_REST_API_URL/UPSTASH_REDIS_REST_URL or KV_REST_API_TOKEN/UPSTASH_REDIS_REST_TOKEN not configured",
+      );
+      return false;
+    }
 
-  if (!redisUrl || !redisToken) {
-    console.log(
-      "[EXA-MCP] Rate limiting disabled: KV_REST_API_URL/UPSTASH_REDIS_REST_URL or KV_REST_API_TOKEN/UPSTASH_REDIS_REST_TOKEN not configured",
-    );
-    return false;
-  }
+    try {
+      const [{ Ratelimit }, { Redis }] = await Promise.all([
+        import("@upstash/ratelimit"),
+        import("@upstash/redis"),
+      ]);
 
-  try {
-    redisClient = new Redis({
-      url: redisUrl,
-      token: redisToken,
-    });
+      redisClient = new Redis({
+        url: redisUrl,
+        token: redisToken,
+      });
 
-    const qpsLimit = parseInt(process.env.RATE_LIMIT_QPS || "2", 10);
-    const dailyLimit = parseInt(process.env.RATE_LIMIT_DAILY || "50", 10);
+      const qpsLimit = parseInt(process.env.RATE_LIMIT_QPS || "2", 10);
+      const dailyLimit = parseInt(process.env.RATE_LIMIT_DAILY || "50", 10);
+      qpsLimiter = new Ratelimit({
+        redis: redisClient,
+        limiter: Ratelimit.slidingWindow(qpsLimit, "1 s"),
+        prefix: "exa-mcp:qps",
+      });
+      dailyLimiter = new Ratelimit({
+        redis: redisClient,
+        limiter: Ratelimit.fixedWindow(dailyLimit, "1 d"),
+        prefix: "exa-mcp:daily",
+      });
 
-    // QPS limiter: sliding window for smooth rate limiting
-    qpsLimiter = new Ratelimit({
-      redis: redisClient,
-      limiter: Ratelimit.slidingWindow(qpsLimit, "1 s"),
-      prefix: "exa-mcp:qps",
-    });
+      console.log(`[EXA-MCP] Rate limiting enabled: ${qpsLimit} QPS, ${dailyLimit}/day`);
+      return true;
+    } catch (error) {
+      console.error("[EXA-MCP] Failed to initialize rate limiters:", error);
+      return false;
+    }
+  })();
 
-    // Daily limiter: fixed window that resets daily
-    dailyLimiter = new Ratelimit({
-      redis: redisClient,
-      limiter: Ratelimit.fixedWindow(dailyLimit, "1 d"),
-      prefix: "exa-mcp:daily",
-    });
-
-    console.log(`[EXA-MCP] Rate limiting enabled: ${qpsLimit} QPS, ${dailyLimit}/day`);
-    return true;
-  } catch (error) {
-    console.error("[EXA-MCP] Failed to initialize rate limiters:", error);
-    return false;
-  }
+  return rateLimitersInitialization;
 }
 
 function getClientIp(request: Request): string | null {
@@ -273,7 +276,7 @@ const BYPASS_BUCKET_TTL_SECONDS = 7 * 24 * 60 * 60;
  * to prevent unbounded growth that would hit Upstash's 100MB single-record limit.
  */
 async function saveBypassRequestInfo(ip: string, userAgent: string, debug: boolean): Promise<void> {
-  initializeRateLimiters();
+  await initializeRateLimiters();
 
   if (!redisClient) {
     if (debug) {
@@ -774,7 +777,7 @@ async function processRequest(
     const rateLimitedCallCount = countRateLimitedCalls(body ?? "");
     if (rateLimitedCallCount > 0) {
       // Initialize rate limiters on first request (lazy init)
-      initializeRateLimiters();
+      await initializeRateLimiters();
 
       const clientIp = getClientIp(request);
 
