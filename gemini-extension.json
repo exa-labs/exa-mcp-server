@@ -1,6 +1,6 @@
 {
   "name": "exa-mcp-server",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "description": "Official Exa MCP for web search, content fetching, and multi-step research.",
   "mcpServers": {
     "exa": {
