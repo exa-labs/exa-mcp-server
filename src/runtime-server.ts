@@ -17,7 +17,14 @@ async function toRequest(request: IncomingMessage, body: Buffer): Promise<Reques
     }
   }
 
-  return new Request(`http://${HOST}:${PORT}${request.url || "/"}`, {
+  const url = new URL(request.url || "/", `http://${HOST}:${PORT}`);
+  const hasInboundApiKey =
+    headers.has("x-api-key") || headers.has("authorization") || url.searchParams.has("exaApiKey");
+  if (!hasInboundApiKey && process.env.EXA_API_KEY) {
+    headers.set("x-api-key", process.env.EXA_API_KEY);
+  }
+
+  return new Request(url, {
     method: request.method,
     headers,
     body:
