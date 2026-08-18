@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "exa",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "description": "A Model Context Protocol server with Exa for web search, code search, and web crawling. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities.",
   "author": {
     "name": "Exa",

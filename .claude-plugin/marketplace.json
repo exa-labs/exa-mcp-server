@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Official Exa plugin for web search, content fetching, and multi-step research.",
-    "version": "3.4.0"
+    "version": "3.4.1"
   },
   "plugins": [
     {
       "name": "exa",
       "source": "./",
       "description": "Connect AI agents to Exa for web search, content fetching, and multi-step research.",
-      "version": "3.4.0",
+      "version": "3.4.1",
       "author": {
         "name": "Exa",
         "email": "hello@exa.ai"

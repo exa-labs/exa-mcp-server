@@ -2,12 +2,12 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
   "name": "io.github.exa-labs/exa-mcp-server",
   "description": "Connect AI agents to Exa for web search, content fetching, and multi-step research.",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "exa-mcp-server",
-      "version": "3.4.0"
+      "version": "3.4.1"
     }
   ],
   "remotes": [
