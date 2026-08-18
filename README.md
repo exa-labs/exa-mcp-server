@@ -129,6 +129,6 @@ The hosted MCP server works anonymously with rate limits. For higher limits and 
 
 **OAuth** is preferred: most clients prompt you to sign in to Exa. To force the login flow (useful for shared connectors and plugins), use `https://mcp.exa.ai/mcp?login` or `https://mcp.exa.ai/mcp/oauth`.
 
-If you prefer, you can get an API key from the [dashboard](https://dashboard.exa.ai/api-keys) and pass it on the URL as `?exaApiKey=…`. You can also send it as a `Authorization: Bearer …` header or an `x-api-key` header.
+If you prefer, you can get an API key from the [dashboard](https://dashboard.exa.ai/api-keys) and pass it on the URL as `?exaApiKey=…`. You can also send it in an `Authorization: Bearer <token>` header or an `x-api-key` header.
 
 Built with ❤️ by Exa
