@@ -33,6 +33,7 @@
     "people"
   ],
   "author": "Exa Labs",
+  "license": "MIT",
   "scripts": {
     "build": "npm run build:stdio",
     "build:runtime": "tsc",
