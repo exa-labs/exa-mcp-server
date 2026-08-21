@@ -1,6 +1,11 @@
 name: Publish
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - package.json
   workflow_dispatch:
 
 permissions:
@@ -27,5 +32,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check whether the package version is already published
+        id: check-existing-version
+        run: |
+          set -euo pipefail
+
+          version="$(node -p "require('./package.json').version")"
+          set +e
+          response="$(npm view "exa-mcp-server@${version}" version 2>&1)"
+          status=$?
+          set -e
+
+          if [[ "${status}" -eq 0 && "${response}" == "${version}" ]]; then
+            echo "npm version ${version} is already published."
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+          elif [[ "${status}" -ne 0 && "${response}" == *"E404"* ]]; then
+            echo "npm version ${version} is not published yet."
+            echo "skip=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "Unexpected response while checking npm version ${version}:" >&2
+            echo "${response}" >&2
+            exit "${status}"
+          fi
+
       - name: Publish
+        if: steps.check-existing-version.outputs.skip != 'true'
         run: npm publish --access public

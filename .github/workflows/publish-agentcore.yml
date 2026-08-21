@@ -2,14 +2,11 @@ name: Publish AgentCore image
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+    paths:
+      - package.json
   workflow_dispatch:
-    inputs:
-      version:
-        description: Image version to publish
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -29,21 +26,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate release configuration
-        env:
-          TAG_NAME: ${{ github.ref_name }}
-          VERSION_INPUT: ${{ inputs.version }}
         run: |
           set -euo pipefail
 
           : "${ECR_REPOSITORY_URI:?Set the AGENTCORE_ECR_REPOSITORY_URI repository variable}"
           : "${AWS_ROLE_ARN:?Set the AGENTCORE_AWS_ROLE_ARN repository secret}"
 
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            version="${VERSION_INPUT}"
-          else
-            version="${TAG_NAME}"
-          fi
-          version="${version#v}"
+          version="$(node -p "require('./package.json').version")"
 
           if [[ -z "${version}" || "${version}" == *[!0-9A-Za-z._-]* ]]; then
             echo "Version must contain only letters, numbers, dots, underscores, and hyphens." >&2
@@ -58,8 +47,13 @@ jobs:
             exit 1
           fi
 
-          echo "IMAGE_VERSION=${version}" >> "${GITHUB_ENV}"
-          echo "ECR_REGISTRY=${ECR_REPOSITORY_URI%%/*}" >> "${GITHUB_ENV}"
+          registry="${ECR_REPOSITORY_URI%%/*}"
+          {
+            echo "IMAGE_VERSION=${version}"
+            echo "ECR_REGISTRY=${registry}"
+            echo "ECR_REGISTRY_ID=${registry%%.*}"
+            echo "ECR_REPOSITORY_NAME=${ECR_REPOSITORY_URI#*/}"
+          } >> "${GITHUB_ENV}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -67,16 +61,45 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ secrets.AGENTCORE_AWS_ROLE_ARN }}
 
+      - name: Check for existing Marketplace image
+        id: check-existing-image
+        run: |
+          set -euo pipefail
+
+          set +e
+          response="$(aws ecr describe-images \
+            --region "${AWS_REGION}" \
+            --registry-id "${ECR_REGISTRY_ID}" \
+            --repository-name "${ECR_REPOSITORY_NAME}" \
+            --image-ids "imageTag=${IMAGE_VERSION}" 2>&1)"
+          status=$?
+          set -e
+
+          if [[ "${status}" -eq 0 ]]; then
+            echo "Marketplace image ${ECR_REPOSITORY_URI}:${IMAGE_VERSION} already exists."
+            echo "${response}"
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+          elif [[ "${response}" == *"ImageNotFoundException"* ]]; then
+            echo "Marketplace image ${ECR_REPOSITORY_URI}:${IMAGE_VERSION} is not published yet."
+            echo "skip=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "${response}" >&2
+            exit "${status}"
+          fi
+
       - name: Set up Docker Buildx
+        if: steps.check-existing-image.outputs.skip != 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to AWS Marketplace ECR
+        if: steps.check-existing-image.outputs.skip != 'true'
         run: |
           set -euo pipefail
           aws ecr get-login-password --region "${AWS_REGION}" |
             docker login --username AWS --password-stdin "${ECR_REGISTRY}"
 
       - name: Build and push ARM64 image
+        if: steps.check-existing-image.outputs.skip != 'true'
         env:
           METADATA_FILE: ${{ runner.temp }}/agentcore-image-metadata.json
         run: |
