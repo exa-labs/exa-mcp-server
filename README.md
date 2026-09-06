@@ -43,6 +43,8 @@ Install from the [Claude Plugin Marketplace](https://claude.com/plugins/exa), or
 claude plugin install exa@claude-plugins-official
 ```
 
+The Claude plugin enables `web_search_exa`, `web_fetch_exa`, and `agent_run` for its bundled `search` and `exa-agent` skills. Sign in when prompted to use them.
+
 ### Codex / ChatGPT
 
 Install via [Plugins in ChatGPT](https://chatgpt.com/plugins/exa), or run:

@@ -1,7 +1,7 @@
 {
   "name": "exa",
   "description": "Exa web search, content fetching, and multi-step research via MCP tools and skills.",
-  "version": "3.4.1",
+  "version": "3.4.2",
   "author": {
     "name": "Exa",
     "email": "hello@exa.ai"
@@ -10,7 +10,7 @@
   "mcpServers": {
     "exa": {
       "type": "http",
-      "url": "https://mcp.exa.ai/mcp?client=claude-code-plugin",
+      "url": "https://mcp.exa.ai/mcp?client=claude-code-plugin&tools=web_search_exa,web_fetch_exa,agent_run",
       "headers": {
         "x-exa-source": "claude-code-plugin"
       }
