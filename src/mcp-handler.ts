@@ -149,7 +149,7 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     }
 
     // Register prompts to help users get started
-    server.prompt("web_search_help", "Get help with web search using Exa", {}, async () => {
+    server.prompt("web_search_help", "Get help with web search using Exa", async () => {
       return {
         messages: [
           {
