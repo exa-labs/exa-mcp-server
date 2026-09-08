@@ -73,6 +73,7 @@ Exa MCP works with most other clients, point them at `https://mcp.exa.ai/mcp`.
 
 | Client | Where to add it |
 | --- | --- |
+| [FLUJO](https://github.com/mario-andreschak/FLUJO) | **Connected Apps** → **Connect App** → **I have connection details** → **At a remote URL**. Enter `https://mcp.exa.ai/mcp`, select **Connect**, then **Continue to setup**. After the connection test passes, select **Update server**. |
 | Kiro | Use the [Kiro power](https://github.com/exa-labs/kiro-power-exa), or add manually to `~/.kiro/settings/mcp.json` |
 | LM Studio | [Add to LM Studio](https://lmstudio.ai/install-mcp?name=exa&config=eyJ1cmwiOiJodHRwczovL21jcC5leGEuYWkvbWNwIn0%3D), or add manually to `mcp.json` |
 | Replit | [Add to Replit](https://replit.com/integrations?mcp=) |
