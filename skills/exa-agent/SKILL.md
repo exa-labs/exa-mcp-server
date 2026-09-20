@@ -1,76 +1,44 @@
 ---
 name: exa-agent
-description: "Use Exa Agent for multi-step web research, list-building, enrichment, structured output, run continuation, and coverage validation. Exa Agent can access additional data providers: fiber, financial_datasets, similarweb, baselayer, affiliate, particle, and jinko."
+description: "Use Exa Agent for multi-step web research, list-building, enrichment, structured output, run continuation, and coverage validation, with optional Exa Connect providers: fiber, financial_datasets, similarweb, baselayer, affiliate, particle, jinko."
 ---
 
 # Exa Agent Research
 
-You are operating Exa Agent through MCP. Exa Agent is a tool that allows you to run multi-step web research, list-building, enrichment, structured output, run continuation, and coverage validation.
-
-## Required tools
-
-- `agent_run`
+Operate Exa Agent through MCP for multi-step web research, list-building, enrichment, structured output, run continuation, and coverage validation. Required tool: `agent_run` (hosts may namespace it).
 
 ## Exa Connect providers
 
-When a run needs premium partner data alongside Exa web search, pass `dataSources` to `agent_run`.
+Pass `dataSources` to `agent_run` when premium partner data is needed. Self-serve providers only:
 
-Use only the currently usable self-serve providers:
-
-- `fiber`: B2B company, people, jobs, and contact enrichment
+- `fiber`: B2B company, people, jobs, contact enrichment
 - `financial_datasets`: ticker-based news for US public companies
-- `similarweb`: website traffic estimates, rankings, and competitor discovery
-- `baselayer`: US business verification, officers, registrations, and KYB
-- `affiliate`: product catalog search, pricing, brands, and merchant links
-- `particle`: podcast transcript search with speaker attribution and timestamps
+- `similarweb`: website traffic estimates, rankings, competitor discovery
+- `baselayer`: US business verification, officers, registrations, KYB
+- `affiliate`: product catalog search, pricing, brands, merchant links
+- `particle`: podcast transcript search with speaker attribution
 - `jinko`: travel destination discovery ranked by fare
 
-Do not suggest request-only providers unless the user explicitly says their Exa account already has them enabled.
+Do not suggest request-only providers unless the user says their Exa account already has them enabled.
 
 ## Decision tree
 
-Choose the work surface before acting:
-
-1. Known input rows plus repeated same-shape enrichment at scale
-   - Write a deterministic script using Exa APIs directly.
-   - Use bounded concurrency, exponential backoff, checkpoints, and a stable output file.
-   - Read the output file and synthesize from it.
-   - Do not burn context manually looping over hundreds of identical tool calls.
-
-2. Open-ended universe definition, list-building, people/company discovery, multi-hop research, structured research, or follow-up over previous work
-   - Use Exa Agent.
-   - Define the objective and `outputSchema` before creating the run.
+1. **Known rows + repeated same-shape enrichment at scale** → write a deterministic script against Exa APIs directly: bounded concurrency, exponential backoff on 429/5xx, checkpoints, stable JSON/CSV/TSV output, raw API errors preserved per row. Read the output file and synthesize from it. Do not loop hundreds of identical MCP calls by hand.
+2. **Open-ended discovery, list-building, multi-hop research, or follow-up over previous work** → use Exa Agent. Define the objective and `outputSchema` before creating the run.
 
 ## Before creating a run
 
-Always write down:
-
-- Objective: what the run is meant to answer.
-- Universe: what entities qualify.
-- Segments: geographies, industries, personas, dates, asset classes, or other partitions.
-- Coverage target: desired count, maximum count, and what "good enough" means.
-- Output fields: columns needed in the final answer.
-- Evidence requirements: URLs, source titles, dates, and confidence.
-- Exclusions: prior results or disallowed entities.
-
-If the user uses relative time like "recent", "last 6 months", or "post-IPO", calculate exact dates from today's date first.
+Write down: objective; universe (what qualifies); segments (geography, industry, persona, dates, asset class); coverage target (desired/max count and "good enough"); output fields; evidence requirements (URLs, source titles, dates, confidence); exclusions (prior results, disallowed entities). Convert relative time ("recent", "last 6 months", "post-IPO") to exact dates first.
 
 ## Schema rules
 
-Use `outputSchema` for list-building, enrichment, finance/company research, and repeatable workflows.
+Use `outputSchema` for list-building, enrichment, finance/company research, and repeatable workflows:
 
-Rules:
+- Top-level object; rows in a named array with `maxItems`.
+- Include stable identifiers (company name, domain, LinkedIn URL, ticker, CIK), source/evidence fields, and confidence or rationale for fuzzy judgments.
+- Keep `required` minimal; use `format: "uri"` / `"email"` / `"phone"` where apt.
 
-- Use a top-level object.
-- Put list rows in a named array field.
-- Add `maxItems` to arrays when possible.
-- Include source/evidence fields, not just conclusions.
-- Include stable identifiers: company name, website/domain, person LinkedIn URL, ticker, CIK, etc.
-- Include confidence or rationale fields for fuzzy judgments.
-- Keep required fields limited to what must exist.
-- Use `format: "uri"`, `format: "email"`, or `format: "phone"` when needed.
-
-Example company-list schema:
+Minimal example:
 
 ```json
 {
@@ -82,179 +50,32 @@ Example company-list schema:
       "items": {
         "type": "object",
         "properties": {
-          "company_name": { "type": "string" },
+          "name": { "type": "string" },
           "website": { "type": "string", "format": "uri" },
-          "segment": { "type": "string" },
-          "why_it_qualifies": { "type": "string" },
           "evidence_url": { "type": "string", "format": "uri" },
-          "confidence": { "type": "string", "enum": ["low", "medium", "high"] }
+          "confidence": { "enum": ["low", "medium", "high"] }
         },
-        "required": ["company_name", "website", "why_it_qualifies", "evidence_url"]
+        "required": ["name", "website", "evidence_url"]
       }
-    },
-    "coverage_notes": { "type": "string" },
-    "known_gaps": {
-      "type": "array",
-      "items": { "type": "string" }
     }
   },
-  "required": ["companies", "coverage_notes"]
+  "required": ["companies"]
 }
 ```
 
-Example with Exa Connect:
+Name the provider-specific data in both query and schema so Agent uses the Connect provider instead of falling back to web search.
 
-```json
-{
-  "tool": "agent_run",
-  "arguments": {
-    "query": "Find 10 fast-growing B2B SaaS companies and return estimated monthly website visits from Similarweb.",
-    "dataSources": [
-      { "provider": "similarweb" }
-    ],
-    "outputSchema": {
-      "type": "object",
-      "properties": {
-        "companies": {
-          "type": "array",
-          "maxItems": 10,
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": { "type": "string" },
-              "domain": { "type": "string" },
-              "monthlyVisits": {
-                "type": "number",
-                "description": "Estimated monthly visits from Similarweb"
-              }
-            },
-            "required": ["name", "domain", "monthlyVisits"]
-          }
-        }
-      },
-      "required": ["companies"]
-    }
-  }
-}
-```
+## Workflow
 
-## Exa Agent workflow
-
-1. Run the agent
-   - Call `agent_run`.
-   - Omit `effort` to use the tool's `low` default. Choose `auto` or a higher effort only when the user asks for more depth or the task clearly requires it.
-   - Include `outputSchema` for structured work.
-   - Use `input.data` for known rows.
-   - Use `input.exclusion` for entities already returned or disallowed.
-   - Add `dataSources` only when one of the self-serve Exa Connect providers is clearly useful.
-   - Name the provider-specific data you want in both the query and the schema so Agent uses the provider instead of falling back to web search.
-   - Save the returned `id` when a later continuation may use `previousRunId`.
-   - If the response has `status: "running"`, call `agent_run` again with that `runId` until `outputReady` is true. This continuation is available for retained runs that outlive one MCP call.
-   - Zero Data Retention (ZDR) teams: new runs always stream, and output is only available on that live stream (not via `runId` resumption). The MCP call window is ~750 seconds; if a ZDR run cannot finish in one call, retry with lower effort or split the task. `previousRunId` is not available on ZDR.
-
-2. Read the result
-   - Wait until `outputReady` is true (or status is failed/cancelled).
-   - Read both `output.structured` and `output.grounding`.
-   - Do not assume results are exhaustive just because the run completed.
-
-3. Validate coverage
-   - Check row count against target.
-   - Check segment coverage.
-   - Deduplicate entities.
-   - Inspect evidence quality.
-   - Identify gaps.
-
-4. Continue if needed
-   - Use `agent_run` with `previousRunId` for follow-up/refinement.
-   - Use `input.exclusion` to avoid resurfacing prior results.
-   - Segment large universes into multiple runs if one run is too broad.
-
-5. Final answer
-   - State what was done.
-   - Present structured results.
-   - State coverage and limitations.
-   - Say "best-effort discovery" unless exhaustiveness was explicitly scoped and validated.
-
-## Continuation patterns
-
-Use `previousRunId` when:
-
-- narrowing a list
-- filling missing fields
-- asking for another segment
-- validating a prior set
-- requesting "more like these"
-
-Do not use `previousRunId` when:
-
-- the prior run failed or is still running
-- the new task is unrelated
-- you need clean independent coverage for another segment
-
-For independent segments, create separate runs and aggregate results yourself.
-
-## Exhaustiveness and coverage language
-
-Never claim exhaustive coverage unless all are true:
-
-- The universe is bounded and well-defined.
-- Search/discovery strategy covers the main segments.
-- The output count and gaps were checked.
-- Duplicates were resolved.
-- Evidence was inspected.
-- Any remaining unknowns are disclosed.
-
-Preferred language when not fully validated:
-
-- "best-effort discovery"
-- "high-confidence initial universe"
-- "not exhaustive"
-- "coverage appears strongest in X and weaker in Y"
-
-Avoid:
-
-- "all companies"
-- "complete list"
-- "exhaustive"
-- "definitive"
-
-unless validation supports it.
-
-## Batch Script Mode
-
-If the task requires many parallel Exa calls of the same shape, especially batch enrichment over known companies/people:
-
-1. Write a script instead of issuing many MCP calls manually.
-2. The script must:
-   - read deterministic inputs from a file
-   - use bounded concurrency
-   - use exponential backoff for 429/5xx
-   - checkpoint partial progress
-   - write deterministic JSON/CSV/TSV output
-   - preserve raw API errors per row
-3. Run the script.
-4. Read the output file.
-5. Synthesize from the output.
-
-Use Exa Agent instead of Batch Script Mode when the hard part is discovery, reasoning, multi-hop research, or deciding what to search next.
+1. **Run**: call `agent_run`. Omit `effort` (default low); raise only when the user asks for depth or the task clearly needs it. Use `input.data` for known rows and `input.exclusion` for prior/disallowed entities. Save the returned `id` for continuation. If status is `"running"`, re-call with `runId` until `outputReady` is true. Zero Data Retention (ZDR): output only on the live stream (~750s MCP window); retry with lower effort or split the task — `previousRunId` is unavailable.
+2. **Read**: wait for `outputReady` (or failed/cancelled); read both `output.structured` and `output.grounding`.
+3. **Validate**: row count vs target, segment coverage, dedupe entities, evidence quality, gaps.
+4. **Continue if needed**: `previousRunId` for narrowing, filling missing fields, another segment, validating a prior set, or "more like these"; add `input.exclusion`; segment broad universes into separate runs. Do not reuse `previousRunId` when the prior run failed or is still running, the task is unrelated, or clean independent coverage is needed — use fresh runs and aggregate yourself.
+5. **Answer**: state what was done, present structured results, state coverage and limits. Prefer "best-effort discovery", "not exhaustive", "coverage strongest in X, weaker in Y"; avoid "all", "complete list", "exhaustive", "definitive" unless the universe was bounded, segments covered, duplicates resolved, evidence inspected, and unknowns disclosed.
 
 ## Failure handling
 
-If a run fails to start:
-
-- Surface the HTTP error and fix schema/auth/input.
-- Do not silently fall back to generic web search for Exa Agent-shaped work.
-
-If the run fails:
-
-- Explain the failure from the returned terminal status.
-- Create a corrected follow-up/new run only if the correction is clear.
-
-If the run objective/schema is wrong, abort the streaming call. The server will attempt to cancel the upstream run; you will then need to create a new run with the corrected objective/schema.
-
-If output is sparse:
-
-- Continue with `previousRunId`.
-- Add exclusions for prior results.
-- Segment the universe.
-- Tighten or clarify schema fields.
+- **Run fails to start**: surface the HTTP error; fix schema/auth/input. No silent fallback to generic web search.
+- **Run fails**: explain from the terminal status; create a corrected follow-up only when the fix is clear.
+- **Wrong objective/schema mid-stream**: abort the call (server attempts upstream cancel), then create a corrected run.
+- **Sparse output**: continue with `previousRunId`, add exclusions, segment the universe, tighten schema fields.
