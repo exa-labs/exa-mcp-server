@@ -43,7 +43,7 @@ export function registerWebSearchTool(
     {
       readOnlyHint: true,
       destructiveHint: false,
-      openWorldHint: false,
+      openWorldHint: true,
       idempotentHint: true,
     },
     async ({ query, numResults }) => {

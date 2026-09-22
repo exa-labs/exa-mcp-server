@@ -1,12 +1,12 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "ai.exa/exa",
-  "description": "Fast, intelligent web search and web crawling.\n\nNew mcp tool: Exa-code is a context tool for coding ",
+  "description": "Connect AI agents to Exa for web search, content fetching, and multi-step research.",
   "repository": {
     "url": "https://github.com/exa-labs/exa-mcp-server",
     "source": "github"
   },
-  "version": "3.4.0",
+  "version": "3.4.1",
   "remotes": [
     {
       "type": "streamable-http",

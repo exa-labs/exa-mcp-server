@@ -5,15 +5,15 @@
     "email": "hello@exa.ai"
   },
   "metadata": {
-    "description": "Official Exa AI plugin providing web search, code search, company research, and deep research capabilities",
-    "version": "3.4.0"
+    "description": "Official Exa plugin for web search, content fetching, and multi-step research.",
+    "version": "3.4.1"
   },
   "plugins": [
     {
       "name": "exa",
       "source": "./",
-      "description": "A Model Context Protocol server with Exa for web search, code search, and web crawling. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities.",
-      "version": "3.4.0",
+      "description": "Connect AI agents to Exa for web search, content fetching, and multi-step research.",
+      "version": "3.4.1",
       "author": {
         "name": "Exa",
         "email": "hello@exa.ai"
@@ -23,14 +23,11 @@
       "license": "MIT",
       "keywords": [
         "mcp",
+        "exa",
         "search",
         "web-search",
-        "code-search",
-        "exa",
-        "research",
-        "company-research",
-        "linkedin",
-        "crawling"
+        "agent",
+        "research"
       ],
       "category": "productivity",
       "mcpServers": {

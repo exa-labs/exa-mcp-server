@@ -1,8 +1,5 @@
 /**
- * Well-known endpoint for MCP configuration schema.
- *
- * Exposes a JSON Schema at /.well-known/mcp-config so MCP clients can discover
- * the available configuration options and pass them via URL parameters.
+ * JSON Schema at /.well-known/mcp-config for URL query configuration.
  */
 
 import { AVAILABLE_TOOL_SELECTION_VALUES } from "../src/toolRegistry.js";
@@ -11,7 +8,7 @@ const configSchema = {
   $schema: "http://json-schema.org/draft-07/schema#",
   $id: "/.well-known/mcp-config",
   title: "Exa MCP Server Configuration",
-  description: "Configuration for connecting to the Exa MCP server",
+  description: "URL query options for the hosted Exa MCP server",
   "x-query-style": "dot+bracket",
   type: "object",
   properties: {
@@ -19,25 +16,24 @@ const configSchema = {
       type: "string",
       title: "Exa API Key",
       description:
-        "Your Exa AI API key for search operations (optional - server has a fallback key). Get one at https://exa.ai",
+        "Optional API key (https://dashboard.exa.ai/api-keys). Hosted MCP also supports OAuth.",
     },
     tools: {
       type: "string",
       title: "Enabled Tools",
       description:
-        "Comma-separated list of tools to enable. Leave empty for defaults (web_search_exa, web_fetch_exa). Agent tools require OAuth or an API key.",
+        "Comma-separated tools. When set, replaces defaults (web_search_exa, web_fetch_exa). agent_run requires OAuth or an API key.",
       examples: [
-        "web_search_exa,web_search_advanced_exa",
-        "web_search_exa,web_search_advanced_exa,web_fetch_exa",
+        "web_search_advanced_exa",
+        "web_search_exa,web_fetch_exa,agent_run",
         "agent_tools",
-        "web_search_exa,agent_tools",
       ],
       "x-available-values": AVAILABLE_TOOL_SELECTION_VALUES,
     },
     debug: {
       type: "boolean",
       title: "Debug Mode",
-      description: "Enable debug logging for troubleshooting",
+      description: "Enable debug logging",
       default: false,
     },
   },

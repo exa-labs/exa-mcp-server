@@ -47,7 +47,7 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<void> 
   const server = new McpServer({
     name: "exa-search-server",
     title: "Exa",
-    version: "3.4.0",
+    version: "3.4.1",
     websiteUrl: "https://exa.ai",
     icons: [
       { src: "https://exa.ai/images/favicon-32x32.png", mimeType: "image/png", sizes: ["32x32"] },

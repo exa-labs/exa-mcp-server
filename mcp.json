@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "exa": {
+      "type": "streamable-http",
+      "url": "https://mcp.exa.ai/mcp?client=agent-plugin",
+      "headers": {
+        "x-exa-source": "agent-plugin"
+      }
+    }
+  }
+}

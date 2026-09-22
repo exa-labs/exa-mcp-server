@@ -1,7 +1,7 @@
 {
   "name": "exa-mcp-server",
-  "version": "3.4.0",
-  "description": "A Model Context Protocol server with Exa for web search and web crawling. Provides real-time web searches with configurable tool selection, allowing users to enable or disable specific search capabilities. Supports customizable result counts, live crawling options, and returns content from the most relevant websites.",
+  "version": "3.4.1",
+  "description": "Connect AI agents to Exa for web search, content fetching, and multi-step research.",
   "mcpName": "ai.exa/exa",
   "type": "module",
   "module": "./src/stdio.ts",
@@ -13,8 +13,10 @@
     "exa-mcp-server": "dist/stdio.cjs"
   },
   "files": [
-    "dist",
-    "skills"
+    "dist/stdio.cjs",
+    "skills",
+    "plugin.json",
+    "mcp.json"
   ],
   "keywords": [
     "mcp",
@@ -33,10 +35,12 @@
   "author": "Exa Labs",
   "scripts": {
     "build": "npm run build:stdio",
+    "build:runtime": "tsc",
     "build:stdio": "esbuild src/stdio-cli.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/stdio.cjs --banner:js=\"#!/usr/bin/env node\" && chmod +x dist/stdio.cjs",
     "build:vercel": "npm install typescript && ./node_modules/.bin/tsc",
     "setup": "npm ci",
     "start": "npm run dev",
+    "start:runtime": "node dist/src/runtime-server.js",
     "typecheck": "tsc --noEmit -p tsconfig.test.json",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx}\"",
@@ -57,7 +61,6 @@
     "exa-js": "^2.16.0",
     "jose": "^6.2.2",
     "mcp-handler": "^1.0.4",
-    "whoami": "^0.0.3",
     "zod": "^3.22.4"
   },
   "devDependencies": {

@@ -1,40 +1,28 @@
-# Use the official Node.js 20 image as a parent image
-FROM node:20-alpine AS builder
+FROM node:22-bookworm-slim AS build
 
-# Set the working directory in the container to /app
 WORKDIR /app
-
-# Copy package.json and package-lock.json into the container
 COPY package.json package-lock.json ./
-
-# Install dependencies
 RUN npm ci --ignore-scripts
-
-# Copy the rest of the application code into the container
-COPY src/ ./src/
+COPY api ./api
+COPY src ./src
 COPY tsconfig.json ./
+RUN npm run build:runtime
 
-# Build the project for Docker
-RUN npm run build
+FROM node:22-bookworm-slim AS runtime
 
-# Use a minimal node image as the base image for running
-FROM node:20-alpine AS runner
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=8000
 
 WORKDIR /app
-
-# Copy compiled code from the builder stage
-COPY --from=builder /app/dist ./dist
-COPY skills/ ./skills/
 COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+COPY --from=build /app/dist ./dist
+COPY skills ./skills
 
-# Install only production dependencies
-RUN npm ci --production --ignore-scripts
+RUN groupadd --system --gid 10001 exa \
+  && useradd --system --uid 10001 --gid 10001 --home-dir /app exa
+USER 10001:10001
 
-# Set environment variable for the Exa API key
-ENV EXA_API_KEY=your-api-key-here
-
-# Expose the port the app runs on
-EXPOSE 3000
-
-# Run the application
-ENTRYPOINT ["node", "dist/stdio.cjs"]
+EXPOSE 8000
+CMD ["node", "dist/src/runtime-server.js"]
