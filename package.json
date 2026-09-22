@@ -79,6 +79,7 @@
     "node": ">=20.0.0"
   },
   "overrides": {
+    "@hono/node-server": "^2.0.5",
     "tar": "^7.5.7"
   }
 }
