@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { initializeMcpServer } from "../../src/mcp-handler.js";
 import { FakeMcpServer } from "../helpers/fakeMcpServer.js";
 
@@ -42,6 +43,35 @@ describe("initializeMcpServer", () => {
         expect.objectContaining({ id: "agent_run", enabled: false }),
       ]),
     );
+  });
+
+  it("accepts prompts/get for web_search_help when arguments are omitted", async () => {
+    const server = new McpServer({ name: "test-server", version: "1.0.0" });
+
+    initializeMcpServer(server);
+
+    const getPromptHandler = (server.server as any)._requestHandlers.get("prompts/get");
+    const result = await getPromptHandler(
+      {
+        method: "prompts/get",
+        params: {
+          name: "web_search_help",
+        },
+      },
+      { signal: new AbortController().signal },
+    );
+
+    expect(result).toMatchObject({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: expect.stringContaining("search the web"),
+          },
+        },
+      ],
+    });
   });
 
   it("respects explicit tool selection and deprecated aliases", () => {
