@@ -14,7 +14,7 @@ export function registerExaCodeTool(
 ): void {
   server.tool(
     "get_code_context_exa",
-    `Find code examples, documentation, and programming solutions. 
+    `[Deprecated: Use web_search_exa instead] Find code examples, documentation, and programming solutions. 
 
 Best for: Any programming question - API usage, library examples, code snippets, debugging help.
 Returns: Relevant code and documentation.
