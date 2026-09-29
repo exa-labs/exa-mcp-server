@@ -42,7 +42,7 @@ describe("initializeMcpServer", () => {
     const server = new FakeMcpServer();
 
     initializeMcpServer(server, {
-      enabledTools: ["web_search_advanced_exa", "crawling_exa", "deep_search_exa"],
+      enabledTools: ["web_search_advanced_exa", "removed_tool", "legacy_tool"],
       userProvidedApiKey: true,
     });
 

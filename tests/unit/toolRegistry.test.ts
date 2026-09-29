@@ -7,7 +7,7 @@ describe("Tool selection", () => {
   });
 
   it("ignores removed tool names", () => {
-    expect(expandToolSelection(["deep_search_exa", "crawling_exa"])).toEqual([]);
+    expect(expandToolSelection(["removed_tool", "legacy_tool"])).toEqual([]);
   });
 
   it("deduplicates aliases and the canonical name", () => {
