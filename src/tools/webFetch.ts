@@ -34,10 +34,9 @@ function formatCrawlResults(results: any[], errors: CrawlStatus[]): string {
 export function registerWebFetchTool(
   server: McpServer,
   config?: { exaApiKey?: string; userProvidedApiKey?: boolean; analytics?: McpAnalytics },
-  toolName?: string,
 ): void {
   server.tool(
-    toolName || "web_fetch_exa",
+    "web_fetch_exa",
     `Read a webpage's full content as clean markdown. Use after web_search_exa when highlights are insufficient or to read any URL.
 
 Best for: Extracting full content from known URLs. Batch multiple URLs in one call.

@@ -38,29 +38,15 @@ describe("initializeMcpServer", () => {
     );
   });
 
-  it("respects explicit tool selection and deprecated aliases", () => {
+  it("registers only supported tools from an explicit selection", () => {
     const server = new FakeMcpServer();
 
     initializeMcpServer(server, {
       enabledTools: ["web_search_advanced_exa", "crawling_exa", "deep_search_exa"],
-      userProvidedApiKey: false,
-    });
-
-    expect(server.tools.map((tool) => tool.name)).toEqual([
-      "web_search_advanced_exa",
-      "crawling_exa",
-    ]);
-  });
-
-  it("only registers deep_search_exa when the user provided an API key", () => {
-    const server = new FakeMcpServer();
-
-    initializeMcpServer(server, {
-      enabledTools: ["deep_search_exa"],
       userProvidedApiKey: true,
     });
 
-    expect(server.tools.map((tool) => tool.name)).toEqual(["deep_search_exa"]);
+    expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_advanced_exa"]);
   });
 
   it("registers opt-in Agent tools, prompt, and schema resource when authenticated", async () => {

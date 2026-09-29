@@ -555,21 +555,6 @@ describe("api/mcp handler", () => {
     expect(initializeMcpServerMock).not.toHaveBeenCalled();
   });
 
-  it("requires auth before initializing MCP when an explicit selected tool requires user-provided auth", async () => {
-    const { response, config } = await callHandleRequest(
-      new Request("https://mcp.exa.ai/mcp?tools=deep_search_exa"),
-    );
-
-    expect(response.status).toBe(401);
-    expect(response.headers.get("WWW-Authenticate")).toContain(
-      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
-    );
-    expectMcpCorsHeaders(response);
-    expect(config).toBeUndefined();
-    expect(createMcpHandlerMock).not.toHaveBeenCalled();
-    expect(initializeMcpServerMock).not.toHaveBeenCalled();
-  });
-
   it("allows unauthenticated requests when only public tools are selected", async () => {
     const { response, config } = await callHandleRequest(
       new Request("https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa"),
@@ -903,21 +888,6 @@ describe("api/mcp handler", () => {
     expect(qpsLimit).not.toHaveBeenCalled();
     expect(dailyLimit).not.toHaveBeenCalled();
     expect(createMcpHandlerMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("requires auth before initializing MCP when deep researcher tools are selected", async () => {
-    const { response, config } = await callHandleRequest(
-      new Request("https://mcp.exa.ai/mcp?tools=deep_researcher_start"),
-    );
-
-    expect(response.status).toBe(401);
-    expect(response.headers.get("WWW-Authenticate")).toContain(
-      'resource_metadata="https://mcp.exa.ai/.well-known/oauth-protected-resource/mcp"',
-    );
-    expectMcpCorsHeaders(response);
-    expect(config).toBeUndefined();
-    expect(createMcpHandlerMock).not.toHaveBeenCalled();
-    expect(initializeMcpServerMock).not.toHaveBeenCalled();
   });
 
   it("includes CORS headers when the MCP handler throws", async () => {

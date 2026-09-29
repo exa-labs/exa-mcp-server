@@ -2,15 +2,8 @@ import { z } from "zod";
 
 // Import tool implementations
 import { registerWebSearchTool } from "./tools/webSearch.js";
-import { registerCompanyResearchTool } from "./tools/companyResearch.js";
 import { registerWebFetchTool } from "./tools/webFetch.js";
-import { registerPeopleSearchTool } from "./tools/peopleSearch.js";
-import { registerLinkedInSearchTool } from "./tools/linkedInSearch.js";
-import { registerDeepResearchStartTool } from "./tools/deepResearchStart.js";
-import { registerDeepResearchCheckTool } from "./tools/deepResearchCheck.js";
-import { registerExaCodeTool } from "./tools/exaCode.js";
 import { registerWebSearchAdvancedTool } from "./tools/webSearchAdvanced.js";
-import { registerDeepSearchTool } from "./tools/deepSearch.js";
 import { registerAgentRunTool, resolveAgentCallWindowMs } from "./tools/agentRun.js";
 import { agentSchemaTemplates } from "./tools/agentSchemaTemplates.js";
 import {
@@ -98,51 +91,9 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
       registeredTools.push("web_search_advanced_exa");
     }
 
-    if (canRegisterTool("company_research_exa")) {
-      registerCompanyResearchTool(server, config);
-      registeredTools.push("company_research_exa");
-    }
-
     if (canRegisterTool("web_fetch_exa")) {
       registerWebFetchTool(server, config);
       registeredTools.push("web_fetch_exa");
-    }
-
-    // Deprecated: crawling_exa - kept for backwards compatibility, points to web_fetch_exa
-    if (canRegisterTool("crawling_exa")) {
-      registerWebFetchTool(server, config, "crawling_exa");
-      registeredTools.push("crawling_exa");
-    }
-
-    if (canRegisterTool("people_search_exa")) {
-      registerPeopleSearchTool(server, config);
-      registeredTools.push("people_search_exa");
-    }
-
-    // Deprecated: linkedin_search_exa - kept for backwards compatibility
-    if (canRegisterTool("linkedin_search_exa")) {
-      registerLinkedInSearchTool(server, config);
-      registeredTools.push("linkedin_search_exa");
-    }
-
-    if (canRegisterTool("deep_researcher_start")) {
-      registerDeepResearchStartTool(server, config);
-      registeredTools.push("deep_researcher_start");
-    }
-
-    if (canRegisterTool("deep_researcher_check")) {
-      registerDeepResearchCheckTool(server, config);
-      registeredTools.push("deep_researcher_check");
-    }
-
-    if (canRegisterTool("get_code_context_exa")) {
-      registerExaCodeTool(server, config);
-      registeredTools.push("get_code_context_exa");
-    }
-
-    if (canRegisterTool("deep_search_exa")) {
-      registerDeepSearchTool(server, config);
-      registeredTools.push("deep_search_exa");
     }
 
     if (canRegisterTool("agent_run")) {
