@@ -1,5 +1,3 @@
-process.env.AGNOST_LOG_LEVEL = process.env.AGNOST_LOG_LEVEL ?? "error";
-
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { initializeMcpServer, type McpConfig } from "./mcp-handler.js";

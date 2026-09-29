@@ -10,8 +10,8 @@ import {
   lenientOptionalNumber,
   lenientOptionalPositiveNumber,
   lenientOptionalBoolean,
-import type { McpAnalytics } from "../analytics.js";
 } from "./validation.js";
+import type { McpAnalytics } from "../analytics.js";
 
 export function registerWebSearchAdvancedTool(
   server: McpServer,

@@ -168,10 +168,13 @@ describe("createExaClient", () => {
   });
 
   it("applies embedder requestHeaders to clients created with a tool name", () => {
-    const exa = createExaClient({
-      exaApiKey: "exa_test_key",
-      requestHeaders: { "x-exa-source": "wrapper" },
-    }, "agent-mcp");
+    const exa = createExaClient(
+      {
+        exaApiKey: "exa_test_key",
+        requestHeaders: { "x-exa-source": "wrapper" },
+      },
+      "agent-mcp",
+    );
     const headers = clientHeaders(exa);
 
     expect(headers.get("x-api-key")).toBe("exa_test_key");

@@ -37,9 +37,6 @@ describe("public API contract", () => {
     const server = new FakeMcpServer();
     initializeMcpServer(server, {});
 
-    expect(server.tools.map((tool) => tool.name)).toEqual([
-      "web_search_exa",
-      "web_fetch_exa",
-    ]);
+    expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_exa", "web_fetch_exa"]);
   });
 });

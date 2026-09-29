@@ -131,7 +131,6 @@ The hosted MCP server works anonymously with rate limits. For higher limits and 
 
 If you prefer, you can get an API key from the [dashboard](https://dashboard.exa.ai/api-keys) and pass it on the URL as `?exaApiKey=…`. You can also send it as a `Authorization: Bearer …` header or an `x-api-key` header.
 
-
 ## Use as a Library
 
 The npm package also exposes the tool surface as a library, so you can embed Exa's MCP tools in your own MCP server on any transport:
