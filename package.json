@@ -1,6 +1,6 @@
 {
   "name": "exa-mcp-server",
-  "version": "3.5.0",
+  "version": "4.0.0",
   "description": "Connect AI agents to Exa for web search, content fetching, and multi-step research.",
   "mcpName": "ai.exa/exa",
   "type": "module",

@@ -575,7 +575,7 @@ function createHandler(config: McpConfig) {
       serverInfo: {
         name: "exa-search-server",
         title: "Exa",
-        version: "3.5.0",
+        version: "4.0.0",
         websiteUrl: "https://exa.ai",
         icons: [
           {
