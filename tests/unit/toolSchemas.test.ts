@@ -76,12 +76,12 @@ describe("tools/list", () => {
     }
   });
 
-  it("advertises web_search_exa's objective as an optional bounded string", () => {
+  it("advertises web_search_exa's objective as a required bounded string", () => {
     const inputSchema = advertised("web_search_exa").inputSchema as {
       required?: string[];
       properties: Record<string, unknown>;
     };
-    expect(inputSchema.required).toEqual(["query"]);
+    expect(inputSchema.required).toEqual(["query", "objective"]);
     expect(inputSchema.properties.objective).toEqual({
       type: "string",
       minLength: 1,

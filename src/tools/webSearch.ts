@@ -5,7 +5,7 @@ import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
-import { lenientString, lenientOptionalNumber } from "./validation.js";
+import { advertisedRequired, lenientString, lenientOptionalNumber } from "./validation.js";
 
 import type { McpAnalytics } from "../analytics.js";
 
@@ -45,17 +45,17 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
       numResults: lenientOptionalNumber().describe(
         "Number of search results to return (default: 10).",
       ),
-      objective: z
-        .preprocess(
-          // Clients that send unused optional parameters as null or "" search
-          // without an objective instead of failing the call.
+      // Advertised as required so models state a goal for every search; calls
+      // that omit it (or send null or "") still search, without an objective.
+      objective: advertisedRequired(
+        z.preprocess(
           (value) =>
             value === null || (typeof value === "string" && value.trim() === "")
               ? undefined
               : value,
           z.string().trim().min(1).max(MAX_OBJECTIVE_LENGTH).optional(),
-        )
-        .describe(OBJECTIVE_DESCRIPTION),
+        ),
+      ).describe(OBJECTIVE_DESCRIPTION),
     },
     {
       readOnlyHint: true,

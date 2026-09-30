@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { emptySearchResponse, searchResponse } from "../../fixtures/exaResponses.js";
+import { connectInMemory } from "../../helpers/advertisedTools.js";
 import { FakeMcpServer } from "../../helpers/fakeMcpServer.js";
 
 const { ExaMock, exaConstructorMock, requestMock } = vi.hoisted(() => {
@@ -178,6 +179,30 @@ describe("registerWebSearchTool", () => {
     // Unused optional values some clients send search without an objective.
     for (const unused of [null, "", "  "]) {
       expect(args.parse({ query: "q", objective: unused })).toEqual({ query: "q" });
+    }
+  });
+
+  it("advertises the objective as required but still searches when a caller omits it", async () => {
+    const { registerWebSearchTool } = await import("../../../src/tools/webSearch.js");
+    requestMock.mockResolvedValue(searchResponse);
+    const client = await connectInMemory((server) =>
+      registerWebSearchTool(server, { exaApiKey: "test-key" }),
+    );
+
+    try {
+      const [tool] = (await client.listTools()).tools;
+      expect(tool.inputSchema.required).toEqual(["query", "objective"]);
+
+      for (const args of [{ query: "AI breakthroughs" }, { query: "AI", objective: null }]) {
+        const result = await client.callTool({ name: "web_search_exa", arguments: args });
+        expect(result.isError).toBeFalsy();
+      }
+      for (const [, , body] of requestMock.mock.calls) {
+        expect(body).not.toHaveProperty("objective");
+      }
+      expect(requestMock).toHaveBeenCalledTimes(2);
+    } finally {
+      await client.close();
     }
   });
 

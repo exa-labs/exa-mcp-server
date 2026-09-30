@@ -12,6 +12,36 @@ export function lenientString() {
 }
 
 /**
+ * ZodOptional whose `isOptional()` probe always reports false.
+ *
+ * zod-to-json-schema (what the MCP SDK uses to advertise tool schemas) puts a
+ * property in the JSON-schema `required` list iff `isOptional()` is false,
+ * and `isOptional()` is implemented as "does `undefined` parse?". This
+ * subclass decouples the two so a field can be advertised as required while
+ * still parsing a missing value.
+ */
+class AdvertisedRequiredOptional<T extends z.ZodTypeAny> extends z.ZodOptional<T> {
+  isOptional(): boolean {
+    return false;
+  }
+}
+
+/**
+ * Advertise `inner` as a required parameter in the tool's JSON schema while
+ * accepting a missing value at call time; any value that is present is parsed
+ * by `inner`. Models see the field as required; programmatic callers that omit
+ * it keep working.
+ */
+export function advertisedRequired<T extends z.ZodTypeAny>(
+  inner: T,
+): AdvertisedRequiredOptional<T> {
+  return new AdvertisedRequiredOptional({
+    innerType: inner,
+    typeName: z.ZodFirstPartyTypeKind.ZodOptional,
+  });
+}
+
+/**
  * Lenient optional number: uses z.coerce for string-to-number conversion,
  * falls back to undefined on invalid input instead of throwing a validation error.
  */
