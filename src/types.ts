@@ -18,6 +18,7 @@ export interface ExaSearchRequest {
   numResults?: number;
   additionalQueries?: string[];
   outputSchema?: Record<string, unknown>;
+  objective?: string;
   contents: {
     text?:
       | {
@@ -277,7 +278,7 @@ export interface ExaCodeResponse {
   traces?: any;
 }
 
-export type AgentEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "auto";
+export type AgentEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "ultra" | "auto";
 export type AgentDataSourceProvider =
   | "fiber"
   | "financial_datasets"
@@ -285,7 +286,9 @@ export type AgentDataSourceProvider =
   | "baselayer"
   | "affiliate"
   | "particle"
-  | "jinko";
+  | "jinko"
+  | "polymarket"
+  | "macrobond";
 
 export type AgentRunInput = {
   query: string;
@@ -304,5 +307,6 @@ export type AgentRunInput = {
 
 export type ToolContent = {
   content: Array<{ type: "text"; text: string }>;
+  structuredContent?: Record<string, unknown>;
   isError?: true;
 };

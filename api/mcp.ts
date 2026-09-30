@@ -6,6 +6,7 @@ import { DEFAULT_MCP_MAX_DURATION_SECONDS, parsePositiveInteger } from "../src/t
 import type { Ratelimit } from "@upstash/ratelimit";
 import type { Redis } from "@upstash/redis";
 import { isJwtToken, verifyOAuthToken } from "../src/utils/auth.js";
+import { acceptsMcpResponses } from "../src/utils/mcpAccept.js";
 import {
   expandToolSelection,
   requiresUserProvidedApiKey,
@@ -378,7 +379,10 @@ async function checkRateLimits(
  * - DEBUG: Enable debug logging (true/false)
  * - ENABLED_TOOLS: Comma-separated list of tools to enable
  *
- * Priority: x-api-key header > Authorization header > URL query parameter > environment variable.
+ * Priority: x-api-key header > plain Bearer API key > ?exaApiKey= > Bearer JWT > environment variable.
+ * An API key always outranks a JWT: MCP clients run OAuth discovery and attach a
+ * JWT even when the connector URL already carries the org's key. If upstream
+ * rejects that URL key, the JWT is verified and the tool call retried on it.
  *
  * ARCHITECTURE NOTE:
  * The mcp-handler library creates a single server instance and doesn't pass
@@ -401,10 +405,14 @@ function getBearerToken(request: Request): string | undefined {
   return undefined;
 }
 
-/**
- * Extract configuration from request headers, URL, or environment variables.
- * Priority: header > query parameter > environment variable.
- */
+/** API key from `?exaApiKey=`, or undefined when absent, empty, or the URL is unparseable. */
+function getApiKeyFromUrl(request: Request): string | undefined {
+  try {
+    return new URL(request.url).searchParams.get("exaApiKey") || undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 interface RequestConfig {
   exaApiKey?: string;
@@ -419,13 +427,56 @@ interface RequestConfig {
   oauthAccessToken?: string;
   /** True when a Bearer token was a JWT but failed OAuth verification (expired, bad sig, wrong issuer/audience). */
   invalidOAuthJwt: boolean;
+  /**
+   * Unverified Bearer JWT that lost to a `?exaApiKey=` URL key. Verified only if
+   * upstream rejects that key, in which case the tool call is retried on it.
+   */
+  fallbackJwt?: string;
+  apiKeyFallback?: () => Promise<boolean>;
   agentCallWindowMs?: number;
   mcpMaxDurationSeconds?: number;
 }
 
 /**
+ * Build the once-per-request fallback the tool-call wrapper invokes when
+ * upstream rejects the URL API key: verify the JWT the request also carried
+ * and, if it is good, switch `config` over to it so the retried call runs as
+ * the OAuth identity.
+ */
+function createApiKeyFallback(config: RequestConfig): (() => Promise<boolean>) | undefined {
+  const jwt = config.fallbackJwt;
+  if (!jwt) {
+    return undefined;
+  }
+  let attempted = false;
+  return async () => {
+    if (attempted) {
+      return false;
+    }
+    attempted = true;
+    const claims = await verifyOAuthToken(jwt);
+    if (!claims) {
+      console.error("[EXA-MCP] URL API key rejected upstream; fallback JWT invalid");
+      return false;
+    }
+    config.exaApiKey = undefined;
+    config.oauthAccessToken = jwt;
+    config.userProvidedApiKey = true;
+    config.authMethod = "oauth";
+    if (config.debug) {
+      console.log("[EXA-MCP] URL API key rejected upstream; retrying as oauth");
+    }
+    return true;
+  };
+}
+
+/**
  * Extract configuration from request headers, URL, or environment variables.
- * Priority: x-api-key header > OAuth JWT > plain Bearer API key > query parameter > environment variable.
+ * Priority: x-api-key header > plain Bearer API key > ?exaApiKey= > Bearer JWT (OAuth) >
+ * environment variable. A JWT is only consulted when no API key was supplied, so a key in
+ * the connector URL is never overridden by a token the client obtained through OAuth
+ * discovery. That JWT is kept as `fallbackJwt`, to be verified only if upstream rejects the
+ * URL key (see createApiKeyFallback).
  */
 async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let exaApiKey = process.env.EXA_API_KEY;
@@ -436,57 +487,53 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let defaultSearchType: "auto" | "fast" | "instant" | undefined;
   let oauthAccessToken: string | undefined;
   let invalidOAuthJwt = false;
+  let fallbackJwt: string | undefined;
   let agentCallWindowMs: number | undefined;
 
-  // 1. Check x-api-key header (highest priority)
   const xApiKey = request.headers.get("x-api-key");
+  const bearerToken = xApiKey ? undefined : getBearerToken(request);
+  const apiKeyFromUrl = xApiKey ? undefined : getApiKeyFromUrl(request);
+  // A bearer JWT yields to a key in the URL; a plain bearer API key does not.
+  const bearerIsJwt = bearerToken !== undefined && isJwtToken(bearerToken);
+
   if (xApiKey) {
+    // 1. x-api-key header (highest priority)
     exaApiKey = xApiKey;
     userProvidedApiKey = true;
     authMethod = "api_key";
-  }
-
-  // 2. Check Authorization: Bearer header (fallback when no x-api-key)
-  if (!xApiKey) {
-    const bearerToken = getBearerToken(request);
-    if (bearerToken) {
-      // Distinguish JWT (OAuth) from plain API key
-      if (isJwtToken(bearerToken)) {
-        const claims = await verifyOAuthToken(bearerToken);
-        if (claims) {
-          oauthAccessToken = bearerToken;
-          exaApiKey = undefined;
-          userProvidedApiKey = true;
-          authMethod = "oauth";
-        } else {
-          // JWT verification failed — flag so the caller can return 401 with
-          // a WWW-Authenticate challenge instead of silently falling through to
-          // the env API key or free tier.
-          invalidOAuthJwt = true;
-          console.error("[EXA-MCP] Invalid OAuth JWT token");
-        }
-      } else {
-        // Plain API key in Bearer header
-        exaApiKey = bearerToken;
-        userProvidedApiKey = true;
-        authMethod = "api_key";
-      }
+  } else if (bearerToken && !bearerIsJwt) {
+    // 2. Plain API key in Authorization: Bearer header
+    exaApiKey = bearerToken;
+    userProvidedApiKey = true;
+    authMethod = "api_key";
+  } else if (apiKeyFromUrl) {
+    // 3. ?exaApiKey=YOUR_KEY (backwards compatible; the connector's configured key).
+    // A bearer JWT is not verified here: the key is the credential the connector
+    // owner configured. It is kept only as the fallback for a rejected key.
+    exaApiKey = apiKeyFromUrl;
+    userProvidedApiKey = true;
+    authMethod = "api_key";
+    fallbackJwt = bearerToken;
+  } else if (bearerToken) {
+    // 4. Bearer JWT from Exa OAuth.
+    const claims = await verifyOAuthToken(bearerToken);
+    if (claims) {
+      oauthAccessToken = bearerToken;
+      exaApiKey = undefined;
+      userProvidedApiKey = true;
+      authMethod = "oauth";
+    } else {
+      // JWT verification failed — flag so the caller can return 401 with
+      // a WWW-Authenticate challenge instead of silently falling through to
+      // the env API key or free tier.
+      invalidOAuthJwt = true;
+      console.error("[EXA-MCP] Invalid OAuth JWT token");
     }
   }
 
   try {
     const parsedUrl = new URL(request.url);
     const params = parsedUrl.searchParams;
-
-    // 3. Check ?exaApiKey=YOUR_KEY (fallback for backwards compat, only if no header)
-    if (!xApiKey && !getBearerToken(request) && params.has("exaApiKey")) {
-      const keyFromUrl = params.get("exaApiKey");
-      if (keyFromUrl) {
-        exaApiKey = keyFromUrl;
-        userProvidedApiKey = true;
-        authMethod = "api_key";
-      }
-    }
 
     // Support ?tools=tool1,tool2
     if (params.has("tools")) {
@@ -553,6 +600,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
     defaultSearchType,
     oauthAccessToken,
     invalidOAuthJwt,
+    fallbackJwt,
     mcpMaxDurationSeconds: parsePositiveInteger(process.env.MCP_MAX_DURATION_SECONDS),
     agentCallWindowMs: agentCallWindowMs ?? parsePositiveInteger(process.env.AGENT_CALL_WINDOW_MS),
   };
@@ -682,6 +730,22 @@ async function processRequest(
   options?: { forceOAuth?: boolean; resourcePath?: string },
 ): Promise<Response> {
   const debug = process.env.DEBUG === "true";
+  if (request.method === "POST" && !acceptsMcpResponses(request.headers.get("accept"))) {
+    return withCors(
+      Response.json(
+        {
+          jsonrpc: "2.0",
+          error: {
+            code: -32000,
+            message:
+              "Not Acceptable: Client must accept both application/json and text/event-stream",
+          },
+          id: null,
+        },
+        { status: 406 },
+      ),
+    );
+  }
   const body = request.method === "POST" ? await request.clone().text() : undefined;
   if (body !== undefined && declaresJsonBody(request) && !isParsableJson(body)) {
     return createParseErrorResponse();
@@ -746,9 +810,15 @@ async function processRequest(
     stored: storedMcpClient,
     userAgent,
   });
+  config.apiKeyFallback = createApiKeyFallback(config);
 
   if (config.debug) {
-    console.log(`[EXA-MCP] Request URL: ${request.url}`);
+    // Redact the API key from the logged URL; the request is only sanitized below.
+    const debugUrl = new URL(request.url);
+    if (debugUrl.searchParams.has("exaApiKey")) {
+      debugUrl.searchParams.set("exaApiKey", "[REDACTED]");
+    }
+    console.log(`[EXA-MCP] Request URL: ${debugUrl}`);
     console.log(`[EXA-MCP] Enabled tools: ${config.enabledTools?.join(", ") || "default"}`);
     console.log(`[EXA-MCP] Auth method: ${config.authMethod}`);
     console.log(
@@ -815,6 +885,11 @@ async function processRequest(
   // access without exposing it to downstream request instrumentation.
   url.searchParams.delete("exaApiKey");
   const sanitizedHeaders = new Headers(request.headers);
+  if (request.method === "POST") {
+    // Validated above; the transport's own Accept check is a substring match,
+    // so hand it the canonical form.
+    sanitizedHeaders.set("accept", "application/json, text/event-stream");
+  }
   sanitizedHeaders.delete("x-api-key");
   sanitizedHeaders.delete("authorization");
   request = new Request(url.toString(), {

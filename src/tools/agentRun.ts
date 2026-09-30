@@ -8,7 +8,7 @@ import type { AgentEffort, AgentRunInput, ToolContent } from "../types.js";
 import { formatAgentToolError } from "../utils/agentErrorHandler.js";
 import { delay } from "../utils/errorHandler.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { jsonContent } from "../utils/response.js";
+import { structuredContent } from "../utils/response.js";
 import {
   AgentProgressBridge,
   DEFAULT_PROGRESS_THROTTLE_MS,
@@ -17,8 +17,11 @@ import {
 } from "./agentProgress.js";
 import { createExaClient } from "./config.js";
 
-const effortSchema = z.enum(["minimal", "low", "medium", "high", "xhigh", "auto"]);
+const effortSchema = z.enum(["minimal", "low", "medium", "high", "xhigh", "ultra", "auto"]);
 const recordSchema = () => z.record(z.unknown());
+
+const agentRunIdSchema = () =>
+  z.string().regex(/^agent_run_/, { message: 'Must start with "agent_run_"' });
 const dataSourceProviderSchema = z.enum([
   "fiber",
   "financial_datasets",
@@ -27,7 +30,24 @@ const dataSourceProviderSchema = z.enum([
   "affiliate",
   "particle",
   "jinko",
+  "polymarket",
+  "macrobond",
 ]);
+
+/**
+ * Tool description shown to the client model. The cheaper alternatives are named only
+ * when registered in the same session, so an agent-only `?tools=agent_run` server never
+ * points the model at tools it cannot call.
+ */
+export function buildAgentRunDescription(siblingTools: Iterable<string> = []): string {
+  const registered = new Set(siblingTools);
+  const searchTools = ["web_search_exa", "web_search_advanced_exa"].filter((t) =>
+    registered.has(t),
+  );
+  const searchAlt = searchTools.length > 0 ? ` (use ${searchTools.join(" or ")})` : "";
+  const fetchAlt = registered.has("web_fetch_exa") ? " (use web_fetch_exa)" : "";
+  return `Start or resume an Exa Agent run for multi-step research, list-building, or enrichment. Use it instead of running many searches yourself when a task needs multiple searches, cross-source verification, or a structured table of results. Long-running: returns a run ID; resume with runId when the tool reports the run is still running. Not for a single question or lookup${searchAlt} or reading a known URL${fetchAlt}. An interrupted tool call is not an explicit cancellation request.`;
+}
 
 export const agentRunInputShape = {
   query: z
@@ -37,9 +57,7 @@ export const agentRunInputShape = {
     .describe(
       "Natural-language research or enrichment objective. Provide query or runId, not both.",
     ),
-  runId: z
-    .string()
-    .startsWith("agent_run_")
+  runId: agentRunIdSchema()
     .optional()
     .describe(
       "agent_run_... ID returned by an earlier call. Use it to check or continue waiting for the same run; do not start a duplicate run.",
@@ -67,22 +85,66 @@ export const agentRunInputShape = {
     .max(5)
     .optional()
     .describe("Optional Exa Connect providers to enable for this run."),
-  previousRunId: z
-    .string()
-    .startsWith("agent_run_")
+  previousRunId: agentRunIdSchema()
     .optional()
     .describe("Completed prior agent_run_... ID to use as context for a new run."),
   effort: effortSchema
     .optional()
-    .describe("Agent effort: minimal, low, medium, high, xhigh, or auto. Defaults to low."),
+    .describe("Agent effort: minimal, low, medium, high, xhigh, ultra, or auto. Defaults to low."),
 };
 
-// Default MCP function duration (seconds) and headroom before the platform kills
-// the invocation. The call window is derived from these unless overridden.
+/**
+ * `string | null` that serializes as `anyOf: [{type: "string"}, {type: "null"}]`.
+ * zod-to-json-schema collapses unions of check-free primitives into
+ * `type: ["string", "null"]`, which several MCP clients misread as a single
+ * type; the no-op `minLength: 0` keeps the branches separate.
+ */
+function nullableString(description: string) {
+  return z.union([z.string().min(0), z.null()]).describe(description);
+}
+
+/**
+ * MCP `outputSchema` for agent_run (distinct from the Agent API `outputSchema`
+ * request field above). One flat object covers every reportable status rather
+ * than a per-status `oneOf`, because some clients validate `structuredContent`
+ * even on `isError` results and not all JSON Schema validators handle
+ * discriminators. Field names and semantics follow the Agent API run object;
+ * `output.structured` and `output.grounding` stay loose because they vary per
+ * run and per caller-supplied schema.
+ */
+export const agentRunOutputShape = {
+  success: z
+    .boolean()
+    .describe("True for completed and running runs; false for failed and cancelled."),
+  id: z.string().describe("agent_run_... ID. Pass as runId to resume a running run."),
+  status: z.enum(["completed", "running", "failed", "cancelled"]),
+  outputReady: z.boolean().describe("True only when status is completed."),
+  output: z
+    .object({
+      text: nullableString("Prose answer.").optional(),
+      structured: z.unknown().describe("Output matching the caller-supplied outputSchema, if any."),
+      grounding: z.unknown().describe("Per-field citations and confidence."),
+    })
+    .passthrough()
+    .nullable()
+    .optional(),
+  stopReason: nullableString(
+    "Why the run stopped: schema_satisfied, budget_reached, time_limit_reached, stopped, error, or cancelled.",
+  ).optional(),
+  usage: z.record(z.unknown()).optional(),
+  costDollars: z.record(z.unknown()).optional(),
+  error: z.record(z.unknown()).optional(),
+  message: z.string().optional().describe("Next-step guidance for running runs."),
+};
+
+const agentRunOutputSchema = z.object(agentRunOutputShape);
+
+// Default MCP function duration (seconds) and the headroom kept before the platform
+// kills the invocation; together they cap the call window, which otherwise defaults
+// to DEFAULT_CALL_WINDOW_MS so the run ID comes back before clients time out.
 export const DEFAULT_MCP_MAX_DURATION_SECONDS = 800;
 export const CALL_WINDOW_HEADROOM_MS = 50_000;
-export const DEFAULT_CALL_WINDOW_MS =
-  DEFAULT_MCP_MAX_DURATION_SECONDS * 1000 - CALL_WINDOW_HEADROOM_MS;
+export const DEFAULT_CALL_WINDOW_MS = 45_000;
 export const DEFAULT_HEARTBEAT_MS = 15_000;
 export const DEFAULT_POLL_INTERVAL_MS = 4_000;
 export const DEFAULT_PROGRESS_TIMEOUT_MS = 2_000;
@@ -101,7 +163,7 @@ export function resolveAgentCallWindowMs(options?: {
   const ceiling =
     Number.isFinite(maxDurationSeconds) && maxDurationSeconds > 0
       ? Math.max(1, maxDurationSeconds * 1000 - CALL_WINDOW_HEADROOM_MS)
-      : DEFAULT_CALL_WINDOW_MS;
+      : DEFAULT_MCP_MAX_DURATION_SECONDS * 1000 - CALL_WINDOW_HEADROOM_MS;
 
   if (
     options?.agentCallWindowMs != null &&
@@ -111,7 +173,7 @@ export function resolveAgentCallWindowMs(options?: {
     return Math.min(Math.trunc(options.agentCallWindowMs), ceiling);
   }
 
-  return ceiling;
+  return Math.min(DEFAULT_CALL_WINDOW_MS, ceiling);
 }
 
 const TERMINAL_EVENTS = new Map<string, "completed" | "failed" | "cancelled">([
@@ -336,6 +398,7 @@ export async function streamAgentRun(params: {
 
       const event = next.value.value;
       eventCount += 1;
+
       if (runId == null) {
         const eventData =
           typeof event.data === "object" && event.data !== null && !Array.isArray(event.data)
@@ -440,33 +503,81 @@ function outcomePayload(outcome: RunOutcome): Record<string, unknown> {
   return outcome.terminalEvent?.data ?? {};
 }
 
+/**
+ * Validate an outgoing payload against the declared MCP output schema before it
+ * leaves the server. A mismatch means the upstream run shape drifted from the
+ * Agent API contract; surface it as an error rather than emit `structuredContent`
+ * that clients will reject.
+ */
+function agentRunResult(payload: Record<string, unknown>): ToolContent {
+  const parsed = agentRunOutputSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new Error(
+      `agent_run result for ${String(payload.id)} did not match the declared output schema: ${parsed.error.issues
+        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+        .join("; ")}`,
+    );
+  }
+  return structuredContent(parsed.data);
+}
+
+function validRunId(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function missingRunIdResult(status: "completed" | "cancelled" | "failed" | "running"): ToolContent {
+  return {
+    content: [
+      {
+        type: "text",
+        text: `agent_run error: the upstream run reported status=${status} without a run ID, so the result cannot be resumed or referenced.`,
+      },
+    ],
+    isError: true,
+  };
+}
+
 function outcomeToToolContent(outcome: RunOutcome): ToolContent {
   const run = outcomePayload(outcome);
-  const id = typeof run.id === "string" ? run.id : outcome.runId;
+  const id = validRunId(run.id) ?? validRunId(outcome.runId);
+  const stopReason = run.stopReason != null ? { stopReason: run.stopReason } : {};
 
   switch (outcome.status) {
     case "completed":
-      return jsonContent({
+      if (id == null) return missingRunIdResult(outcome.status);
+      return agentRunResult({
         success: true,
         id,
         status: "completed",
         outputReady: true,
         output: run.output ?? null,
+        ...stopReason,
         ...(run.usage != null ? { usage: run.usage } : {}),
         ...(run.costDollars != null ? { costDollars: run.costDollars } : {}),
       });
     case "cancelled":
-      return jsonContent({ success: false, id, status: "cancelled", outputReady: false });
-    case "failed":
+      if (id == null) return missingRunIdResult(outcome.status);
+      return agentRunResult({
+        success: false,
+        id,
+        status: "cancelled",
+        outputReady: false,
+        ...stopReason,
+      });
+    case "failed": {
+      if (id == null) return missingRunIdResult(outcome.status);
+      const result = agentRunResult({
+        success: false,
+        id,
+        status: "failed",
+        outputReady: false,
+        ...stopReason,
+        ...(run.error != null ? { error: run.error } : {}),
+      });
       return {
+        ...result,
         content: [
-          ...jsonContent({
-            success: false,
-            id,
-            status: "failed",
-            outputReady: false,
-            ...(run.error != null ? { error: run.error } : {}),
-          }).content,
+          ...result.content,
           {
             type: "text",
             text: "The Agent run failed. Inspect the error above and verify any outputSchema before retrying.",
@@ -474,8 +585,10 @@ function outcomeToToolContent(outcome: RunOutcome): ToolContent {
         ],
         isError: true,
       };
+    }
     case "running":
-      return jsonContent({
+      if (id == null) return missingRunIdResult(outcome.status);
+      return agentRunResult({
         success: true,
         id,
         status: "running",
@@ -524,6 +637,7 @@ export type AgentRunToolOptions = {
   pollIntervalMs?: number;
   progressTimeoutMs?: number;
   clientFactory?: (config: AgentRunConfig | undefined) => AgentRunClient;
+  siblingTools?: Iterable<string>;
 };
 
 function defaultClientFactory(config: AgentRunConfig | undefined): AgentRunClient {
@@ -541,11 +655,19 @@ export function registerAgentRunTool(
   config?: AgentRunConfig,
   options?: AgentRunToolOptions,
 ): void {
-  server.tool(
+  server.registerTool(
     "agent_run",
-    "Start or resume an Exa Agent run; runs may take several minutes. Retain the returned run ID and resume with runId when the tool reports the run is still running. An interrupted tool call is not an explicit cancellation request.",
-    agentRunInputShape,
-    { readOnlyHint: true, destructiveHint: false, idempotentHint: false },
+    {
+      description: buildAgentRunDescription(options?.siblingTools),
+      inputSchema: agentRunInputShape,
+      outputSchema: agentRunOutputShape,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
     async (
       { query, runId, systemPrompt, outputSchema, input, dataSources, previousRunId, effort },
       extra: StreamToolExtra,
@@ -615,6 +737,8 @@ export function registerAgentRunTool(
             ...(systemPrompt != null ? { systemPrompt } : {}),
             ...(outputSchema != null ? { outputSchema } : {}),
             ...(input != null ? { input } : {}),
+            // Under non-strict compilation zod infers `provider` as
+            // optional; normalize so both modes typecheck.
             ...(dataSources != null
               ? {
                   dataSources: dataSources.flatMap(({ provider }) =>

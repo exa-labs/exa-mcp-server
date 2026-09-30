@@ -95,12 +95,12 @@ Exa MCP works with most other clients, point them at `https://mcp.exa.ai/mcp`.
 | --- | --- |
 | `web_search_exa` | Search the web for any topic and get clean, ready-to-use content |
 | `web_fetch_exa` | Read a webpage's full content as clean markdown from one or more URLs |
+| `agent_run` | Run an [Exa Agent](https://docs.exa.ai/reference/agent-api-guide) for multi-step research, list-building, enrichment, and structured output (authenticated connections only) |
 
 ### Optional Tools (enable via the `tools` parameter)
 
 | Tool | Description |
 | --- | --- |
-| `agent_run` | Run an [Exa Agent](https://docs.exa.ai/reference/agent-api-guide) for multi-step research, list-building, enrichment, and structured output |
 | `web_search_advanced_exa` | Advanced search with filters, domains, dates, highlights, summaries, and subpage crawling |
 
 Enable tools by appending them to the MCP URL (this will replace the defaults, so include all you want):
@@ -110,7 +110,7 @@ https://mcp.exa.ai/mcp?tools=web_search_advanced_exa
 https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,agent_run
 ```
 
-Exa Agent requires authentication (OAuth or an [API key](https://dashboard.exa.ai/api-keys)).
+Exa Agent requires authentication (OAuth or an [API key](https://dashboard.exa.ai/api-keys)) and is on by default once you connect with either.
 
 ## Agent Skills
 

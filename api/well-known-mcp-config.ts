@@ -22,7 +22,7 @@ const configSchema = {
       type: "string",
       title: "Enabled Tools",
       description:
-        "Comma-separated tools. When set, replaces defaults (web_search_exa, web_fetch_exa). agent_run requires OAuth or an API key.",
+        "Comma-separated tools. When set, replaces defaults (web_search_exa, web_fetch_exa, plus agent_run with OAuth or an API key). agent_run requires OAuth or an API key.",
       examples: [
         "web_search_advanced_exa",
         "web_search_exa,web_fetch_exa,agent_run",

@@ -32,7 +32,7 @@ export const TOOL_REGISTRY = {
     name: "Run Exa Agent",
     description:
       "Run an Exa Agent for multi-step research, list-building, enrichment, or structured output. Returns the final output or a run ID for retained-run continuation.",
-    enabled: false,
+    enabled: true,
     group: "agent",
     requiresUserProvidedApiKey: true,
   },

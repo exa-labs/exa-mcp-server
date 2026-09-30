@@ -109,6 +109,9 @@ function expectMcpCorsHeaders(response: Response) {
 }
 
 async function callHandleRequest(request: Request, options?: { forceOAuth?: boolean }) {
+  if (!request.headers.has("accept")) {
+    request.headers.set("accept", "application/json, text/event-stream");
+  }
   const { handleRequest } = await import("../../../api/mcp.js");
   const response = await handleRequest(request, options);
   const config = initializeMcpServerMock.mock.calls.at(-1)?.[1];
@@ -460,6 +463,108 @@ describe("api/mcp handler", () => {
     expect(initializeMcpServerMock).not.toHaveBeenCalled();
   });
 
+  it("prefers an exaApiKey query parameter over a valid OAuth JWT", async () => {
+    verifyOAuthTokenMock.mockResolvedValue({
+      sub: "user-1",
+      "exa:team_id": "team-1",
+      scope: "mcp:tools",
+    });
+
+    const { response, config, forwardedRequest } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?exaApiKey=query-key", {
+        headers: {
+          authorization: "Bearer jwt-token",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(verifyOAuthTokenMock).not.toHaveBeenCalled();
+    expect(config).toMatchObject({
+      exaApiKey: "query-key",
+      userProvidedApiKey: true,
+      authMethod: "api_key",
+      fallbackJwt: "jwt-token",
+    });
+    expect(config.oauthAccessToken).toBeUndefined();
+    expect(forwardedRequest?.headers.get("authorization")).toBeNull();
+    expect(new URL(forwardedRequest?.url ?? "").searchParams.has("exaApiKey")).toBe(false);
+  });
+
+  it("switches the config to OAuth when the URL key is rejected and the JWT verifies", async () => {
+    verifyOAuthTokenMock.mockResolvedValue({
+      sub: "user-1",
+      "exa:team_id": "team-1",
+      scope: "mcp:tools",
+    });
+
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?exaApiKey=query-key", {
+        headers: {
+          authorization: "Bearer jwt-token",
+        },
+      }),
+    );
+
+    await expect(config.apiKeyFallback()).resolves.toBe(true);
+    expect(verifyOAuthTokenMock).toHaveBeenCalledWith("jwt-token");
+    expect(config).toMatchObject({
+      exaApiKey: undefined,
+      oauthAccessToken: "jwt-token",
+      userProvidedApiKey: true,
+      authMethod: "oauth",
+    });
+
+    // One verification per request, however many tool calls fail.
+    await expect(config.apiKeyFallback()).resolves.toBe(false);
+    expect(verifyOAuthTokenMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the URL key when it is rejected and the JWT is invalid", async () => {
+    verifyOAuthTokenMock.mockResolvedValue(null);
+
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?exaApiKey=query-key", {
+        headers: {
+          authorization: "Bearer invalid-jwt",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(verifyOAuthTokenMock).not.toHaveBeenCalled();
+
+    await expect(config.apiKeyFallback()).resolves.toBe(false);
+    expect(verifyOAuthTokenMock).toHaveBeenCalledWith("invalid-jwt");
+    expect(config).toMatchObject({ exaApiKey: "query-key", authMethod: "api_key" });
+    expect(config.oauthAccessToken).toBeUndefined();
+  });
+
+  it("offers no fallback when the URL key is the only credential", async () => {
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?exaApiKey=query-key"),
+    );
+
+    expect(config.fallbackJwt).toBeUndefined();
+    expect(config.apiKeyFallback).toBeUndefined();
+  });
+
+  it("ignores an empty exaApiKey query parameter and falls through to the JWT", async () => {
+    verifyOAuthTokenMock.mockResolvedValue(null);
+
+    const { response, config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?exaApiKey=", {
+        headers: {
+          authorization: "Bearer invalid-jwt",
+        },
+      }),
+    );
+
+    expect(verifyOAuthTokenMock).toHaveBeenCalledWith("invalid-jwt");
+    expect(response.status).toBe(401);
+    expect(config).toBeUndefined();
+  });
+
   it("uses exaApiKey query parameters when no key header is present", async () => {
     const { config, forwardedRequest } = await callHandleRequest(
       new Request("https://mcp.exa.ai/mcp?exaApiKey=query-key"),
@@ -724,6 +829,74 @@ describe("api/mcp handler", () => {
     expect(response.status).toBe(200);
     await expect(response.text()).resolves.toBe("ok");
     expectMcpCorsHeaders(response);
+  });
+
+  it.each([
+    ["no Accept header", undefined],
+    ["application/json only", "application/json"],
+    ["text/event-stream only", "text/event-stream"],
+    ["a zero-quality media range", "application/json, text/event-stream;q=0"],
+    ["a malformed media range", "application/json;text/event-stream"],
+  ])("rejects POST requests with %s as 406 Not Acceptable", async (_label, accept) => {
+    const { handleRequest } = await import("../../../api/mcp.js");
+    const headers = new Headers({ "Content-Type": "application/json" });
+    if (accept !== undefined) headers.set("accept", accept);
+
+    const response = await handleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      }),
+    );
+
+    expect(response.status).toBe(406);
+    await expect(response.json()).resolves.toMatchObject({
+      jsonrpc: "2.0",
+      error: { code: -32000 },
+      id: null,
+    });
+    expectMcpCorsHeaders(response);
+    expect(createMcpHandlerMock).not.toHaveBeenCalled();
+  });
+
+  it("hands the MCP transport a canonical Accept header once the media ranges validate", async () => {
+    const { response, forwardedRequest } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp", {
+        method: "POST",
+        headers: {
+          Accept: 'APPLICATION/JSON;note="comma,semi;colon", TEXT/EVENT-STREAM;q=0.5',
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(forwardedRequest?.headers.get("accept")).toBe("application/json, text/event-stream");
+  });
+
+  it("does not require an Accept header on GET requests", async () => {
+    const { handleRequest } = await import("../../../api/mcp.js");
+
+    const response = await handleRequest(new Request("https://mcp.exa.ai/mcp"));
+
+    expect(response.status).toBe(200);
+    expect(createMcpHandlerMock).toHaveBeenCalled();
+  });
+
+  it("redacts the URL API key from the debug request log", async () => {
+    await callHandleRequest(
+      new Request(
+        "https://mcp.exa.ai/mcp?debug=true&exaApiKey=secret-url-key&tools=web_search_exa",
+      ),
+    );
+
+    const logged = vi.mocked(console.log).mock.calls.map((args) => args.join(" "));
+    expect(logged).toContain(
+      "[EXA-MCP] Request URL: https://mcp.exa.ai/mcp?debug=true&exaApiKey=%5BREDACTED%5D&tools=web_search_exa",
+    );
+    expect(logged.join("\n")).not.toContain("secret-url-key");
   });
 
   it("rejects unparsable JSON bodies before they reach the MCP handler", async () => {

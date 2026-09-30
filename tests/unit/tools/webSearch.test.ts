@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { emptySearchResponse, searchResponse } from "../../fixtures/exaResponses.js";
 import { FakeMcpServer } from "../../helpers/fakeMcpServer.js";
 
@@ -120,6 +121,64 @@ describe("registerWebSearchTool", () => {
       undefined,
       expect.any(Object),
     );
+  });
+
+  it("forwards an objective to /search", async () => {
+    const { registerWebSearchTool } = await import("../../../src/tools/webSearch.js");
+    const server = new FakeMcpServer();
+    requestMock.mockResolvedValue(searchResponse);
+
+    registerWebSearchTool(server as any, { exaApiKey: "test-key" });
+
+    await server.getTool("web_search_exa").handler({
+      query: "AI breakthroughs",
+      objective: "Compile a briefing on recent AI research",
+    });
+
+    expect(requestMock).toHaveBeenCalledWith(
+      "/search",
+      "POST",
+      expect.objectContaining({
+        query: "AI breakthroughs",
+        objective: "Compile a briefing on recent AI research",
+      }),
+      undefined,
+      { "x-exa-integration": "web-search-mcp" },
+    );
+  });
+
+  it("leaves the objective out of the request when the caller omits it", async () => {
+    const { registerWebSearchTool } = await import("../../../src/tools/webSearch.js");
+    const server = new FakeMcpServer();
+    requestMock.mockResolvedValue(searchResponse);
+
+    registerWebSearchTool(server as any, { exaApiKey: "test-key" });
+    await server.getTool("web_search_exa").handler({ query: "AI breakthroughs" });
+
+    expect(requestMock.mock.calls[0][2]).not.toHaveProperty("objective");
+  });
+
+  it("validates objectives the way /search does and drops unused ones", async () => {
+    const { registerWebSearchTool } = await import("../../../src/tools/webSearch.js");
+    const server = new FakeMcpServer();
+
+    registerWebSearchTool(server as any);
+
+    const args = z.object(
+      server.getTool("web_search_exa").inputSchema as Record<string, z.ZodTypeAny>,
+    );
+    expect(args.parse({ query: "q" })).toEqual({ query: "q" });
+    expect(args.parse({ query: "q", objective: "  Rank primary sources first  " })).toEqual({
+      query: "q",
+      objective: "Rank primary sources first",
+    });
+    expect(args.safeParse({ query: "q", objective: "x".repeat(4096) }).success).toBe(true);
+    expect(args.safeParse({ query: "q", objective: "x".repeat(4097) }).success).toBe(false);
+    expect(args.safeParse({ query: "q", objective: 42 }).success).toBe(false);
+    // Unused optional values some clients send search without an objective.
+    for (const unused of [null, "", "  "]) {
+      expect(args.parse({ query: "q", objective: unused })).toEqual({ query: "q" });
+    }
   });
 
   it("returns a friendly message when Exa has no results", async () => {
