@@ -6,23 +6,20 @@ import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
-import { checkpoint } from "agnost";
 
+import type { McpAnalytics } from "../analytics.js";
 type WebSearchConfig = {
   exaApiKey?: string;
   userProvidedApiKey?: boolean;
   defaultSearchType?: "auto" | "fast" | "instant";
   exaSource?: string;
   mcpSessionId?: string;
+  analytics?: McpAnalytics;
 };
 
-export function registerWebSearchTool(
-  server: McpServer,
-  config?: WebSearchConfig,
-  toolName?: string,
-): void {
+export function registerWebSearchTool(server: McpServer, config?: WebSearchConfig): void {
   server.tool(
-    toolName || "web_search_exa",
+    "web_search_exa",
     `Search the web for any topic and get clean, ready-to-use content.
 
       Best for: Finding current information, news, facts, people, companies, or answering questions about any topic.
@@ -47,7 +44,7 @@ export function registerWebSearchTool(
       idempotentHint: true,
     },
     async ({ query, numResults }) => {
-      const toolId = toolName || "web_search_exa";
+      const toolId = "web_search_exa";
       const logger = createRequestLogger(toolId);
 
       // Extract category:<type> from query string if present
@@ -81,7 +78,7 @@ export function registerWebSearchTool(
           },
         };
 
-        checkpoint("web_search_request_prepared");
+        config?.analytics?.checkpoint?.("web_search_request_prepared");
         logger.log("Sending request to Exa API");
 
         const response = await withTimeout(
@@ -99,12 +96,12 @@ export function registerWebSearchTool(
           toolId,
         );
 
-        checkpoint("exa_search_response_received");
+        config?.analytics?.checkpoint?.("exa_search_response_received");
         logger.log("Received response from Exa API");
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
-          checkpoint("web_search_complete");
+          config?.analytics?.checkpoint?.("web_search_complete");
           return {
             content: [
               {
@@ -152,7 +149,7 @@ export function registerWebSearchTool(
           ],
         };
 
-        checkpoint("web_search_complete");
+        config?.analytics?.checkpoint?.("web_search_complete");
         logger.complete();
         return result;
       } catch (error) {

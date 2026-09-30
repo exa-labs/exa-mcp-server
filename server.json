@@ -6,7 +6,7 @@
     "url": "https://github.com/exa-labs/exa-mcp-server",
     "source": "github"
   },
-  "version": "3.4.1",
+  "version": "4.0.0",
   "remotes": [
     {
       "type": "streamable-http",

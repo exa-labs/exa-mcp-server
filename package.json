@@ -1,10 +1,10 @@
 {
   "name": "exa-mcp-server",
-  "version": "3.4.1",
+  "version": "4.0.0",
   "description": "Connect AI agents to Exa for web search, content fetching, and multi-step research.",
   "mcpName": "ai.exa/exa",
   "type": "module",
-  "module": "./src/stdio.ts",
+  "module": "./dist/index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/exa-labs/exa-mcp-server.git"
@@ -13,7 +13,7 @@
     "exa-mcp-server": "dist/stdio.cjs"
   },
   "files": [
-    "dist/stdio.cjs",
+    "dist",
     "skills",
     "plugin.json",
     "mcp.json"
@@ -34,7 +34,7 @@
   ],
   "author": "Exa Labs",
   "scripts": {
-    "build": "npm run build:stdio",
+    "build": "rm -rf dist && npm run build:lib && npm run build:types && npm run build:stdio",
     "build:runtime": "tsc",
     "build:stdio": "esbuild src/stdio-cli.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/stdio.cjs --banner:js=\"#!/usr/bin/env node\" && chmod +x dist/stdio.cjs",
     "build:vercel": "npm install typescript && ./node_modules/.bin/tsc",
@@ -48,16 +48,17 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "ci": "npm run format:check && npm run typecheck && npm run test",
-    "prepare": "npm run build:stdio",
+    "prepare": "npm run build",
     "watch": "./node_modules/.bin/tsc --watch",
     "dev": "tsx src/stdio-cli.ts",
     "dev:vercel": "vercel dev",
     "inspector": "npx @modelcontextprotocol/inspector dist/stdio.cjs",
-    "prepublishOnly": "npm run build:stdio"
+    "prepublishOnly": "npm run build",
+    "build:lib": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --packages=external --outfile=dist/index.js && esbuild src/index.ts --bundle --platform=node --target=node20 --format=cjs --packages=external --outfile=dist/index.cjs",
+    "build:types": "tsc -p tsconfig.lib.json"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "agnost": "^0.2.0",
     "exa-js": "^2.16.0",
     "jose": "^6.2.2",
     "mcp-handler": "^1.0.4",
@@ -80,5 +81,15 @@
   },
   "overrides": {
     "tar": "^7.5.7"
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
   }
 }

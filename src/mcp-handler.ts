@@ -1,17 +1,9 @@
-import { trackMCP, createConfig } from "agnost";
 import { z } from "zod";
 
 // Import tool implementations
 import { registerWebSearchTool } from "./tools/webSearch.js";
-import { registerCompanyResearchTool } from "./tools/companyResearch.js";
 import { registerWebFetchTool } from "./tools/webFetch.js";
-import { registerPeopleSearchTool } from "./tools/peopleSearch.js";
-import { registerLinkedInSearchTool } from "./tools/linkedInSearch.js";
-import { registerDeepResearchStartTool } from "./tools/deepResearchStart.js";
-import { registerDeepResearchCheckTool } from "./tools/deepResearchCheck.js";
-import { registerExaCodeTool } from "./tools/exaCode.js";
 import { registerWebSearchAdvancedTool } from "./tools/webSearchAdvanced.js";
-import { registerDeepSearchTool } from "./tools/deepSearch.js";
 import { registerAgentRunTool, resolveAgentCallWindowMs } from "./tools/agentRun.js";
 import { agentSchemaTemplates } from "./tools/agentSchemaTemplates.js";
 import {
@@ -23,6 +15,7 @@ import {
 } from "./toolRegistry.js";
 import { log } from "./utils/logger.js";
 import { loadAgentSkillContent } from "./utils/agentSkill.js";
+import type { McpAnalytics } from "./analytics.js";
 
 export interface McpConfig {
   exaApiKey?: string;
@@ -36,6 +29,17 @@ export interface McpConfig {
   oauthAccessToken?: string;
   agentCallWindowMs?: number;
   mcpMaxDurationSeconds?: number;
+  /**
+   * Extra headers merged into every Exa API request, applied after the built-in
+   * headers so embedders can add attribution or override auth. This is the
+   * stable extension point for servers that wrap this package.
+   */
+  requestHeaders?: Record<string, string>;
+  /**
+   * Optional analytics provider. When omitted, no analytics of any kind run —
+   * the package ships no tracking backend. See {@link McpAnalytics}.
+   */
+  analytics?: McpAnalytics;
 }
 
 /**
@@ -87,51 +91,9 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
       registeredTools.push("web_search_advanced_exa");
     }
 
-    if (canRegisterTool("company_research_exa")) {
-      registerCompanyResearchTool(server, config);
-      registeredTools.push("company_research_exa");
-    }
-
     if (canRegisterTool("web_fetch_exa")) {
       registerWebFetchTool(server, config);
       registeredTools.push("web_fetch_exa");
-    }
-
-    // Deprecated: crawling_exa - kept for backwards compatibility, points to web_fetch_exa
-    if (canRegisterTool("crawling_exa")) {
-      registerWebFetchTool(server, config, "crawling_exa");
-      registeredTools.push("crawling_exa");
-    }
-
-    if (canRegisterTool("people_search_exa")) {
-      registerPeopleSearchTool(server, config);
-      registeredTools.push("people_search_exa");
-    }
-
-    // Deprecated: linkedin_search_exa - kept for backwards compatibility
-    if (canRegisterTool("linkedin_search_exa")) {
-      registerLinkedInSearchTool(server, config);
-      registeredTools.push("linkedin_search_exa");
-    }
-
-    if (canRegisterTool("deep_researcher_start")) {
-      registerDeepResearchStartTool(server, config);
-      registeredTools.push("deep_researcher_start");
-    }
-
-    if (canRegisterTool("deep_researcher_check")) {
-      registerDeepResearchCheckTool(server, config);
-      registeredTools.push("deep_researcher_check");
-    }
-
-    if (canRegisterTool("get_code_context_exa")) {
-      registerExaCodeTool(server, config);
-      registeredTools.push("get_code_context_exa");
-    }
-
-    if (canRegisterTool("deep_search_exa")) {
-      registerDeepSearchTool(server, config);
-      registeredTools.push("deep_search_exa");
     }
 
     if (canRegisterTool("agent_run")) {
@@ -267,30 +229,22 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
       );
     }
 
-    // Add Agnost analytics tracking (works with both McpServer and mcp-handler)
-    // The server object might be wrapped, so we try to access the underlying server
-    const underlyingServer = (server as any).server || server;
+    // Apply the embedder's analytics server wrapper, if any. The server object
+    // might be wrapped by a transport handler, so pass the underlying server.
+    if (config.analytics?.wrapServer) {
+      const underlyingServer = (server as any).server || server;
 
-    try {
-      trackMCP(
-        underlyingServer,
-        "f0df908b-3703-40a0-a905-05c907da1ca3",
-        createConfig({
-          endpoint: "https://api.agnost.ai",
-          disableLogs: true,
-          disableInput: true,
-          disableOutput: true,
-          disableError: true,
-        }),
-      );
+      try {
+        config.analytics.wrapServer(underlyingServer);
 
-      if (config.debug) {
-        log("Agnost analytics tracking enabled");
-      }
-    } catch (analyticsError) {
-      // Log but don't fail if analytics setup fails
-      if (config.debug) {
-        log(`Analytics tracking setup failed (non-critical): ${analyticsError}`);
+        if (config.debug) {
+          log("Analytics server wrapper applied");
+        }
+      } catch (analyticsError) {
+        // Log but don't fail if analytics setup fails
+        if (config.debug) {
+          log(`Analytics server wrapper failed (non-critical): ${analyticsError}`);
+        }
       }
     }
 

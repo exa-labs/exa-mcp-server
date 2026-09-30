@@ -2,12 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { initializeMcpServer } from "../../src/mcp-handler.js";
 import { FakeMcpServer } from "../helpers/fakeMcpServer.js";
 
-vi.mock("agnost", () => ({
-  checkpoint: vi.fn(),
-  createConfig: vi.fn((config: unknown) => config),
-  trackMCP: vi.fn(),
-}));
-
 describe("initializeMcpServer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -44,29 +38,15 @@ describe("initializeMcpServer", () => {
     );
   });
 
-  it("respects explicit tool selection and deprecated aliases", () => {
+  it("registers only supported tools from an explicit selection", () => {
     const server = new FakeMcpServer();
 
     initializeMcpServer(server, {
-      enabledTools: ["web_search_advanced_exa", "crawling_exa", "deep_search_exa"],
-      userProvidedApiKey: false,
-    });
-
-    expect(server.tools.map((tool) => tool.name)).toEqual([
-      "web_search_advanced_exa",
-      "crawling_exa",
-    ]);
-  });
-
-  it("only registers deep_search_exa when the user provided an API key", () => {
-    const server = new FakeMcpServer();
-
-    initializeMcpServer(server, {
-      enabledTools: ["deep_search_exa"],
+      enabledTools: ["web_search_advanced_exa", "removed_tool", "legacy_tool"],
       userProvidedApiKey: true,
     });
 
-    expect(server.tools.map((tool) => tool.name)).toEqual(["deep_search_exa"]);
+    expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_advanced_exa"]);
   });
 
   it("registers opt-in Agent tools, prompt, and schema resource when authenticated", async () => {
@@ -128,6 +108,32 @@ describe("initializeMcpServer", () => {
         },
       ],
     });
+  });
+
+  it("applies the analytics wrapServer hook to the underlying server when provided", () => {
+    const wrapServer = vi.fn();
+    const server = new FakeMcpServer();
+
+    initializeMcpServer(server, { analytics: { wrapServer } });
+
+    expect(wrapServer).toHaveBeenCalledTimes(1);
+    expect(wrapServer).toHaveBeenCalledWith(server.server);
+  });
+
+  it("initializes without analytics and survives a throwing wrapServer hook", () => {
+    initializeMcpServer(new FakeMcpServer());
+    initializeMcpServer(new FakeMcpServer(), { analytics: {} });
+
+    const server = new FakeMcpServer();
+    initializeMcpServer(server, {
+      analytics: {
+        wrapServer: () => {
+          throw new Error("provider failure");
+        },
+      },
+    });
+
+    expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_exa", "web_fetch_exa"]);
   });
 
   it("does not register Agent tools without user-provided auth", async () => {
