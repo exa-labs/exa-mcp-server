@@ -53,15 +53,26 @@ export function createExaClient(config?: Record<string, unknown>, tool?: string)
   return exa;
 }
 
+/**
+ * Construct an exa-js client for `apiKey`. `EXA_API_BASE_URL` overrides the
+ * Exa API origin the tools call (the integration suite points it at a local
+ * double); unset, exa-js keeps its default of https://api.exa.ai.
+ */
+function newExaClient(apiKey: string): Exa {
+  // exa-js appends endpoint paths ("/search") to the origin as given.
+  const baseUrl = process.env.EXA_API_BASE_URL?.replace(/\/+$/, "");
+  return baseUrl ? new Exa(apiKey, baseUrl) : new Exa(apiKey);
+}
+
 function createBaseExaClient(config?: Record<string, unknown>) {
   const oauthAccessToken = config?.oauthAccessToken;
   if (typeof oauthAccessToken === "string" && oauthAccessToken.length > 0) {
-    const exa = new Exa("oauth");
+    const exa = newExaClient("oauth");
     (exa as unknown as { headers: Headers }).headers.delete("x-api-key");
     return exa;
   }
   const exaApiKey = config?.exaApiKey;
-  return new Exa(
+  return newExaClient(
     typeof exaApiKey === "string" && exaApiKey.length > 0
       ? exaApiKey
       : process.env.EXA_API_KEY || "",

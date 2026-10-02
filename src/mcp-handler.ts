@@ -15,6 +15,7 @@ import {
 } from "./toolRegistry.js";
 import { log } from "./utils/logger.js";
 import { loadAgentSkillContent } from "./utils/agentSkill.js";
+import { withApiKeyFallback } from "./utils/apiKeyFallback.js";
 import type { McpAnalytics } from "./analytics.js";
 
 export interface McpConfig {
@@ -40,6 +41,12 @@ export interface McpConfig {
    * the package ships no tracking backend. See {@link McpAnalytics}.
    */
   analytics?: McpAnalytics;
+  /**
+   * Invoked when the Exa API rejects this request's API key (HTTP 401/403).
+   * Return true after switching this config to another credential (for
+   * example by setting `oauthAccessToken`) to retry the tool call once on it.
+   */
+  apiKeyFallback?: () => Promise<boolean>;
 }
 
 /**
@@ -50,7 +57,11 @@ export interface McpConfig {
  * @param config - Configuration object with API key and tool settings
  */
 export function initializeMcpServer(server: any, config: McpConfig = {}) {
+  const baseServer = server;
   try {
+    if (config.apiKeyFallback) {
+      server = withApiKeyFallback(server, config.apiKeyFallback);
+    }
     if (config.debug) {
       log("Initializing Exa MCP Server in debug mode");
       if (config.enabledTools) {
@@ -102,6 +113,7 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
           agentCallWindowMs: config.agentCallWindowMs,
           mcpMaxDurationSeconds: config.mcpMaxDurationSeconds,
         }),
+        siblingTools: registeredTools,
       });
       registeredTools.push("agent_run");
     }
@@ -232,7 +244,7 @@ export function initializeMcpServer(server: any, config: McpConfig = {}) {
     // Apply the embedder's analytics server wrapper, if any. The server object
     // might be wrapped by a transport handler, so pass the underlying server.
     if (config.analytics?.wrapServer) {
-      const underlyingServer = (server as any).server || server;
+      const underlyingServer = (baseServer as any).server || baseServer;
 
       try {
         config.analytics.wrapServer(underlyingServer);

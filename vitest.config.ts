@@ -11,6 +11,9 @@ export default defineConfig({
     },
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // The integration suite binds sockets and spawns processes; it runs
+    // through vitest.integration.config.ts.
+    exclude: ["tests/integration/**", "node_modules/**"],
     restoreMocks: true,
   },
 });

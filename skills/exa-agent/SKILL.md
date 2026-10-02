@@ -1,6 +1,6 @@
 ---
 name: Exa Agent
-description: "Use Exa Agent for multi-step web research, list-building, enrichment, structured output, run continuation, and coverage validation. Exa Agent can access additional data providers: fiber, financial_datasets, similarweb, baselayer, affiliate, particle, and jinko."
+description: "Use Exa Agent for multi-step web research, list-building, enrichment, structured output, run continuation, and coverage validation. Exa Agent can access additional data providers: fiber, financial_datasets, similarweb, baselayer, affiliate, particle, jinko, polymarket, and macrobond."
 ---
 
 # Exa Agent Research
@@ -23,7 +23,9 @@ Use only the currently usable self-serve providers:
 - `baselayer`: US business verification, officers, registrations, and KYB
 - `affiliate`: product catalog search, pricing, brands, and merchant links
 - `particle`: podcast transcript search with speaker attribution and timestamps
-- `jinko`: travel destination discovery ranked by fare
+- `jinko`: flight and hotel search with real-time pricing, plus travel destination discovery
+- `polymarket`: prediction market odds, price history, order books, and trader positions
+- `macrobond`: macroeconomic and financial time series, entity metadata, and release calendars
 
 Do not suggest request-only providers unless the user explicitly says their Exa account already has them enabled.
 
@@ -143,6 +145,7 @@ Example with Exa Connect:
 1. Run the agent
    - Call `agent_run`.
    - Omit `effort` to use the tool's `low` default. Choose `auto` or a higher effort only when the user asks for more depth or the task clearly requires it.
+   - `ultra` is the highest-effort tier; use it only when the user explicitly wants exhaustive results.
    - Include `outputSchema` for structured work.
    - Use `input.data` for known rows.
    - Use `input.exclusion` for entities already returned or disallowed.
@@ -150,11 +153,13 @@ Example with Exa Connect:
    - Name the provider-specific data you want in both the query and the schema so Agent uses the provider instead of falling back to web search.
    - Save the returned `id` when a later continuation may use `previousRunId`.
    - If the response has `status: "running"`, call `agent_run` again with that `runId` until `outputReady` is true. This continuation is available for retained runs that outlive one MCP call.
-   - Zero Data Retention (ZDR) teams: new runs always stream, and output is only available on that live stream (not via `runId` resumption). The MCP call window is ~750 seconds; if a ZDR run cannot finish in one call, retry with lower effort or split the task. `previousRunId` is not available on ZDR.
+   - Zero Data Retention (ZDR) teams: new runs always stream, and output is only available on that live stream (not via `runId` resumption). If a ZDR run cannot finish within one MCP call window (45 seconds by default), retry with lower effort or split the task. `previousRunId` is not available on ZDR.
 
 2. Read the result
+   - `agent_run` declares an MCP `outputSchema`; every completed/running/failed/cancelled result carries the same object as `structuredContent` and as a JSON text block. Read `structuredContent` when your client exposes it; otherwise parse the text.
+   - Result fields: `success`, `id`, `status` (`completed` | `running` | `failed` | `cancelled`), `outputReady`, `output` (completed runs only; may be null), optional `stopReason`, `usage`, `costDollars`, `error` (failed), `message` (running).
    - Wait until `outputReady` is true (or status is failed/cancelled).
-   - Read both `output.structured` and `output.grounding`.
+   - Read `output.text`, `output.structured`, and `output.grounding`. `structured` follows your `outputSchema`; `grounding` carries per-field citations and confidence.
    - Do not assume results are exhaustive just because the run completed.
 
 3. Validate coverage
@@ -247,7 +252,8 @@ If a run fails to start:
 
 If the run fails:
 
-- Explain the failure from the returned terminal status.
+- Explain the failure from the returned terminal status (`status: "failed"`, `stopReason`, and `error` when present).
+- A text-only error without `structuredContent` means the tool could not report a run result; unless the text names an `agent_run_...` ID, the upstream state is unknown, so do not retry blindly.
 - Create a corrected follow-up/new run only if the correction is clear.
 
 If the run objective/schema is wrong, abort the streaming call. The server will attempt to cancel the upstream run; you will then need to create a new run with the corrected objective/schema.

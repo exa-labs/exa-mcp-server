@@ -2,8 +2,17 @@ export interface RegisteredTool {
   name: string;
   description?: string;
   inputSchema?: unknown;
+  outputSchema?: unknown;
   annotations?: unknown;
   handler: (args: any, extra?: unknown) => unknown | Promise<unknown>;
+}
+
+interface RegisterToolConfig {
+  title?: string;
+  description?: string;
+  inputSchema?: unknown;
+  outputSchema?: unknown;
+  annotations?: unknown;
 }
 
 export interface RegisteredPrompt {
@@ -42,6 +51,17 @@ export class FakeMcpServer {
       description,
       inputSchema,
       annotations,
+      handler,
+    });
+  }
+
+  registerTool(name: string, config: RegisterToolConfig, handler: RegisteredTool["handler"]): void {
+    this.tools.push({
+      name,
+      description: config.description,
+      inputSchema: config.inputSchema,
+      outputSchema: config.outputSchema,
+      annotations: config.annotations,
       handler,
     });
   }

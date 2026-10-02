@@ -5,9 +5,18 @@ import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
-import { lenientString, lenientOptionalNumber } from "./validation.js";
+import { advertisedRequired, lenientString, lenientOptionalNumber } from "./validation.js";
 
 import type { McpAnalytics } from "../analytics.js";
+
+// The Exa /search API caps `objective` at this length; enforcing it here keeps
+// schema-valid tool calls from failing upstream validation.
+const MAX_OBJECTIVE_LENGTH = 4096;
+
+// Tool-parameter wording the Exa API reference recommends for `objective`.
+const OBJECTIVE_DESCRIPTION =
+  "Goal for this search turn; say which documents should rank first, which should be excluded, and what specific facts or figures to pull from them.";
+
 type WebSearchConfig = {
   exaApiKey?: string;
   userProvidedApiKey?: boolean;
@@ -36,6 +45,17 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
       numResults: lenientOptionalNumber().describe(
         "Number of search results to return (default: 10).",
       ),
+      // Advertised as required so models state a goal for every search; calls
+      // that omit it (or send null or "") still search, without an objective.
+      objective: advertisedRequired(
+        z.preprocess(
+          (value) =>
+            value === null || (typeof value === "string" && value.trim() === "")
+              ? undefined
+              : value,
+          z.string().trim().min(1).max(MAX_OBJECTIVE_LENGTH).optional(),
+        ),
+      ).describe(OBJECTIVE_DESCRIPTION),
     },
     {
       readOnlyHint: true,
@@ -43,7 +63,7 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
       openWorldHint: true,
       idempotentHint: true,
     },
-    async ({ query, numResults }) => {
+    async ({ query, numResults, objective }) => {
       const toolId = "web_search_exa";
       const logger = createRequestLogger(toolId);
 
@@ -73,6 +93,7 @@ export function registerWebSearchTool(server: McpServer, config?: WebSearchConfi
           type: config?.defaultSearchType || "auto",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           ...(category && { category }),
+          ...(objective && { objective }),
           contents: {
             highlights: true,
           },

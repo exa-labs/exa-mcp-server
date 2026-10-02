@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { createExaClient, integrationHeaders } from "../../../src/tools/config.js";
 
 function clientHeaders(client: unknown): Headers {
@@ -142,6 +142,10 @@ describe("integrationHeaders", () => {
 });
 
 describe("createExaClient", () => {
+  afterEach(() => {
+    delete process.env.EXA_API_BASE_URL;
+  });
+
   it("sets API key auth and Agent integration headers", () => {
     const exa = createExaClient(
       {
@@ -156,6 +160,18 @@ describe("createExaClient", () => {
     expect(headers.get("x-api-key")).toBe("exa_test_key");
     expect(headers.get("x-exa-integration")).toBe("agent-mcp:claude");
     expect(headers.get("x-exa-mcp-session-id")).toBe("session-123");
+  });
+
+  it("calls the Exa API origin named by EXA_API_BASE_URL, or api.exa.ai by default", () => {
+    expect((createExaClient({ exaApiKey: "k" }) as unknown as { baseURL: string }).baseURL).toBe(
+      "https://api.exa.ai",
+    );
+
+    process.env.EXA_API_BASE_URL = "http://127.0.0.1:9999/";
+    for (const config of [{ exaApiKey: "k" }, { oauthAccessToken: "jwt-token" }]) {
+      const exa = createExaClient(config) as unknown as { baseURL: string };
+      expect(exa.baseURL).toBe("http://127.0.0.1:9999");
+    }
   });
 
   it("uses OAuth without falling back to x-api-key", () => {

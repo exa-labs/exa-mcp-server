@@ -1,6 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { initializeMcpServer } from "../../src/mcp-handler.js";
+import { ExaError } from "exa-js";
+import { initializeMcpServer, type McpConfig } from "../../src/mcp-handler.js";
+import { searchResponse } from "../fixtures/exaResponses.js";
 import { FakeMcpServer } from "../helpers/fakeMcpServer.js";
+
+const { ExaMock, exaConstructorMock, requestMock } = vi.hoisted(() => {
+  const requestMock = vi.fn();
+  const exaConstructorMock = vi.fn();
+  class ExaMock {
+    headers = new Headers();
+    request = requestMock;
+
+    constructor(...args: unknown[]) {
+      exaConstructorMock(...args);
+    }
+  }
+  return { ExaMock, exaConstructorMock, requestMock };
+});
+
+vi.mock("exa-js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("exa-js")>()),
+  Exa: ExaMock,
+}));
 
 describe("initializeMcpServer", () => {
   beforeEach(() => {
@@ -36,6 +57,103 @@ describe("initializeMcpServer", () => {
         expect.objectContaining({ id: "agent_run", enabled: false }),
       ]),
     );
+  });
+
+  it("registers agent_run by default when the user provided an API key", async () => {
+    const server = new FakeMcpServer();
+
+    initializeMcpServer(server, { userProvidedApiKey: true });
+
+    expect(server.tools.map((tool) => tool.name)).toEqual([
+      "web_search_exa",
+      "web_fetch_exa",
+      "agent_run",
+    ]);
+    expect(server.prompts.map((prompt) => prompt.name)).toEqual([
+      "web_search_help",
+      "agent_research_help",
+    ]);
+    expect(server.resources.map((resource) => resource.name)).toEqual([
+      "tools_list",
+      "agent_research_guide",
+      "agent_schema_templates",
+    ]);
+
+    const resourceResult = await server.resources[0].handler();
+    const toolsList = JSON.parse((resourceResult as any).contents[0].text);
+    expect(toolsList).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "web_search_exa", enabled: true }),
+        expect.objectContaining({ id: "web_fetch_exa", enabled: true }),
+        expect.objectContaining({ id: "agent_run", enabled: true }),
+        expect.objectContaining({ id: "web_search_advanced_exa", enabled: false }),
+      ]),
+    );
+  });
+
+  it("does not register agent_run by default for free-tier callers", () => {
+    const server = new FakeMcpServer();
+
+    initializeMcpServer(server, { userProvidedApiKey: false });
+
+    expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_exa", "web_fetch_exa"]);
+    expect(server.prompts.map((prompt) => prompt.name)).toEqual(["web_search_help"]);
+  });
+
+  it("names only the registered search and fetch tools in the agent_run description", () => {
+    const withSearchOnly = new FakeMcpServer();
+    initializeMcpServer(withSearchOnly, {
+      enabledTools: ["web_search_exa", "agent_run"],
+      userProvidedApiKey: true,
+    });
+    const description = withSearchOnly.getTool("agent_run").description;
+    expect(description).toContain("(use web_search_exa)");
+    expect(description).not.toContain("web_fetch_exa");
+
+    const agentOnly = new FakeMcpServer();
+    initializeMcpServer(agentOnly, { enabledTools: ["agent_run"], userProvidedApiKey: true });
+    expect(agentOnly.getTool("agent_run").description).not.toMatch(/web_(search|fetch)/);
+  });
+
+  it("retries a tool call on the fallback credential after an upstream API-key rejection", async () => {
+    const server = new FakeMcpServer();
+    const config: McpConfig = {
+      exaApiKey: "revoked-url-key",
+      userProvidedApiKey: true,
+      apiKeyFallback: vi.fn(async () => {
+        config.exaApiKey = undefined;
+        config.oauthAccessToken = "jwt-token";
+        return true;
+      }),
+    };
+    requestMock
+      .mockRejectedValueOnce(new ExaError("x-api-key header is invalid", 401))
+      .mockResolvedValueOnce(searchResponse);
+
+    initializeMcpServer(server, config);
+    const result = await server.getTool("web_search_exa").handler({ query: "exa" });
+
+    expect(result).not.toMatchObject({ isError: true });
+    expect(config.apiKeyFallback).toHaveBeenCalledTimes(1);
+    expect(exaConstructorMock.mock.calls.map(([apiKey]) => apiKey)).toEqual([
+      "revoked-url-key",
+      "oauth",
+    ]);
+    expect(requestMock).toHaveBeenCalledTimes(2);
+    expect(requestMock.mock.calls[1][4]).toMatchObject({ Authorization: "Bearer jwt-token" });
+  });
+
+  it("keeps the analytics wrapServer hook on the underlying server when a fallback is set", () => {
+    const wrapServer = vi.fn();
+    const server = new FakeMcpServer();
+
+    initializeMcpServer(server, {
+      analytics: { wrapServer },
+      apiKeyFallback: async () => false,
+    });
+
+    expect(wrapServer).toHaveBeenCalledWith(server.server);
+    expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_exa", "web_fetch_exa"]);
   });
 
   it("registers only supported tools from an explicit selection", () => {

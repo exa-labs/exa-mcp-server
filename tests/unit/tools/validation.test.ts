@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import {
+  advertisedRequired,
   lenientOptionalBoolean,
   lenientOptionalNumber,
   lenientOptionalPositiveNumber,
@@ -159,6 +160,35 @@ describe("web_fetch_exa urls preprocess", () => {
         if (parsed.success) expect(parsed.data).toEqual(expected);
       }
     }
+  });
+});
+
+describe("advertisedRequired", () => {
+  const fields = { goal: advertisedRequired(z.string().min(1)).describe("The goal.") };
+
+  it("lists the field as required in the advertised JSON Schema", () => {
+    const json = zodToJsonSchema(z.object(fields)) as {
+      required?: string[];
+      properties: Record<string, unknown>;
+    };
+
+    expect(json.required).toEqual(["goal"]);
+    expect(json.properties.goal).toEqual({
+      type: "string",
+      minLength: 1,
+      description: "The goal.",
+    });
+  });
+
+  it("still accepts a call that omits the field and validates one that sends it", () => {
+    const schema = z.object(fields);
+
+    expect(schema.parse({})).toEqual({});
+    expect(schema.parse({ goal: "rank primary sources" })).toEqual({
+      goal: "rank primary sources",
+    });
+    expect(schema.safeParse({ goal: "" }).success).toBe(false);
+    expect(schema.safeParse({ goal: null }).success).toBe(false);
   });
 });
 

@@ -40,6 +40,17 @@ describe("public API contract", () => {
     expect(server.tools.map((tool) => tool.name)).toEqual(["web_search_exa", "web_fetch_exa"]);
   });
 
+  it("adds agent_run to the defaults when the caller brings their own credential", () => {
+    const server = new FakeMcpServer();
+    initializeMcpServer(server, { exaApiKey: "embedder-key", userProvidedApiKey: true });
+
+    expect(server.tools.map((tool) => tool.name)).toEqual([
+      "web_search_exa",
+      "web_fetch_exa",
+      "agent_run",
+    ]);
+  });
+
   it("exposes only the supported v4 tool IDs", () => {
     expect(publicApi.AVAILABLE_TOOL_IDS).toEqual([
       "web_search_exa",
