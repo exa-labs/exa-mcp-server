@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { initializeMcpServer } from "../../src/mcp-handler.js";
+import { AVAILABLE_TOOL_IDS } from "../../src/toolRegistry.js";
 import { FakeMcpServer } from "../helpers/fakeMcpServer.js";
 
 vi.mock("agnost", () => ({
@@ -147,5 +151,40 @@ describe("initializeMcpServer", () => {
     expect(toolsList).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "agent_run", enabled: false })]),
     );
+  });
+
+  it("publishes only JSON Schema patterns that compile under the strict u-flag grammar", async () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    initializeMcpServer(server, {
+      exaApiKey: "test-key",
+      enabledTools: [...AVAILABLE_TOOL_IDS],
+      userProvidedApiKey: true,
+    });
+    const client = new Client({ name: "test-client", version: "0.0.0" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+
+    const { tools } = await client.listTools();
+    expect(tools.length).toBeGreaterThan(0);
+
+    const patterns: Array<{ tool: string; pattern: string }> = [];
+    const collect = (tool: string, node: unknown): void => {
+      if (Array.isArray(node)) {
+        node.forEach((item) => collect(tool, item));
+      } else if (node && typeof node === "object") {
+        for (const [key, value] of Object.entries(node)) {
+          if (key === "pattern" && typeof value === "string") {
+            patterns.push({ tool, pattern: value });
+          } else {
+            collect(tool, value);
+          }
+        }
+      }
+    };
+    for (const tool of tools) collect(tool.name, tool.inputSchema);
+
+    for (const { tool, pattern } of patterns) {
+      expect(() => new RegExp(pattern, "u"), `${tool}: ${pattern}`).not.toThrow();
+    }
   });
 });
