@@ -599,3 +599,35 @@ describe("agent_run tool", () => {
     expect(tool.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
   });
 });
+
+describe("agent_run input schema", () => {
+  it("emits a JSON Schema pattern that strict ECMAScript validators accept", async () => {
+    const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
+    const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+    const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.js");
+
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    registerAgentRunTool(server, { exaApiKey: "test-key" });
+    const client = new Client({ name: "test-client", version: "0.0.0" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+
+    const { tools } = await client.listTools();
+    const tool = tools.find((t) => t.name === "agent_run");
+    const properties = (tool?.inputSchema.properties ?? {}) as Record<string, { pattern?: string }>;
+
+    for (const key of ["runId", "previousRunId"]) {
+      const pattern = properties[key]?.pattern;
+      expect(pattern).toBe("^agent_run_");
+      // The "u" flag uses the strict grammar, where an escaped underscore is a syntax error.
+      expect(() => new RegExp(pattern as string, "u")).not.toThrow();
+    }
+  });
+
+  it("still rejects ids without the agent_run_ prefix", () => {
+    const schema = z.object(agentRunInputShape);
+    expect(schema.safeParse({ runId: "agent_run_1" }).success).toBe(true);
+    expect(schema.safeParse({ runId: "run_1" }).success).toBe(false);
+    expect(schema.safeParse({ query: "q", previousRunId: "nope" }).success).toBe(false);
+  });
+});
