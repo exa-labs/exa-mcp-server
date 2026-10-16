@@ -39,7 +39,7 @@ export const agentRunInputShape = {
     ),
   runId: z
     .string()
-    .startsWith("agent_run_")
+    .regex(/^agent_run_/, "Must start with agent_run_")
     .optional()
     .describe(
       "agent_run_... ID returned by an earlier call. Use it to check or continue waiting for the same run; do not start a duplicate run.",
@@ -69,7 +69,7 @@ export const agentRunInputShape = {
     .describe("Optional Exa Connect providers to enable for this run."),
   previousRunId: z
     .string()
-    .startsWith("agent_run_")
+    .regex(/^agent_run_/, "Must start with agent_run_")
     .optional()
     .describe("Completed prior agent_run_... ID to use as context for a new run."),
   effort: effortSchema
