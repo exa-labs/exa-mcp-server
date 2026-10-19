@@ -1,4 +1,6 @@
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { FakeMcpServer } from "../../helpers/fakeMcpServer.js";
 
 const {
   capturedRequests,
@@ -77,6 +79,12 @@ vi.mock("mcp-handler", () => ({
 
 vi.mock("../../../src/mcp-handler.js", () => ({
   initializeMcpServer: initializeMcpServerMock,
+}));
+
+vi.mock("agnost", () => ({
+  checkpoint: vi.fn(),
+  createConfig: vi.fn((config: unknown) => config),
+  trackMCP: vi.fn(),
 }));
 
 vi.mock("../../../src/utils/auth.js", () => ({
@@ -485,6 +493,49 @@ describe("api/mcp handler", () => {
     expect(config).toMatchObject({
       enabledTools: ["agent_run"],
     });
+  });
+
+  describe.each(["plugin.json", "marketplace.json"])("Claude %s configuration", (filename) => {
+    const manifest = JSON.parse(
+      readFileSync(new URL(`../../../.claude-plugin/${filename}`, import.meta.url), "utf8"),
+    );
+    const plugin = filename === "marketplace.json" ? manifest.plugins[0] : manifest;
+    const mcpServer = plugin.mcpServers.exa;
+
+    it.each(["oauth", "api_key"])(
+      "registers the tools required by both bundled skills with %s authentication",
+      async (authMethod) => {
+        verifyOAuthTokenMock.mockResolvedValue({
+          sub: "user-1",
+          "exa:team_id": "team-1",
+          scope: "mcp:tools",
+        });
+        const headers = new Headers(mcpServer.headers);
+        if (authMethod === "oauth") {
+          headers.set("authorization", "Bearer jwt-token");
+        } else {
+          headers.set("x-api-key", "user-key");
+        }
+
+        const { response, config } = await callHandleRequest(
+          new Request(mcpServer.url, { headers }),
+        );
+        expect(response.status).toBe(200);
+        expect(config).toMatchObject({ userProvidedApiKey: true, authMethod });
+
+        const { initializeMcpServer } = await vi.importActual<
+          typeof import("../../../src/mcp-handler.js")
+        >("../../../src/mcp-handler.js");
+        const server = new FakeMcpServer();
+        initializeMcpServer(server, config);
+
+        expect(server.tools.map((tool) => tool.name)).toEqual([
+          "web_search_exa",
+          "web_fetch_exa",
+          "agent_run",
+        ]);
+      },
+    );
   });
 
   it("enables agent tools with key", async () => {
