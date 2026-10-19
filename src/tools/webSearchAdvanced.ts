@@ -4,14 +4,94 @@ import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { ExaAdvancedSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
-import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
+import { sanitizeSearchNotices, sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import {
   lenientString,
   lenientOptionalNumber,
   lenientOptionalPositiveNumber,
   lenientOptionalBoolean,
 } from "./validation.js";
+import {
+  logSearchWarnings,
+  withNoticeMessages,
+  withStructuredSearchNotices,
+} from "./searchNotes.js";
 import { checkpoint } from "agnost";
+
+/**
+ * Request fields the `lite` search type serves. The API rejects a `lite`
+ * request that sets any other field with a 400 rather than ignoring it.
+ */
+const LITE_REQUEST_FIELDS: ReadonlySet<string> = new Set([
+  "query",
+  "type",
+  "numResults",
+  "category",
+  "contents",
+  "includeDomains",
+  "excludeDomains",
+  "startPublishedDate",
+  "endPublishedDate",
+  "userLocation",
+  "moderation",
+]);
+
+/** `contents` options the `lite` search type serves, each with all of its own options. */
+const LITE_CONTENTS_FIELDS: ReadonlySet<string> = new Set(["text", "highlights"]);
+
+/** This tool's parameter behind each request field that `lite` rejects. */
+const LITE_REJECTED_FIELD_PARAMETERS: Readonly<Record<string, string>> = {
+  startCrawlDate: "startCrawlDate",
+  endCrawlDate: "endCrawlDate",
+  includeText: "includeText",
+  excludeText: "excludeText",
+  additionalQueries: "additionalQueries",
+  "contents.context": "contextMaxCharacters",
+  "contents.summary": "enableSummary",
+  "contents.maxAgeHours": "maxAgeHours",
+  "contents.livecrawlTimeout": "livecrawlTimeout",
+  "contents.subpages": "subpages",
+  "contents.subpageTarget": "subpageTarget",
+};
+
+/** Names of the fields of `record` that are set (not null or undefined) and not in `allowed`. */
+function fieldsOutside(record: object, allowed: ReadonlySet<string>): string[] {
+  return Object.entries(record)
+    .filter(([field, value]) => value != null && !allowed.has(field))
+    .map(([field]) => field);
+}
+
+/**
+ * The tool parameters behind the fields of `request` that the `lite` search
+ * type does not serve, top-level fields first; empty unless the request is a
+ * `lite` search. Judged on the request as it would be sent, so no parameter
+ * mapping can slip a rejected field past it.
+ */
+export function liteUnsupportedParameters(request: ExaAdvancedSearchRequest): string[] {
+  if (request.type !== "lite") {
+    return [];
+  }
+
+  const fields = [
+    ...fieldsOutside(request, LITE_REQUEST_FIELDS),
+    ...fieldsOutside(request.contents, LITE_CONTENTS_FIELDS).map((field) => `contents.${field}`),
+  ];
+  return [...new Set(fields.map((field) => LITE_REJECTED_FIELD_PARAMETERS[field] ?? field))];
+}
+
+/** The error result for a `lite` search that sets parameters `lite` does not serve. */
+function liteRefusal(parameters: readonly string[]) {
+  const pronoun = parameters.length === 1 ? "it" : "them";
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: `web_search_advanced_exa error: search type 'lite' does not support ${parameters.join(", ")}. Remove ${pronoun}, or set type to 'auto'.`,
+      },
+    ],
+    isError: true as const,
+  };
+}
 
 export function registerWebSearchAdvancedTool(
   server: McpServer,
@@ -28,10 +108,10 @@ Returns: Search results with optional highlights, summaries, and subpage content
       query: lenientString().describe("Search query - can be a question, statement, or keywords"),
       numResults: lenientOptionalNumber().describe("Number of results (1-100, default: 10)"),
       type: z
-        .enum(["auto", "fast", "instant"])
+        .enum(["auto", "lite", "fast", "instant"])
         .optional()
         .describe(
-          "Search type - 'auto': high quality and works with all filters (recommended), 'fast': quick results, 'instant': fastest results",
+          "Search type. 'auto' is the default and recommended type. It returns high-quality results and supports every parameter. 'lite' is the low-cost, low-latency type and serves cached content. It supports only query, numResults, category, includeDomains, excludeDomains, startPublishedDate, endPublishedDate, userLocation, moderation, textMaxCharacters and the highlights parameters. 'instant' and 'fast' are legacy types. Use 'lite' instead of 'instant'. Use 'lite' instead of 'fast', or 'auto' when the search needs a parameter 'lite' does not support.",
         ),
 
       category: z
@@ -107,10 +187,10 @@ Returns: Search results with optional highlights, summaries, and subpage content
         "Maximum total characters across all highlights per URL. Preferred over highlightsNumSentences.",
       ),
       highlightsNumSentences: lenientOptionalNumber().describe(
-        "Deprecated: mapped to ~1333 chars/sentence. Use highlightsMaxCharacters instead.",
+        "Deprecated. Use highlightsMaxCharacters instead.",
       ),
       highlightsPerUrl: lenientOptionalNumber().describe(
-        "Deprecated: currently ignored server-side. Use highlightsMaxCharacters instead.",
+        "Deprecated and ignored. Use highlightsMaxCharacters instead.",
       ),
       highlightsQuery: z.string().optional().describe("Query for highlight relevance"),
 
@@ -132,7 +212,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
     {
       readOnlyHint: true,
       destructiveHint: false,
-      openWorldHint: false,
+      openWorldHint: true,
       idempotentHint: true,
     },
     async (params) => {
@@ -143,11 +223,18 @@ Returns: Search results with optional highlights, summaries, and subpage content
       try {
         const exa = createExaClient(config);
 
+        // `lite` serves cached content only and rejects every freshness
+        // option, so a `lite` search gets no livecrawl default.
+        const freshness =
+          params.maxAgeHours !== undefined
+            ? { maxAgeHours: params.maxAgeHours }
+            : params.type === "lite"
+              ? {}
+              : { livecrawl: "fallback" as const };
+
         const contents: ExaAdvancedSearchRequest["contents"] = {
           text: params.textMaxCharacters ? { maxCharacters: params.textMaxCharacters } : true,
-          ...(params.maxAgeHours !== undefined
-            ? { maxAgeHours: params.maxAgeHours }
-            : { livecrawl: "fallback" as const }),
+          ...freshness,
           ...(params.livecrawlTimeout && { livecrawlTimeout: params.livecrawlTimeout }),
         };
 
@@ -231,6 +318,13 @@ Returns: Search results with optional highlights, summaries, and subpage content
           searchRequest.additionalQueries = params.additionalQueries;
         }
 
+        const liteUnsupported = liteUnsupportedParameters(searchRequest);
+        if (liteUnsupported.length > 0) {
+          logger.log(`Refusing lite search that sets ${liteUnsupported.join(", ")}`);
+          checkpoint("web_search_advanced_complete");
+          return liteRefusal(liteUnsupported);
+        }
+
         checkpoint("web_search_advanced_request_prepared");
         logger.log("Sending advanced search request to Exa API");
 
@@ -251,6 +345,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
         checkpoint("exa_advanced_search_response_received");
         logger.log("Received response from Exa API");
+        logSearchWarnings(response, logger);
 
         if (!response) {
           logger.log("Warning: Empty response from Exa API");
@@ -265,10 +360,11 @@ Returns: Search results with optional highlights, summaries, and subpage content
           };
         }
 
-        const sanitized = sanitizeSearchResponse(response);
+        let sanitized = sanitizeSearchResponse(response);
         const searchTime =
           typeof sanitized.searchTime === "number" ? sanitized.searchTime : undefined;
-        const resultText = JSON.stringify(sanitized);
+        const notices = sanitizeSearchNotices(response.notices);
+        const resultText = JSON.stringify(withNoticeMessages(sanitized, notices));
         logger.log(`Response prepared with ${resultText.length} characters`);
 
         const result = {
@@ -285,7 +381,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
 
         checkpoint("web_search_advanced_complete");
         logger.complete();
-        return result;
+        return withStructuredSearchNotices(result, sanitized, notices);
       } catch (error) {
         logger.error(error);
         return formatToolError(error, "web_search_advanced_exa", config?.userProvidedApiKey);

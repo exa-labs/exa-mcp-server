@@ -20,12 +20,37 @@ export const searchResponse = {
     },
   ],
   searchTime: 0.42,
+  costDollars: { total: 0.007, search: { neural: 0.007 } },
+} satisfies WebSearchFixtureResponse;
+
+/** A `notices[]` item as the API renders a relaxed query restriction. */
+export const relaxedRestrictionNotice = {
+  code: "RESTRICTIONS_RELAXED",
+  path: "/query",
+  message:
+    "No results matched the site restriction site:example.com in the query; these results come from a search with that restriction removed. Filters supplied outside the query were kept.",
+  details: { relaxed: [{ kind: "site", operator: "site:example.com" }] },
+};
+
+/** A `warnings[]` item as the API renders an ignored request field. */
+export const ignoredFieldWarning = {
+  code: "IGNORED_FIELD",
+  path: "/startCrawlDate",
+  message: "startCrawlDate is no longer supported and is ignored. Remove it from the request.",
+};
+
+/** `searchResponse` with one warning and one notice. */
+export const searchResponseWithNotes = {
+  ...searchResponse,
+  warnings: [ignoredFieldWarning],
+  notices: [relaxedRestrictionNotice],
 } satisfies WebSearchFixtureResponse;
 
 export const emptySearchResponse = {
   requestId: "empty-search-request",
   resolvedSearchType: "auto",
   results: [],
+  costDollars: { total: 0 },
 } satisfies WebSearchFixtureResponse;
 
 export const contentsResponse = {
@@ -49,6 +74,7 @@ export const contentsResponse = {
     },
   ],
   searchTime: 0.24,
+  costDollars: { total: 0.001, contents: { text: 0.001 } },
 } satisfies WebContentsFixtureResponse;
 
 export const contentsErrorResponse = {
@@ -62,4 +88,5 @@ export const contentsErrorResponse = {
       error: { tag: "not_found" },
     },
   ],
+  costDollars: { total: 0 },
 } satisfies WebContentsFixtureResponse;

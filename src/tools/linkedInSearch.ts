@@ -4,7 +4,8 @@ import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
-import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
+import { sanitizeSearchNotices, sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
+import { logSearchWarnings, withSearchNotices } from "./searchNotes.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
 import { checkpoint } from "agnost";
 
@@ -14,7 +15,7 @@ export function registerLinkedInSearchTool(
 ): void {
   server.tool(
     "linkedin_search_exa",
-    "⚠️ DEPRECATED: This tool is deprecated. Please use 'people_search_exa' instead. This tool will be removed in a future version. For now, it searches for people on LinkedIn using Exa AI - finds professional profiles and people.",
+    "[Deprecated: Use web_search_advanced_exa with category 'people' instead] Search LinkedIn profiles.",
     {
       query: lenientString().describe("Search query for finding people on LinkedIn"),
       numResults: lenientOptionalNumber().describe(
@@ -62,18 +63,21 @@ export function registerLinkedInSearchTool(
 
         checkpoint("linkedin_search_response_received");
         logger.log("Received response from Exa API");
+        logSearchWarnings(response, logger);
+        const notices = sanitizeSearchNotices(response?.notices);
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint("linkedin_search_complete");
-          return {
+          const noResults = {
             content: [
               {
                 type: "text" as const,
-                text: "No LinkedIn content found. Please try a different query. Note: This tool is deprecated - please use 'people_search_exa' instead.",
+                text: "No LinkedIn content found. Try a different query. linkedin_search_exa is deprecated. Use web_search_advanced_exa with category 'people' instead.",
               },
             ],
           };
+          return withSearchNotices(noResults, notices, { results: [] });
         }
 
         logger.log(`Found ${response.results.length} LinkedIn results`);
@@ -98,7 +102,7 @@ export function registerLinkedInSearchTool(
         const searchTime =
           typeof sanitized.searchTime === "number" ? sanitized.searchTime : undefined;
         const deprecationNotice =
-          "\n\n⚠️ DEPRECATION NOTICE: This tool (linkedin_search_exa) is deprecated. Please use 'people_search_exa' instead for future requests.";
+          "\n\nlinkedin_search_exa is deprecated. Use web_search_advanced_exa with category 'people' instead.";
 
         const result = {
           content: [
@@ -114,7 +118,7 @@ export function registerLinkedInSearchTool(
 
         checkpoint("linkedin_search_complete");
         logger.complete();
-        return result;
+        return withSearchNotices(result, notices, { results });
       } catch (error) {
         logger.error(error);
         return formatToolError(error, "linkedin_search_exa", config?.userProvidedApiKey);

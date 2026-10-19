@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   sanitizeContentsResponse,
   sanitizeDeepSearchStructuredResponse,
+  sanitizeSearchNotices,
   sanitizeSearchResponse,
+  sanitizeSearchWarnings,
   stripSensitiveKeys,
 } from "../../../src/utils/exaResponseSanitizer.js";
 
@@ -126,5 +128,54 @@ describe("exaResponseSanitizer", () => {
       },
       results: [{ title: "Result", url: "https://example.com" }],
     });
+  });
+
+  it("keeps well-formed notices with their details and drops malformed ones", () => {
+    expect(
+      sanitizeSearchNotices([
+        {
+          code: "RESTRICTIONS_RELAXED",
+          path: "/query",
+          message: "Relaxed.",
+          details: { relaxed: [{ kind: "site" }], requestTags: ["hidden"] },
+        },
+        { code: "FUTURE_CODE", path: "/query", message: "Unknown codes pass.", details: "text" },
+        { code: "NO_MESSAGE", path: "/query" },
+        "bad notice",
+      ]),
+    ).toEqual([
+      {
+        code: "RESTRICTIONS_RELAXED",
+        path: "/query",
+        message: "Relaxed.",
+        details: { relaxed: [{ kind: "site" }] },
+      },
+      { code: "FUTURE_CODE", path: "/query", message: "Unknown codes pass." },
+    ]);
+    expect(sanitizeSearchNotices([{ code: "X" }])).toBeUndefined();
+    expect(sanitizeSearchNotices(undefined)).toBeUndefined();
+  });
+
+  it("keeps well-formed warnings without any extra fields", () => {
+    expect(
+      sanitizeSearchWarnings([
+        { code: "IGNORED_FIELD", path: "/startCrawlDate", message: "Ignored.", extra: 1 },
+        { code: "IGNORED_FIELD", path: 3, message: "Bad path." },
+      ]),
+    ).toEqual([{ code: "IGNORED_FIELD", path: "/startCrawlDate", message: "Ignored." }]);
+    expect(sanitizeSearchWarnings([])).toBeUndefined();
+  });
+
+  it("leaves notices and warnings out of sanitized search responses", () => {
+    const notes = {
+      warnings: [{ code: "IGNORED_FIELD", path: "/startCrawlDate", message: "Ignored." }],
+      notices: [{ code: "RESTRICTIONS_RELAXED", path: "/query", message: "Relaxed." }],
+    };
+
+    const search = sanitizeSearchResponse({ results: [{ url: "https://example.com" }], ...notes });
+    expect(search).toEqual({ results: [{ url: "https://example.com" }] });
+
+    const deep = sanitizeDeepSearchStructuredResponse({ results: [], ...notes });
+    expect(deep).toEqual({});
   });
 });
