@@ -1,4 +1,10 @@
-import { ExaDeepSearchResponse, ExaSearchResponse } from "../types.js";
+import {
+  ExaDeepSearchResponse,
+  ExaSearchNote,
+  ExaSearchNotice,
+  ExaSearchResponse,
+  ExaSearchWarning,
+} from "../types.js";
 
 const SENSITIVE_RESPONSE_KEYS = new Set(["requestTags"]);
 
@@ -136,6 +142,61 @@ function sanitizeSearchOutput(value: unknown): Record<string, unknown> | undefin
   }
 
   return Object.keys(sanitized).length > 0 ? sanitized : undefined;
+}
+
+function sanitizeSearchNote(value: unknown): ExaSearchNote | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const { code, path, message } = value;
+  if (typeof code !== "string" || typeof path !== "string" || typeof message !== "string") {
+    return null;
+  }
+
+  return { code, path, message };
+}
+
+/**
+ * The `warnings` of a search response, without items that lack a string
+ * `code`, `path` or `message`; `undefined` when none remain. Warnings describe
+ * the request for whoever maintains the code that builds it: tools log them
+ * and never show them to a model.
+ */
+export function sanitizeSearchWarnings(value: unknown): ExaSearchWarning[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const warnings = value
+    .map((item) => sanitizeSearchNote(item))
+    .filter((warning): warning is ExaSearchWarning => warning !== null);
+
+  return warnings.length > 0 ? warnings : undefined;
+}
+
+/**
+ * The `notices` of a search response, without items that lack a string
+ * `code`, `path` or `message`, keeping each item's `details` object;
+ * `undefined` when none remain. Notices are written for a model; tools show
+ * them in the format of `tools/searchNotes.ts`.
+ */
+export function sanitizeSearchNotices(value: unknown): ExaSearchNotice[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const notices = value.flatMap((item): ExaSearchNotice[] => {
+    const note = sanitizeSearchNote(item);
+    if (note === null) {
+      return [];
+    }
+
+    const details = isRecord(item) ? stripSensitiveKeys(item.details) : undefined;
+    return [isRecord(details) ? { ...note, details } : note];
+  });
+
+  return notices.length > 0 ? notices : undefined;
 }
 
 export function stripSensitiveKeys(value: unknown): unknown {

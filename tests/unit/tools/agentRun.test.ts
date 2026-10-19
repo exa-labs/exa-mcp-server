@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import type { AgentEvent, AgentRun } from "exa-js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   agentRunInputShape,
+  agentRunOutputShape,
   DEFAULT_CALL_WINDOW_MS,
   formatProgressMessage,
   pollAgentRun,
@@ -33,6 +35,7 @@ async function* failingStream(): AsyncGenerator<AgentEvent> {
   throw new Error("stream connection reset");
 }
 
+// eslint-disable-next-line require-yield -- fixture models a stream that errors before emitting any event
 async function* failsBeforeId(): AsyncGenerator<AgentEvent> {
   throw new Error("stream failed before first event");
 }
@@ -65,12 +68,12 @@ function setup(
     config?: { exaApiKey?: string; oauthAccessToken?: string };
     callWindowMs?: number;
     heartbeatMs?: number;
-    progressThrottleMs?: number;
     pollIntervalMs?: number;
     progressTimeoutMs?: number;
     progressToken?: string | number;
     signal?: AbortSignal;
     sendNotification?: (notification: Notification) => void | Promise<void>;
+    siblingTools?: string[];
   } = {},
 ) {
   const fake = new FakeMcpServer();
@@ -85,9 +88,9 @@ function setup(
     clientFactory: () => client,
     callWindowMs: options.callWindowMs,
     heartbeatMs: options.heartbeatMs ?? 10_000,
-    progressThrottleMs: options.progressThrottleMs,
     pollIntervalMs: options.pollIntervalMs,
     progressTimeoutMs: options.progressTimeoutMs,
+    siblingTools: options.siblingTools ?? ["web_search_exa", "web_fetch_exa"],
   });
 
   const notifications: Notification[] = [];
@@ -105,6 +108,7 @@ function setup(
   const invoke = (args: Record<string, unknown>, extraArg: unknown = extra) =>
     tool.handler(args, extraArg) as Promise<{
       content: Array<{ type: "text"; text: string }>;
+      structuredContent?: Record<string, unknown>;
       isError?: true;
     }>;
 
@@ -124,12 +128,15 @@ function payload(result: { content: Array<{ text: string }> }): Record<string, u
 }
 
 describe("resolveAgentCallWindowMs", () => {
-  it("defaults to max duration minus headroom", () => {
+  it("defaults every client to a 45-second window", () => {
     expect(resolveAgentCallWindowMs()).toBe(DEFAULT_CALL_WINDOW_MS);
-    expect(resolveAgentCallWindowMs({ mcpMaxDurationSeconds: 600 })).toBe(550_000);
   });
 
-  it("honors AGENT_CALL_WINDOW_MS when within the ceiling", () => {
+  it("clamps the default window to a shorter platform ceiling", () => {
+    expect(resolveAgentCallWindowMs({ mcpMaxDurationSeconds: 60 })).toBe(10_000);
+  });
+
+  it("honors AGENT_CALL_WINDOW_MS above the default window", () => {
     expect(resolveAgentCallWindowMs({ agentCallWindowMs: 300_000 })).toBe(300_000);
   });
 
@@ -139,7 +146,7 @@ describe("resolveAgentCallWindowMs", () => {
         agentCallWindowMs: 900_000,
         mcpMaxDurationSeconds: 800,
       }),
-    ).toBe(DEFAULT_CALL_WINDOW_MS);
+    ).toBe(750_000);
   });
 });
 
@@ -163,14 +170,27 @@ describe("agentRunInputShape", () => {
         effort: "minimal",
       }).success,
     ).toBe(true);
+    expect(
+      schema.safeParse({ query: "x", dataSources: [{ provider: "crunchbase" }] }).success,
+    ).toBe(true);
+    expect(
+      schema.safeParse({
+        query: "x",
+        effort: "ultra",
+        budget: { maxCostDollars: 5, maxDurationSeconds: 600 },
+      }).success,
+    ).toBe(true);
   });
 
   it("rejects malformed run IDs, providers, and effort values", () => {
     expect(schema.safeParse({ runId: "wrong" }).success).toBe(false);
-    expect(schema.safeParse({ query: "x", dataSources: [{ provider: "unknown" }] }).success).toBe(
+    expect(schema.safeParse({ query: "x", dataSources: [{ provider: "" }] }).success).toBe(false);
+    expect(schema.safeParse({ query: "x", dataSources: [{}] }).success).toBe(false);
+    expect(schema.safeParse({ query: "x", effort: "turbo" }).success).toBe(false);
+    expect(schema.safeParse({ query: "x", budget: { maxDurationSeconds: 600.5 } }).success).toBe(
       false,
     );
-    expect(schema.safeParse({ query: "x", effort: "turbo" }).success).toBe(false);
+    expect(schema.safeParse({ query: "x", budget: { maxCostDollars: "5" } }).success).toBe(false);
   });
 });
 
@@ -236,6 +256,26 @@ describe("streamAgentRun", () => {
     expect(client.cancelRun).not.toHaveBeenCalled();
   });
 
+  it("cannot hand off a run when the stream has not yielded an ID by the boundary", async () => {
+    const client: AgentRunClient = {
+      createStream: vi.fn(async () => new Promise<AsyncIterable<AgentEvent>>(() => {})),
+      getRun: vi.fn(),
+      cancelRun: vi.fn(),
+    };
+
+    const outcome = await streamAgentRun({
+      client,
+      runInput: { query: "test", effort: "low" },
+      callWindowMs: 20,
+    });
+
+    expect(outcome).toMatchObject({
+      status: "unrecoverable_stream",
+      runId: null,
+      handoffReason: "stream_window_exceeded",
+    });
+  });
+
   it("turns clean EOF and read errors with a known ID into recoverable handoffs", async () => {
     for (const events of [
       streamOf([event("agent_run.created", { id: "agent_run_1" })]),
@@ -278,7 +318,10 @@ describe("streamAgentRun", () => {
       signal: controller.signal,
     });
 
-    expect(outcome).toMatchObject({ status: "running", runId: "agent_run_1" });
+    expect(outcome).toMatchObject({
+      status: "running",
+      runId: "agent_run_1",
+    });
     expect(client.cancelRun).not.toHaveBeenCalled();
   });
 
@@ -387,26 +430,126 @@ describe("agent_run tool", () => {
     expect(getRun).not.toHaveBeenCalled();
   });
 
+  it("forwards a provider outside the self-serve list for the API to authorize", async () => {
+    const { invoke, createStream } = setup();
+    await invoke({ query: "test", dataSources: [{ provider: "crunchbase" }] });
+    expect(createStream).toHaveBeenCalledWith({
+      query: "test",
+      dataSources: [{ provider: "crunchbase" }],
+      effort: "low",
+    });
+  });
+
   it("forwards an explicit effort", async () => {
     const { invoke, createStream } = setup();
     await invoke({ query: "test", effort: "minimal" });
     expect(createStream).toHaveBeenCalledWith({ query: "test", effort: "minimal" });
   });
 
+  it("forwards a budget with the effort", async () => {
+    const { invoke, createStream } = setup();
+    await invoke({
+      query: "test",
+      effort: "ultra",
+      budget: { maxCostDollars: 5, maxDurationSeconds: 600 },
+    });
+    expect(createStream).toHaveBeenCalledWith({
+      query: "test",
+      effort: "ultra",
+      budget: { maxCostDollars: 5, maxDurationSeconds: 600 },
+    });
+  });
+
   it("relays monotonic MCP progress notifications", async () => {
     const { invoke, notifications } = setup({ progressToken: "progress-1" });
     await invoke({ query: "test" });
 
-    expect(notifications.length).toBeGreaterThanOrEqual(2);
-    expect(
-      notifications.every((notification) => notification.method === "notifications/progress"),
-    ).toBe(true);
-    expect(notifications.map((notification) => notification.params.progress)).toEqual(
-      notifications.map((_, index) => index + 1),
-    );
+    expect(notifications).toHaveLength(2);
+    expect(notifications.map((notification) => notification.method)).toEqual([
+      "notifications/progress",
+      "notifications/progress",
+    ]);
+    expect(notifications.map((notification) => notification.params.progress)).toEqual([1, 2]);
     expect(
       notifications.every((notification) => notification.params.progressToken === "progress-1"),
     ).toBe(true);
+    expect(notifications.every((notification) => !("total" in notification.params))).toBe(true);
+  });
+
+  it("bridges richer events and ignores unknown events until terminal", async () => {
+    const { invoke, notifications } = setup({
+      progressToken: "progress-1",
+      events: streamOf([
+        event("agent_run.created", { id: "agent_run_1", status: "queued" }),
+        event("agent_run.output_item.added", {
+          item: {
+            id: "item_1",
+            type: "function_call",
+            call_id: "call_search",
+            name: "search",
+            status: "in_progress",
+          },
+        }),
+        event("agent_run.future", { detail: "ignored" }),
+        event("agent_run.source.added", {
+          source: { url: "https://example.com", callId: "call_search" },
+        }),
+        event("agent_run.search_trace", {
+          tool: "search",
+          callId: "call_search",
+          text: "Finding relevant results",
+        }),
+        event("agent_run.completed", completedRun()),
+      ]),
+    });
+
+    const result = await invoke({ query: "test" });
+    expect(result.isError).toBeUndefined();
+    expect(notifications.map((notification) => notification.params.message)).toEqual([
+      "run agent_run_1 queued",
+      expect.stringContaining("1 tool call"),
+      expect.stringContaining("Finding relevant results"),
+    ]);
+    expect(notifications.every((notification) => !("total" in notification.params))).toBe(true);
+  });
+
+  it("uses the heartbeat only after meaningful progress becomes idle", async () => {
+    vi.useFakeTimers();
+    try {
+      const controller = new AbortController();
+      const pending = setup({
+        progressToken: "progress-1",
+        signal: controller.signal,
+        events: hangingStream([event("agent_run.created", { id: "agent_run_1" })]),
+        heartbeatMs: 10,
+        callWindowMs: 1_000,
+      });
+      const resultPromise = pending.invoke({ query: "test" });
+      await Promise.resolve();
+      expect(
+        pending.notifications.some((notification) => {
+          const message = notification.params.message;
+          return typeof message === "string" && message.includes("still working");
+        }),
+      ).toBe(false);
+      await vi.advanceTimersByTimeAsync(10);
+      expect(
+        pending.notifications.filter((notification) => {
+          const message = notification.params.message;
+          return typeof message === "string" && message.includes("still working");
+        }),
+      ).toHaveLength(1);
+      expect(
+        pending.notifications.some((notification) => {
+          const message = notification.params.message;
+          return typeof message === "string" && message.includes("still working");
+        }),
+      ).toBe(true);
+      controller.abort();
+      await resultPromise;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("returns a non-error run-ID handoff without cancelling at the stream boundary", async () => {
@@ -567,6 +710,161 @@ describe("agent_run tool", () => {
     });
   });
 
+  describe("structuredContent", () => {
+    const outputSchema = z.object(agentRunOutputShape);
+
+    function expectStructured(result: {
+      content: Array<{ text: string }>;
+      structuredContent?: Record<string, unknown>;
+    }): Record<string, unknown> {
+      expect(result.structuredContent).toBeDefined();
+      expect(outputSchema.safeParse(result.structuredContent).success).toBe(true);
+      expect(result.content[0].text).toBe(JSON.stringify(result.structuredContent));
+      expect(result.content[0].text).not.toContain("\n");
+      return result.structuredContent ?? {};
+    }
+
+    it("registers the MCP outputSchema alongside the input schema", () => {
+      const { tool } = setup();
+      expect(tool.outputSchema).toBe(agentRunOutputShape);
+      expect(tool.inputSchema).toBe(agentRunInputShape);
+    });
+
+    it("serializes nullable strings as anyOf branches, not a type array", () => {
+      const json = zodToJsonSchema(outputSchema, { strictUnions: true });
+      expect(json).toMatchObject({
+        properties: {
+          stopReason: { anyOf: [{ type: "string" }, { type: "null" }] },
+          output: {
+            anyOf: [
+              { properties: { text: { anyOf: [{ type: "string" }, { type: "null" }] } } },
+              { type: "null" },
+            ],
+          },
+        },
+      });
+    });
+
+    it("emits completed runs with nullable output, files, and stopReason", async () => {
+      const output = {
+        text: "done",
+        structured: { companies: [{ name: "Exa" }] },
+        grounding: [{ field: "companies[0].name", confidence: "high" }],
+        files: [{ id: "file_1", name: "out.csv" }],
+      };
+      const { invoke } = setup({
+        events: streamOf([
+          event("agent_run.created", { id: "agent_run_1" }),
+          event("agent_run.completed", {
+            id: "agent_run_1",
+            status: "completed",
+            output,
+            stopReason: "complete",
+            usage: { searches: 1 },
+            costDollars: { total: 0.012 },
+          }),
+        ]),
+      });
+      const result = await invoke({ query: "test" });
+      expect(result.isError).toBeUndefined();
+      expect(expectStructured(result)).toEqual({
+        success: true,
+        id: "agent_run_1",
+        status: "completed",
+        outputReady: true,
+        output,
+        stopReason: "complete",
+        usage: { searches: 1 },
+        costDollars: { total: 0.012 },
+      });
+
+      const nullOutput = setup({
+        events: streamOf([
+          event("agent_run.created", { id: "agent_run_1" }),
+          event("agent_run.completed", { id: "agent_run_1", output: null }),
+        ]),
+      });
+      expect(expectStructured(await nullOutput.invoke({ query: "test" }))).toMatchObject({
+        status: "completed",
+        output: null,
+      });
+    });
+
+    it("emits running handoffs", async () => {
+      const { invoke } = setup({
+        events: hangingStream([event("agent_run.created", { id: "agent_run_1" })]),
+        callWindowMs: 20,
+      });
+      expect(expectStructured(await invoke({ query: "test" }))).toMatchObject({
+        success: true,
+        id: "agent_run_1",
+        status: "running",
+        outputReady: false,
+      });
+    });
+
+    it("emits cancelled runs", async () => {
+      const { invoke } = setup({
+        events: streamOf([
+          event("agent_run.created", { id: "agent_run_1" }),
+          event("agent_run.cancelled", { id: "agent_run_1", stopReason: "cancelled" }),
+        ]),
+      });
+      const result = await invoke({ query: "test" });
+      expect(result.isError).toBeUndefined();
+      expect(expectStructured(result)).toEqual({
+        success: false,
+        id: "agent_run_1",
+        status: "cancelled",
+        outputReady: false,
+        stopReason: "cancelled",
+      });
+    });
+
+    it("emits failed runs as isError with schema-conformant structuredContent", async () => {
+      const { invoke } = setup({
+        events: streamOf([
+          event("agent_run.created", { id: "agent_run_1" }),
+          event("agent_run.failed", {
+            id: "agent_run_1",
+            stopReason: "error",
+            error: { message: "bad schema" },
+          }),
+        ]),
+      });
+      const result = await invoke({ query: "test" });
+      expect(result.isError).toBe(true);
+      expect(expectStructured(result)).toEqual({
+        success: false,
+        id: "agent_run_1",
+        status: "failed",
+        outputReady: false,
+        stopReason: "error",
+        error: { message: "bad schema" },
+      });
+      expect(result.content[1].text).toContain("The Agent run failed");
+    });
+
+    it("falls back to a text-only error when the terminal payload has no usable ID", async () => {
+      for (const id of [undefined, "", 42]) {
+        const { invoke } = setup({
+          events: streamOf([event("agent_run.completed", { id, output: null })]),
+        });
+        const result = await invoke({ query: "test" });
+        expect(result.isError).toBe(true);
+        expect(result.structuredContent).toBeUndefined();
+        expect(result.content[0].text).toContain("without a run ID");
+      }
+    });
+
+    it("never emits structuredContent for pre-ID stream failures", async () => {
+      const { invoke } = setup({ events: failsBeforeId() });
+      const result = await invoke({ query: "test" });
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent).toBeUndefined();
+    });
+  });
+
   it("rejects invalid argument combinations and resume-only create options", async () => {
     const { invoke, createStream, getRun } = setup();
 
@@ -574,6 +872,7 @@ describe("agent_run tool", () => {
       {},
       { query: "test", runId: "agent_run_1" },
       { runId: "agent_run_1", effort: "low" },
+      { runId: "agent_run_1", budget: { maxCostDollars: 5 } },
     ]) {
       const result = await invoke(args);
       expect(result.isError).toBe(true);
@@ -592,10 +891,38 @@ describe("agent_run tool", () => {
 
   it("registers the streaming handoff contract and non-idempotent annotations", () => {
     const { tool } = setup();
-    expect(tool.description).toContain("runs may take several minutes");
+    expect(tool.description).toContain("Long-running: returns a run ID; resume with runId");
+    expect(tool.description).toContain("Use it instead of running many searches yourself");
     expect(tool.description).toContain(
       "interrupted tool call is not an explicit cancellation request",
     );
-    expect(tool.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: false });
+    expect(tool.description).toContain("use web_search_exa");
+    expect(tool.description).toContain("use web_fetch_exa");
+    expect(tool.annotations).toMatchObject({
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    });
+  });
+
+  it("only names alternative tools that are registered in the session", () => {
+    const searchOnly = setup({ siblingTools: ["web_search_exa"] }).tool.description;
+    expect(searchOnly).toContain("use web_search_exa");
+    expect(searchOnly).not.toContain("web_fetch_exa");
+
+    const advancedOnly = setup({ siblingTools: ["web_search_advanced_exa"] }).tool.description;
+    expect(advancedOnly).toContain("(use web_search_advanced_exa)");
+    expect(advancedOnly).not.toContain("use web_search_exa");
+
+    const bothSearch = setup({
+      siblingTools: ["web_search_exa", "web_search_advanced_exa"],
+    }).tool.description;
+    expect(bothSearch).toContain("(use web_search_exa or web_search_advanced_exa)");
+
+    const agentOnly = setup({ siblingTools: [] }).tool.description;
+    expect(agentOnly).not.toContain("web_search_exa");
+    expect(agentOnly).not.toContain("web_fetch_exa");
+    expect(agentOnly).toContain("Not for a single question");
   });
 });

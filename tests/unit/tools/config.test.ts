@@ -74,19 +74,21 @@ describe("integrationHeaders", () => {
     });
   });
 
-  it("encodes non-ASCII client-controlled header values", () => {
-    const headers = integrationHeaders("web-search-mcp", {
-      exaSource: "你hao",
-      mcpClient: {
-        clientInfo: { name: "你🚀" },
-        userAgent: "agent/é",
-      },
-    });
+  it("escapes non-ASCII MCP client metadata into a header-safe JSON string", () => {
+    const mcpClient = {
+      clientInfo: { name: "DS大模型安装助手" },
+      userAgent: "Mozilla/5.0 DS大模型安装助手/7.0.0.4 Electron/41.8.0 😀",
+    };
+    const header = integrationHeaders("web-search-mcp", { mcpClient })["x-exa-mcp-client"];
+
+    expect(header).toMatch(/^[ -~]*$/);
+    expect(JSON.parse(header ?? "")).toEqual(mcpClient);
+  });
+
+  it("percent-encodes non-ASCII bytes of the integration source", () => {
+    const headers = integrationHeaders("web-search-mcp", { exaSource: "你hao" });
 
     expect(headers["x-exa-integration"]).toBe("web-search-mcp:%E4%BD%A0hao");
-    expect(headers["x-exa-mcp-client"]).toBe(
-      '{"clientInfo":{"name":"\\u4f60\\ud83d\\ude80"},"userAgent":"agent/\\u00e9"}',
-    );
     expect(() => new Headers(headers)).not.toThrow();
   });
 });

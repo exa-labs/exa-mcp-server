@@ -1,16 +1,22 @@
 import { ExaError } from "exa-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatToolError, retryWithBackoff, withTimeout } from "../../../src/utils/errorHandler.js";
+import {
+  formatToolError,
+  RATE_LIMITED_META_KEY,
+  retryWithBackoff,
+  withTimeout,
+} from "../../../src/utils/errorHandler.js";
 
 describe("errorHandler", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it("formats free MCP rate limits with API key setup guidance", () => {
+  it("formats free MCP rate limits as a non-error notice with API key setup guidance", () => {
     const result = formatToolError(new ExaError("Too many requests", 429), "web_search_exa", false);
 
-    expect(result.isError).toBe(true);
+    expect("isError" in result).toBe(false);
+    expect("_meta" in result && result._meta[RATE_LIMITED_META_KEY]).toBe(true);
     expect(result.content[0].text).toContain("free MCP rate limit");
     expect(result.content[0].text).toContain("https://dashboard.exa.ai/api-keys");
   });

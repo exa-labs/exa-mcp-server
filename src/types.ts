@@ -1,7 +1,7 @@
 // Exa API Types
 export interface ExaSearchRequest {
   query: string;
-  type: "auto" | "fast" | "instant" | "deep" | "deep-reasoning";
+  type: "auto" | "lite" | "fast" | "instant" | "deep" | "deep-reasoning";
   category?:
     | "company"
     | "publication"
@@ -18,6 +18,7 @@ export interface ExaSearchRequest {
   numResults?: number;
   additionalQueries?: string[];
   outputSchema?: Record<string, unknown>;
+  objective?: string;
   contents: {
     text?:
       | {
@@ -46,7 +47,7 @@ export interface ExaSearchRequest {
 
 export interface ExaAdvancedSearchRequest {
   query: string;
-  type: "auto" | "fast" | "instant";
+  type: "auto" | "lite" | "fast" | "instant";
   numResults?: number;
   category?:
     | "company"
@@ -135,6 +136,33 @@ export interface ExaCostDollars {
   contents?: Record<string, number>;
 }
 
+/**
+ * The fields every `warnings[]` and `notices[]` item of a search response
+ * carries: `code` is an UPPER_SNAKE token from an open set (clients must
+ * tolerate codes they do not know), `path` a JSON Pointer to the request field
+ * the item is about (`/query`), and `message` is complete on its own.
+ */
+export interface ExaSearchNote {
+  code: string;
+  path: string;
+  message: string;
+}
+
+/**
+ * A note about the request itself, such as a field the API ignores. It is for
+ * whoever maintains the code that builds the request, never for a model.
+ */
+export type ExaSearchWarning = ExaSearchNote;
+
+/**
+ * A note about how the results were produced, such as a query restriction
+ * relaxed to return any results, written to be shown to a model. `details` is
+ * an open object of extra context that never carries what `message` lacks.
+ */
+export interface ExaSearchNotice extends ExaSearchNote {
+  details?: Record<string, unknown>;
+}
+
 export interface ExaSearchResponse {
   requestId: string;
   autopromptString?: string;
@@ -154,6 +182,8 @@ export interface ExaSearchResponse {
   };
   statuses?: ExaSearchStatus[];
   results: ExaSearchResult[];
+  warnings?: ExaSearchWarning[];
+  notices?: ExaSearchNotice[];
   searchTime?: number;
   costDollars?: ExaCostDollars;
 }
@@ -194,6 +224,8 @@ export interface ExaDeepSearchResponse {
   };
   statuses?: ExaSearchStatus[];
   results: ExaSearchResult[];
+  warnings?: ExaSearchWarning[];
+  notices?: ExaSearchNotice[];
   searchTime?: number;
   costDollars?: ExaCostDollars;
 }
@@ -277,15 +309,9 @@ export interface ExaCodeResponse {
   traces?: any;
 }
 
-export type AgentEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "auto";
-export type AgentDataSourceProvider =
-  | "fiber"
-  | "financial_datasets"
-  | "similarweb"
-  | "baselayer"
-  | "affiliate"
-  | "particle"
-  | "jinko";
+export type AgentEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "ultra" | "auto";
+/** Exa Connect provider ID; the Agent API decides which providers the team may use. */
+export type AgentDataSourceProvider = string;
 
 export type AgentRunInput = {
   query: string;
@@ -296,6 +322,11 @@ export type AgentRunInput = {
   };
   outputSchema?: Record<string, unknown> | null;
   effort?: AgentEffort;
+  /** Per-run limits for the metered `auto` and `ultra` efforts; the Agent API validates the ranges. */
+  budget?: {
+    maxCostDollars?: number;
+    maxDurationSeconds?: number;
+  };
   previousRunId?: string;
   dataSources?: Array<{
     provider: AgentDataSourceProvider;
@@ -304,5 +335,6 @@ export type AgentRunInput = {
 
 export type ToolContent = {
   content: Array<{ type: "text"; text: string }>;
+  structuredContent?: Record<string, unknown>;
   isError?: true;
 };

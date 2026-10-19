@@ -4,13 +4,22 @@ import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { ExaDeepSearchRequest, ExaDeepSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
-import { sanitizeDeepSearchStructuredResponse } from "../utils/exaResponseSanitizer.js";
+import {
+  sanitizeDeepSearchStructuredResponse,
+  sanitizeSearchNotices,
+} from "../utils/exaResponseSanitizer.js";
 import {
   lenientString,
   lenientOptionalNumber,
   lenientOptionalPositiveNumber,
   lenientOptionalBoolean,
 } from "./validation.js";
+import {
+  logSearchWarnings,
+  withNoticeMessages,
+  withSearchNotices,
+  withStructuredSearchNotices,
+} from "./searchNotes.js";
 import { checkpoint } from "agnost";
 
 export function registerDeepSearchTool(
@@ -23,7 +32,7 @@ export function registerDeepSearchTool(
 
 Best for: Complex questions needing information from multiple angles.
 Returns: A synthesized answer with citations, plus individual search results with highlights. When structuredOutput is enabled, returns structured JSON instead of markdown.
-Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 12-50s.`,
+Note: Requires an Exa API key. 'deep' takes 4-12s.`,
     {
       objective: lenientString().describe(
         "Natural language description of what the web search is looking for. Try to make the search query atomic - looking for a specific piece of information.",
@@ -38,7 +47,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         .enum(["deep", "deep-reasoning"])
         .optional()
         .describe(
-          "Search depth - 'deep': fast deep search (4-12s, default), 'deep-reasoning': thorough with reasoning (12-50s)",
+          "Search type. 'deep' is the default and recommended type and takes 4-12s. 'deep-reasoning' is a legacy type. Use 'deep' instead, or run an Exa Agent with the agent_run tool for long-running research, list building and multi-hop enrichment.",
         ),
       numResults: lenientOptionalNumber().describe(
         "Number of search results to return (default: 8)",
@@ -129,6 +138,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
 
         checkpoint("deep_search_response_received");
         logger.log("Received response from Exa API");
+        logSearchWarnings(response, logger);
 
         if (!response) {
           logger.log("Warning: Empty response from Exa API");
@@ -144,12 +154,13 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
         }
 
         const data = response;
+        const notices = sanitizeSearchNotices(data.notices);
 
         // When structured output was requested (via outputSchema or structuredOutput flag), return the raw JSON response
         if (outputSchema || structuredOutput) {
-          const structuredResponse = sanitizeDeepSearchStructuredResponse(data);
+          let structuredResponse = sanitizeDeepSearchStructuredResponse(data);
 
-          const text = JSON.stringify(structuredResponse, null, 2);
+          const text = JSON.stringify(withNoticeMessages(structuredResponse, notices), null, 2);
           logger.log(`Structured response prepared with ${text.length} characters`);
 
           const result = {
@@ -163,7 +174,7 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
 
           checkpoint("deep_search_complete");
           logger.complete();
-          return result;
+          return withStructuredSearchNotices(result, structuredResponse, notices);
         }
 
         const parts: string[] = [];
@@ -229,7 +240,8 @@ Note: Requires an Exa API key. 'deep' mode takes 4-12s, 'deep-reasoning' takes 1
 
         checkpoint("deep_search_complete");
         logger.complete();
-        return result;
+        const { output, results } = sanitizeDeepSearchStructuredResponse(data);
+        return withSearchNotices(result, notices, { output, results });
       } catch (error) {
         checkpoint("deep_search_complete");
         logger.error(error);

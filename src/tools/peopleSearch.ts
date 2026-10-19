@@ -4,7 +4,8 @@ import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
-import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
+import { sanitizeSearchNotices, sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
+import { logSearchWarnings, withSearchNotices } from "./searchNotes.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
 import { checkpoint } from "agnost";
 
@@ -65,11 +66,13 @@ Returns: Profile information and links.`,
 
         checkpoint("people_search_response_received");
         logger.log("Received response from Exa API");
+        logSearchWarnings(response, logger);
+        const notices = sanitizeSearchNotices(response?.notices);
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint("people_search_complete");
-          return {
+          const noResults = {
             content: [
               {
                 type: "text" as const,
@@ -77,6 +80,7 @@ Returns: Profile information and links.`,
               },
             ],
           };
+          return withSearchNotices(noResults, notices, { results: [] });
         }
 
         logger.log(`Found ${response.results.length} results`);
@@ -115,7 +119,7 @@ Returns: Profile information and links.`,
 
         checkpoint("people_search_complete");
         logger.complete();
-        return result;
+        return withSearchNotices(result, notices, { results });
       } catch (error) {
         logger.error(error);
         return formatToolError(error, "people_search_exa", config?.userProvidedApiKey);

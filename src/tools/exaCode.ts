@@ -4,8 +4,9 @@ import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
-import { sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
+import { sanitizeSearchNotices, sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
+import { logSearchWarnings, withSearchNotices } from "./searchNotes.js";
 import { checkpoint } from "agnost";
 
 export function registerExaCodeTool(
@@ -44,7 +45,7 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
 
         const searchRequest: ExaSearchRequest = {
           query,
-          type: "fast",
+          type: "lite",
           numResults: numResults || API_CONFIG.DEFAULT_NUM_RESULTS,
           contents: {
             highlights: {
@@ -69,11 +70,13 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
 
         checkpoint("code_context_response_received");
         logger.log("Received code search response from Exa API");
+        logSearchWarnings(response, logger);
+        const notices = sanitizeSearchNotices(response?.notices);
 
         if (!response || !response.results || response.results.length === 0) {
           logger.log("Warning: Empty or invalid response from Exa API");
           checkpoint("code_context_complete");
-          return {
+          const noResults = {
             content: [
               {
                 type: "text" as const,
@@ -81,6 +84,7 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
               },
             ],
           };
+          return withSearchNotices(noResults, notices, { results: [] });
         }
 
         logger.log(`Received ${response.results.length} results with highlights`);
@@ -117,7 +121,7 @@ If highlights are insufficient, follow up with web_fetch_exa on the best URLs.`,
 
         checkpoint("code_context_complete");
         logger.complete();
-        return result;
+        return withSearchNotices(result, notices, { results });
       } catch (error) {
         logger.error(error);
         return formatToolError(error, "get_code_context_exa", config?.userProvidedApiKey);
