@@ -128,6 +128,16 @@ describe("Stdio entrypoint", () => {
     expect(config.defaultSearchType).toBe("instant");
   });
 
+  it("buildConfigFromEnv accepts lite as a default search type", async () => {
+    const { buildConfigFromEnv } = await import("../../src/stdio.js");
+
+    const config = buildConfigFromEnv({
+      DEFAULT_SEARCH_TYPE: "lite",
+    });
+
+    expect(config.defaultSearchType).toBe("lite");
+  });
+
   it("main() wires the McpServer through stdio transport with env-derived config", async () => {
     const { main } = await import("../../src/stdio.js");
 

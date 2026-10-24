@@ -14,6 +14,7 @@ import { registerWebSearchAdvancedTool } from "./tools/webSearchAdvanced.js";
 import { registerDeepSearchTool } from "./tools/deepSearch.js";
 import { registerAgentRunTool, resolveAgentCallWindowMs } from "./tools/agentRun.js";
 import { agentSchemaTemplates } from "./tools/agentSchemaTemplates.js";
+import type { DefaultSearchType } from "./tools/config.js";
 import {
   TOOL_REGISTRY,
   isAgentTool,
@@ -32,7 +33,7 @@ export interface McpConfig {
   exaSource?: string;
   mcpSessionId?: string;
   mcpClient?: unknown;
-  defaultSearchType?: "auto" | "fast" | "instant";
+  defaultSearchType?: DefaultSearchType;
   oauthAccessToken?: string;
   agentCallWindowMs?: number;
   mcpMaxDurationSeconds?: number;

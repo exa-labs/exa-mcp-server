@@ -594,6 +594,26 @@ describe("api/mcp handler", () => {
     });
   });
 
+  it("accepts lite as a defaultSearchType query parameter", async () => {
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?defaultSearchType=lite"),
+    );
+
+    expect(config).toMatchObject({
+      defaultSearchType: "lite",
+    });
+  });
+
+  it("accepts lite as DEFAULT_SEARCH_TYPE from the environment", async () => {
+    process.env.DEFAULT_SEARCH_TYPE = "lite";
+
+    const { config } = await callHandleRequest(new Request("https://mcp.exa.ai/mcp"));
+
+    expect(config).toMatchObject({
+      defaultSearchType: "lite",
+    });
+  });
+
   it("falls back to DEFAULT_SEARCH_TYPE from the environment", async () => {
     process.env.DEFAULT_SEARCH_TYPE = "instant";
 

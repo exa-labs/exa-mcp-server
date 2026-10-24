@@ -96,3 +96,13 @@ export const API_CONFIG = {
   DEFAULT_NUM_RESULTS: 10,
   DEFAULT_MAX_CHARACTERS: 3000,
 } as const;
+
+const DEFAULT_SEARCH_TYPES = ["auto", "lite", "fast", "instant"] as const;
+
+export type DefaultSearchType = (typeof DEFAULT_SEARCH_TYPES)[number];
+
+export function parseDefaultSearchType(
+  value: string | null | undefined,
+): DefaultSearchType | undefined {
+  return DEFAULT_SEARCH_TYPES.find((type) => type === value);
+}

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createExaClient, integrationHeaders } from "../../../src/tools/config.js";
+import {
+  createExaClient,
+  integrationHeaders,
+  parseDefaultSearchType,
+} from "../../../src/tools/config.js";
 
 function clientHeaders(client: unknown): Headers {
   return (client as { headers: Headers }).headers;
@@ -141,5 +145,15 @@ describe("createExaClient", () => {
         clientInfo: { name: "Claude Code", version: "1.0.0" },
       }),
     );
+  });
+});
+
+describe("parseDefaultSearchType", () => {
+  it.each(["auto", "lite", "fast", "instant"])("accepts %s", (value) => {
+    expect(parseDefaultSearchType(value)).toBe(value);
+  });
+
+  it.each(["deep", "LITE", "", null, undefined])("rejects %s", (value) => {
+    expect(parseDefaultSearchType(value)).toBeUndefined();
   });
 });

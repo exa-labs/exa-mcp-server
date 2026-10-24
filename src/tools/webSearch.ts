@@ -1,5 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
+import {
+  API_CONFIG,
+  createExaClient,
+  integrationHeaders,
+  type DefaultSearchType,
+} from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
@@ -11,7 +16,7 @@ import { checkpoint } from "agnost";
 type WebSearchConfig = {
   exaApiKey?: string;
   userProvidedApiKey?: boolean;
-  defaultSearchType?: "auto" | "lite" | "fast" | "instant";
+  defaultSearchType?: DefaultSearchType;
   exaSource?: string;
   mcpSessionId?: string;
 };
