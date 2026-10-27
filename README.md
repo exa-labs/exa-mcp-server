@@ -114,7 +114,7 @@ Exa Agent requires authentication (OAuth or an [API key](https://dashboard.exa.a
 
 ## Agent Skills
 
-Skills live in [`skills/`](./skills/) and load with Agent Plugin / Claude plugin installs.
+Skills live in [`skills/`](./skills/) and load with Agent Plugin installs. The Claude plugin in [`plugins/exa/`](./plugins/exa/) ships a copy of them; `npm test` fails when the copy drifts.
 
 | Skill | Path | Use when |
 | --- | --- | --- |
