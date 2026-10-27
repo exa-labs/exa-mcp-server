@@ -1,6 +1,9 @@
 name: Publish Claude plugin
 
-# Publish the plugin on package version bumps
+# Claude's plugin directory reads the plugin from the root of the claude-plugin
+# branch. Each package version bump publishes plugins/exa there as one commit,
+# as does the first run, which creates the branch. Run the workflow manually to
+# publish a plugin-only change between releases.
 
 on:
   push:
@@ -8,6 +11,7 @@ on:
       - main
     paths:
       - package.json
+      - .github/workflows/publish-claude-plugin.yml
   workflow_dispatch:
 
 permissions:
@@ -22,13 +26,15 @@ jobs:
     name: Publish plugins/exa to the claude-plugin branch
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    env:
+      BRANCH: claude-plugin
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Check for a package version bump
+      - name: Check whether to publish
         id: release
         env:
           EVENT_BEFORE: ${{ github.event.before }}
@@ -36,6 +42,12 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "publish=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          if ! git ls-remote --exit-code --heads origin "${BRANCH}" > /dev/null; then
+            echo "${BRANCH} does not exist yet; publishing to create it"
             echo "publish=true" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
@@ -53,7 +65,6 @@ jobs:
       - name: Publish
         if: steps.release.outputs.publish == 'true'
         env:
-          BRANCH: claude-plugin
           GIT_AUTHOR_NAME: github-actions[bot]
           GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
           GIT_COMMITTER_NAME: github-actions[bot]
