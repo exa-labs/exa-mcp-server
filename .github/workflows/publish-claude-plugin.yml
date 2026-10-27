@@ -1,15 +1,13 @@
 name: Publish Claude plugin
 
-# Claude's plugin directory reads the plugin from the root of the claude-plugin
-# branch. This keeps that branch's tree identical to plugins/exa on main, with
-# one commit per change.
+# Publish the plugin on package version bumps
 
 on:
   push:
     branches:
       - main
     paths:
-      - plugins/exa/**
+      - package.json
   workflow_dispatch:
 
 permissions:
@@ -27,8 +25,33 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for a package version bump
+        id: release
+        env:
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "publish=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          previous_version="$(git show "${EVENT_BEFORE}:package.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).version))')"
+          current_version="$(node -p 'require("./package.json").version')"
+          if [[ "${previous_version}" == "${current_version}" ]]; then
+            echo "package.json version unchanged (${current_version}); skipping publication"
+            echo "publish=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "package version changed ${previous_version} -> ${current_version}"
+            echo "publish=true" >> "${GITHUB_OUTPUT}"
+          fi
 
       - name: Publish
+        if: steps.release.outputs.publish == 'true'
         env:
           BRANCH: claude-plugin
           GIT_AUTHOR_NAME: github-actions[bot]
