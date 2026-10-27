@@ -9,7 +9,7 @@
   "homepage": "https://docs.exa.ai/reference/exa-mcp",
   "repository": "https://github.com/exa-labs/exa-mcp-server",
   "license": "MIT",
-  "icon": "./assets/exa.svg",
+  "icon": "./assets/icon.png",
   "privacyPolicyUrl": "https://exa.ai/privacy-policy",
   "mcpServers": {
     "exa": {

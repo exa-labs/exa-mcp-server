@@ -1,0 +1,55 @@
+name: Publish Claude plugin
+
+# Claude's plugin directory reads the plugin from the root of the claude-plugin
+# branch. This keeps that branch's tree identical to plugins/exa on main, with
+# one commit per change.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - plugins/exa/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-claude-plugin
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish plugins/exa to the claude-plugin branch
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish
+        env:
+          BRANCH: claude-plugin
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          set -euo pipefail
+
+          tree="$(git rev-parse "HEAD:plugins/exa")"
+          parent_args=()
+          if git ls-remote --exit-code --heads origin "${BRANCH}" > /dev/null; then
+            git fetch --depth=1 origin "${BRANCH}"
+            parent="$(git rev-parse FETCH_HEAD)"
+            if [[ "$(git rev-parse "${parent}^{tree}")" == "${tree}" ]]; then
+              echo "${BRANCH} already matches plugins/exa at ${GITHUB_SHA}." | tee -a "${GITHUB_STEP_SUMMARY}"
+              exit 0
+            fi
+            parent_args=(-p "${parent}")
+          fi
+
+          commit="$(git commit-tree "${tree}" "${parent_args[@]}" -m "Publish plugins/exa from ${GITHUB_SHA}")"
+          git push origin "${commit}:refs/heads/${BRANCH}"
+          echo "Published plugins/exa at ${GITHUB_SHA} to ${BRANCH} as ${commit}." | tee -a "${GITHUB_STEP_SUMMARY}"
