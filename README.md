@@ -114,7 +114,7 @@ Exa Agent requires authentication (OAuth or an [API key](https://dashboard.exa.a
 
 ## Agent Skills
 
-Skills live in [`skills/`](./skills/) and load with Agent Plugin installs. The Claude plugin in [`plugins/exa/`](./plugins/exa/) ships a copy of them; `npm test` fails when the copy drifts.
+Skills live in [`skills/`](./skills/) and load with Agent Plugin installs. The Claude plugin in [`plugins/exa/`](./plugins/exa/) ships a copy of them; `npm test` fails when the copy drifts. Each package version bump on `main` publishes `plugins/exa/` to the root of the [`claude-plugin`](https://github.com/exa-labs/exa-mcp-server/tree/claude-plugin) branch, which Claude's plugin directory reads. To publish a plugin-only change between releases, run the `Publish Claude plugin` workflow manually.
 
 | Skill | Path | Use when |
 | --- | --- | --- |
