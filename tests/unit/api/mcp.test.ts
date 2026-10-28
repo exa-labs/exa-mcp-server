@@ -584,24 +584,67 @@ describe("api/mcp handler", () => {
     expect(initializeMcpServerMock).toHaveBeenCalled();
   });
 
-  it("accepts instant as a defaultSearchType query parameter", async () => {
+  it.each(["auto", "lite", "fast", "instant"])(
+    "accepts %s as a defaultSearchType query parameter",
+    async (type) => {
+      const { config } = await callHandleRequest(
+        new Request(`https://mcp.exa.ai/mcp?defaultSearchType=${type}`),
+      );
+
+      expect(config).toMatchObject({ defaultSearchType: type });
+    },
+  );
+
+  it.each(["", "FAST", "neural", "deep"])(
+    "ignores the defaultSearchType query parameter %o, which names no search type",
+    async (type) => {
+      const { config } = await callHandleRequest(
+        new Request(`https://mcp.exa.ai/mcp?defaultSearchType=${type}`),
+      );
+
+      expect(config).toBeDefined();
+      expect(config!.defaultSearchType).toBeUndefined();
+    },
+  );
+
+  it.each(["auto", "lite", "fast", "instant"])(
+    "falls back to DEFAULT_SEARCH_TYPE=%s from the environment",
+    async (type) => {
+      process.env.DEFAULT_SEARCH_TYPE = type;
+
+      const { config } = await callHandleRequest(new Request("https://mcp.exa.ai/mcp"));
+
+      expect(config).toMatchObject({ defaultSearchType: type });
+    },
+  );
+
+  it("prefers ?defaultSearchType over DEFAULT_SEARCH_TYPE", async () => {
+    process.env.DEFAULT_SEARCH_TYPE = "fast";
+
     const { config } = await callHandleRequest(
-      new Request("https://mcp.exa.ai/mcp?defaultSearchType=instant"),
+      new Request("https://mcp.exa.ai/mcp?defaultSearchType=lite"),
     );
 
-    expect(config).toMatchObject({
-      defaultSearchType: "instant",
-    });
+    expect(config).toMatchObject({ defaultSearchType: "lite" });
   });
 
-  it("falls back to DEFAULT_SEARCH_TYPE from the environment", async () => {
-    process.env.DEFAULT_SEARCH_TYPE = "instant";
+  it("falls back to DEFAULT_SEARCH_TYPE when ?defaultSearchType is invalid", async () => {
+    process.env.DEFAULT_SEARCH_TYPE = "lite";
+
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?defaultSearchType=deep"),
+    );
+
+    expect(config).toMatchObject({ defaultSearchType: "lite" });
+  });
+
+  it("ignores a DEFAULT_SEARCH_TYPE that names no search type", async () => {
+    process.env.DEFAULT_SEARCH_TYPE = "deep";
 
     const { config } = await callHandleRequest(new Request("https://mcp.exa.ai/mcp"));
 
-    expect(config).toMatchObject({
-      defaultSearchType: "instant",
-    });
+    expect(config).toBeDefined();
+    expect(config!.defaultSearchType).toBeUndefined();
   });
 
   it("uses agentCallWindowMs from the query parameter before the environment", async () => {

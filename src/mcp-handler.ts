@@ -3,6 +3,7 @@ import { z } from "zod";
 
 // Import tool implementations
 import { registerWebSearchTool } from "./tools/webSearch.js";
+import type { SearchType } from "./tools/searchType.js";
 import { registerCompanyResearchTool } from "./tools/companyResearch.js";
 import { registerWebFetchTool } from "./tools/webFetch.js";
 import { registerPeopleSearchTool } from "./tools/peopleSearch.js";
@@ -32,7 +33,7 @@ export interface McpConfig {
   exaSource?: string;
   mcpSessionId?: string;
   mcpClient?: unknown;
-  defaultSearchType?: "auto" | "fast" | "instant";
+  defaultSearchType?: SearchType;
   oauthAccessToken?: string;
   agentCallWindowMs?: number;
   mcpMaxDurationSeconds?: number;

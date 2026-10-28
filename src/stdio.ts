@@ -6,6 +6,7 @@ import { initializeMcpServer, type McpConfig } from "./mcp-handler.js";
 import { expandToolSelection } from "./toolRegistry.js";
 import { log } from "./utils/logger.js";
 import { parsePositiveInteger } from "./tools/agentRun.js";
+import { parseSearchType } from "./tools/searchType.js";
 
 // Reads EXA_API_KEY, ENABLED_TOOLS / TOOLS, DEBUG, DEFAULT_SEARCH_TYPE from env.
 // HTTP/Vercel entry point lives in api/mcp.ts; CLI bootstrap lives in src/stdio-cli.ts.
@@ -19,11 +20,6 @@ function parseTools(value: string | undefined): string[] | undefined {
       .filter((tool) => tool.length > 0),
   );
   return tools.length > 0 ? tools : undefined;
-}
-
-function parseSearchType(value: string | undefined): "auto" | "fast" | "instant" | undefined {
-  if (value === "auto" || value === "fast" || value === "instant") return value;
-  return undefined;
 }
 
 export function buildConfigFromEnv(env: NodeJS.ProcessEnv = process.env): McpConfig {
