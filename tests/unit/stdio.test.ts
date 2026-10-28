@@ -118,15 +118,27 @@ describe("Stdio entrypoint", () => {
     expect(config.mcpSessionId).toBe("session-1");
   });
 
-  it("buildConfigFromEnv accepts instant as a default search type", async () => {
-    const { buildConfigFromEnv } = await import("../../src/stdio.js");
+  it.each(["auto", "lite", "fast", "instant"])(
+    "buildConfigFromEnv accepts %s as a default search type",
+    async (type) => {
+      const { buildConfigFromEnv } = await import("../../src/stdio.js");
 
-    const config = buildConfigFromEnv({
-      DEFAULT_SEARCH_TYPE: "instant",
-    });
+      const config = buildConfigFromEnv({ DEFAULT_SEARCH_TYPE: type });
 
-    expect(config.defaultSearchType).toBe("instant");
-  });
+      expect(config.defaultSearchType).toBe(type);
+    },
+  );
+
+  it.each(["", "FAST", "neural", "deep"])(
+    "buildConfigFromEnv ignores the default search type %o, which names no search type",
+    async (type) => {
+      const { buildConfigFromEnv } = await import("../../src/stdio.js");
+
+      const config = buildConfigFromEnv({ DEFAULT_SEARCH_TYPE: type });
+
+      expect(config.defaultSearchType).toBeUndefined();
+    },
+  );
 
   it("main() wires the McpServer through stdio transport with env-derived config", async () => {
     const { main } = await import("../../src/stdio.js");

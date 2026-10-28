@@ -5,6 +5,7 @@ import { createMcpHandler } from "mcp-handler";
 import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import { initializeMcpServer, type McpConfig } from "../src/mcp-handler.js";
 import { DEFAULT_MCP_MAX_DURATION_SECONDS, parsePositiveInteger } from "../src/tools/agentRun.js";
+import { parseSearchType, type SearchType } from "../src/tools/searchType.js";
 import type { Ratelimit } from "@upstash/ratelimit";
 import type { Redis } from "@upstash/redis";
 import { isJwtToken, verifyOAuthToken } from "../src/utils/auth.js";
@@ -417,7 +418,7 @@ interface RequestConfig {
   exaSource?: string;
   mcpSessionId?: string;
   mcpClient?: McpClientMetadata;
-  defaultSearchType?: "auto" | "fast" | "instant";
+  defaultSearchType?: SearchType;
   oauthAccessToken?: string;
   /** True when a Bearer token was a JWT but failed OAuth verification (expired, bad sig, wrong issuer/audience). */
   invalidOAuthJwt: boolean;
@@ -435,7 +436,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
   let debug = process.env.DEBUG === "true";
   let userProvidedApiKey = false;
   let authMethod: "oauth" | "api_key" | "free_tier" = "free_tier";
-  let defaultSearchType: "auto" | "fast" | "instant" | undefined;
+  let defaultSearchType: SearchType | undefined;
   let oauthAccessToken: string | undefined;
   let invalidOAuthJwt = false;
   let agentCallWindowMs: number | undefined;
@@ -511,13 +512,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
     // Support ?agentCallWindowMs
     agentCallWindowMs = parsePositiveInteger(params.get("agentCallWindowMs") ?? undefined);
 
-    // Support ?defaultSearchType
-    if (params.has("defaultSearchType")) {
-      const dst = params.get("defaultSearchType");
-      if (dst === "auto" || dst === "fast" || dst === "instant") {
-        defaultSearchType = dst;
-      }
-    }
+    defaultSearchType = parseSearchType(params.get("defaultSearchType"));
   } catch (error) {
     // URL parsing failed, will use env vars
     if (debug) {
@@ -534,12 +529,7 @@ async function getConfigFromRequest(request: Request): Promise<RequestConfig> {
     );
   }
 
-  if (!defaultSearchType && process.env.DEFAULT_SEARCH_TYPE) {
-    const dst = process.env.DEFAULT_SEARCH_TYPE;
-    if (dst === "auto" || dst === "fast" || dst === "instant") {
-      defaultSearchType = dst;
-    }
-  }
+  defaultSearchType ??= parseSearchType(process.env.DEFAULT_SEARCH_TYPE);
 
   const exaSource = request.headers.get("x-exa-source") || undefined;
   const mcpSessionId = request.headers.get("MCP-Session-Id") || undefined;
