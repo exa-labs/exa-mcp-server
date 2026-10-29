@@ -97,7 +97,7 @@ const expectedMcpCorsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
     "Accept, Content-Type, Authorization, x-api-key, x-exa-source, Mcp-Session-Id, MCP-Protocol-Version, Last-Event-ID",
-  "Access-Control-Expose-Headers": "Mcp-Session-Id",
+  "Access-Control-Expose-Headers": "Mcp-Session-Id, WWW-Authenticate",
   "Access-Control-Max-Age": "86400",
   Vary: "Origin",
 };
@@ -144,6 +144,24 @@ describe("api/mcp handler", () => {
     delete process.env.RATE_LIMIT_BYPASS;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
     delete process.env.UPSTASH_REDIS_REST_URL;
+  });
+
+  it("exposes OAuth challenges to cross-origin browser clients", async () => {
+    const { response } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?login", {
+        headers: { Origin: "https://client.example" },
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(response.headers.get("WWW-Authenticate")).toContain("resource_metadata=");
+    expect(
+      response.headers
+        .get("Access-Control-Expose-Headers")
+        ?.toLowerCase()
+        .split(/\s*,\s*/),
+    ).toContain("www-authenticate");
   });
 
   it("falls back to EXA_API_KEY without marking it as user-provided", async () => {
