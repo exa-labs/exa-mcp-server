@@ -16,6 +16,7 @@ import {
   withNoticeMessages,
   withStructuredSearchNotices,
 } from "./searchNotes.js";
+import { SEARCH_TYPES } from "./searchType.js";
 import { checkpoint } from "agnost";
 
 /**
@@ -79,6 +80,30 @@ export function liteUnsupportedParameters(request: ExaAdvancedSearchRequest): st
   return [...new Set(fields.map((field) => LITE_REJECTED_FIELD_PARAMETERS[field] ?? field))];
 }
 
+/** The parameters that decide which page text a search asks for. */
+type TextParameters = {
+  textMaxCharacters?: number;
+  enableHighlights?: boolean;
+  enableSummary?: boolean;
+};
+
+/**
+ * The `contents.text` option for a search: capped at `textMaxCharacters` when
+ * set, omitted when highlights or a summary stand in for the page, and the
+ * full page otherwise.
+ */
+export function requestedText(
+  params: TextParameters,
+): ExaAdvancedSearchRequest["contents"]["text"] {
+  if (params.textMaxCharacters) {
+    return { maxCharacters: params.textMaxCharacters };
+  }
+  if (params.enableHighlights || params.enableSummary) {
+    return undefined;
+  }
+  return true;
+}
+
 /** The error result for a `lite` search that sets parameters `lite` does not serve. */
 function liteRefusal(parameters: readonly string[]) {
   const pronoun = parameters.length === 1 ? "it" : "them";
@@ -103,12 +128,12 @@ export function registerWebSearchAdvancedTool(
 
 Best for: When you need specific filters like date ranges, domain restrictions, or category filters.
 Not recommended for: Simple searches - use web_search_exa instead.
-Returns: Search results with optional highlights, summaries, and subpage content.`,
+Returns: Search results with page text, highlights, summaries or subpage content. Page text is the full page by default. When highlights or summaries are enabled, page text is omitted unless textMaxCharacters is set.`,
     {
       query: lenientString().describe("Search query - can be a question, statement, or keywords"),
       numResults: lenientOptionalNumber().describe("Number of results (1-100, default: 10)"),
       type: z
-        .enum(["auto", "lite", "fast", "instant"])
+        .enum(SEARCH_TYPES)
         .optional()
         .describe(
           "Search type. 'auto' is the default and recommended type. It returns high-quality results and supports every parameter. 'lite' is the low-cost, low-latency type and serves cached content. It supports only query, numResults, category, includeDomains, excludeDomains, startPublishedDate, endPublishedDate, userLocation, moderation, textMaxCharacters and the highlights parameters. 'instant' and 'fast' are legacy types. Use 'lite' instead of 'instant'. Use 'lite' instead of 'fast', or 'auto' when the search needs a parameter 'lite' does not support.",
@@ -173,7 +198,7 @@ Returns: Search results with optional highlights, summaries, and subpage content
         .describe("Additional query variations to expand search coverage"),
 
       textMaxCharacters: lenientOptionalPositiveNumber().describe(
-        "Max characters for text extraction per result",
+        "Max characters of page text per result. Set it to get page text alongside highlights or summaries.",
       ),
       contextMaxCharacters: lenientOptionalPositiveNumber().describe(
         "Max characters for context string (not included by default)",
@@ -232,8 +257,9 @@ Returns: Search results with optional highlights, summaries, and subpage content
               ? {}
               : { livecrawl: "fallback" as const };
 
+        const text = requestedText(params);
         const contents: ExaAdvancedSearchRequest["contents"] = {
-          text: params.textMaxCharacters ? { maxCharacters: params.textMaxCharacters } : true,
+          ...(text !== undefined && { text }),
           ...freshness,
           ...(params.livecrawlTimeout && { livecrawlTimeout: params.livecrawlTimeout }),
         };
