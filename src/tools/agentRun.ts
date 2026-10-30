@@ -63,7 +63,7 @@ export const agentRunInputShape = {
     .describe(
       "ID returned by an earlier call. Use it to check or continue waiting for the same run. Do not start a duplicate run.",
     ),
-  systemPrompt: z.string().optional().describe("Optional system-level guidance for the Agent."),
+  systemPrompt: z.string().optional().describe("System-level guidance for the Agent."),
   outputSchema: recordSchema()
     .optional()
     .describe(
@@ -85,7 +85,7 @@ export const agentRunInputShape = {
     .array(z.object({ provider: dataSourceProviderSchema }))
     .max(5)
     .optional()
-    .describe("Optional Exa Connect providers to enable for this run."),
+    .describe("Exa Connect providers to enable for this run."),
   previousRunId: agentRunIdSchema()
     .optional()
     .describe("ID of a completed prior run to use as context for a new run."),
@@ -108,7 +108,7 @@ export const agentRunInputShape = {
     })
     .optional()
     .describe(
-      "Optional per-run spend and duration limits for the metered auto and ultra efforts. Set it when the user names a cost or time limit.",
+      "Per-run spend and duration limits for the metered auto and ultra efforts. Set it when the user names a cost or time limit.",
     ),
 };
 
