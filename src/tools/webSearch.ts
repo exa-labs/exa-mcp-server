@@ -6,12 +6,13 @@ import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHa
 import { sanitizeSearchNotices, sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
 import { logSearchWarnings, withSearchNotices } from "./searchNotes.js";
+import type { SearchType } from "./searchType.js";
 import { checkpoint } from "agnost";
 
 type WebSearchConfig = {
   exaApiKey?: string;
   userProvidedApiKey?: boolean;
-  defaultSearchType?: "auto" | "lite" | "fast" | "instant";
+  defaultSearchType?: SearchType;
   exaSource?: string;
   mcpSessionId?: string;
 };

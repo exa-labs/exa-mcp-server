@@ -49,7 +49,7 @@ export function createExaClient(config?: Record<string, unknown>, tool?: string)
  * double); unset, exa-js keeps its default of https://api.exa.ai.
  */
 function newExaClient(apiKey: string): Exa {
-  const baseUrl = process.env.EXA_API_BASE_URL;
+  let baseUrl = process.env.EXA_API_BASE_URL;
   return baseUrl ? new Exa(apiKey, baseUrl) : new Exa(apiKey);
 }
 
