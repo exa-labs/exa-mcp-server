@@ -12,13 +12,27 @@ describe("errorHandler", () => {
     vi.useRealTimers();
   });
 
-  it("formats free MCP rate limits as a non-error notice with API key setup guidance", () => {
+  it("formats free MCP rate limits as an isError notice with API key setup guidance", () => {
     const result = formatToolError(new ExaError("Too many requests", 429), "web_search_exa", false);
 
-    expect("isError" in result).toBe(false);
+    expect(result.isError).toBe(true);
     expect("_meta" in result && result._meta[RATE_LIMITED_META_KEY]).toBe(true);
     expect(result.content[0].text).toContain("free MCP rate limit");
     expect(result.content[0].text).toContain("https://dashboard.exa.ai/api-keys");
+  });
+
+  it("formats keyed 429s as normal Exa errors without the rate-limit marker", () => {
+    const error = new ExaError("Too many requests", 429, "2026-04-29T12:00:00.000Z");
+
+    expect(formatToolError(error, "web_search_exa", true)).toEqual({
+      content: [
+        {
+          type: "text",
+          text: "web_search_exa error (429): Too many requests\nTimestamp: 2026-04-29T12:00:00.000Z",
+        },
+      ],
+      isError: true,
+    });
   });
 
   it("keeps Exa error status and timestamp when rate limit guidance does not apply", () => {

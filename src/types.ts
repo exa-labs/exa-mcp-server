@@ -31,6 +31,7 @@ export interface ExaSearchRequest {
           numSentences?: number;
           highlightsPerUrl?: number;
           query?: string;
+          dynamic?: boolean;
         }
       | boolean;
     summary?:
@@ -90,6 +91,7 @@ export interface ExaAdvancedSearchRequest {
       numSentences?: number;
       highlightsPerUrl?: number;
       query?: string;
+      dynamic?: boolean;
     };
     livecrawl?: "never" | "fallback" | "always" | "preferred";
     maxAgeHours?: number;
