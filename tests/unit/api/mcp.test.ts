@@ -135,6 +135,7 @@ describe("api/mcp handler", () => {
     delete process.env.AGENT_CALL_WINDOW_MS;
     delete process.env.DEBUG;
     delete process.env.DEFAULT_SEARCH_TYPE;
+    delete process.env.DYNAMIC_HIGHLIGHTS;
     delete process.env.ENABLED_TOOLS;
     delete process.env.EXA_API_KEY;
     delete process.env.EXA_API_KEY_BYPASS;
@@ -626,6 +627,36 @@ describe("api/mcp handler", () => {
     );
 
     expect(config).toMatchObject({ defaultSearchType: "lite" });
+  });
+
+  it.each([
+    ["?dynamicHighlights=true", true],
+    ["?dynamicHighlights=false", false],
+    ["?dynamicHighlights=yes", undefined],
+    ["", undefined],
+  ])("reads %o as dynamicHighlights %o", async (query, expected) => {
+    const { config } = await callHandleRequest(new Request(`https://mcp.exa.ai/mcp${query}`));
+
+    expect(config).toBeDefined();
+    expect(config!.dynamicHighlights).toBe(expected);
+  });
+
+  it("falls back to DYNAMIC_HIGHLIGHTS from the environment", async () => {
+    process.env.DYNAMIC_HIGHLIGHTS = "true";
+
+    const { config } = await callHandleRequest(new Request("https://mcp.exa.ai/mcp"));
+
+    expect(config).toMatchObject({ dynamicHighlights: true });
+  });
+
+  it("prefers ?dynamicHighlights over DYNAMIC_HIGHLIGHTS", async () => {
+    process.env.DYNAMIC_HIGHLIGHTS = "true";
+
+    const { config } = await callHandleRequest(
+      new Request("https://mcp.exa.ai/mcp?dynamicHighlights=false"),
+    );
+
+    expect(config).toMatchObject({ dynamicHighlights: false });
   });
 
   it("falls back to DEFAULT_SEARCH_TYPE when ?defaultSearchType is invalid", async () => {

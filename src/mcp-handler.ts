@@ -34,6 +34,8 @@ export interface McpConfig {
   mcpSessionId?: string;
   mcpClient?: unknown;
   defaultSearchType?: SearchType;
+  /** Ask the web search tools for dynamic highlights (`?dynamicHighlights=true`, `DYNAMIC_HIGHLIGHTS=true`). */
+  dynamicHighlights?: boolean;
   oauthAccessToken?: string;
   agentCallWindowMs?: number;
   mcpMaxDurationSeconds?: number;

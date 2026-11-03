@@ -7,8 +7,9 @@ import { expandToolSelection } from "./toolRegistry.js";
 import { log } from "./utils/logger.js";
 import { parsePositiveInteger } from "./tools/agentRun.js";
 import { parseSearchType } from "./tools/searchType.js";
+import { parseDynamicHighlights } from "./tools/highlights.js";
 
-// Reads EXA_API_KEY, ENABLED_TOOLS / TOOLS, DEBUG, DEFAULT_SEARCH_TYPE from env.
+// Reads EXA_API_KEY, ENABLED_TOOLS / TOOLS, DEBUG, DEFAULT_SEARCH_TYPE, DYNAMIC_HIGHLIGHTS from env.
 // HTTP/Vercel entry point lives in api/mcp.ts; CLI bootstrap lives in src/stdio-cli.ts.
 
 function parseTools(value: string | undefined): string[] | undefined {
@@ -31,6 +32,7 @@ export function buildConfigFromEnv(env: NodeJS.ProcessEnv = process.env): McpCon
     exaSource: env.EXA_SOURCE,
     mcpSessionId: env.MCP_SESSION_ID,
     defaultSearchType: parseSearchType(env.DEFAULT_SEARCH_TYPE),
+    dynamicHighlights: parseDynamicHighlights(env.DYNAMIC_HIGHLIGHTS),
     userProvidedApiKey: Boolean(exaApiKey),
     mcpMaxDurationSeconds: parsePositiveInteger(env.MCP_MAX_DURATION_SECONDS),
     agentCallWindowMs: parsePositiveInteger(env.AGENT_CALL_WINDOW_MS),
