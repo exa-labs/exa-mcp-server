@@ -92,15 +92,18 @@ export function registerWebSearchTool(
       logger.log("Sending request to Exa API");
 
       const response = await withTimeout(
-        () =>
-          retryWithBackoff(() =>
-            exa.request<ExaSearchResponse>(
-              API_CONFIG.ENDPOINTS.SEARCH,
-              "POST",
-              searchRequest,
-              undefined,
-              headers,
-            ),
+        (signal) =>
+          retryWithBackoff(
+            () =>
+              exa.request<ExaSearchResponse>(
+                API_CONFIG.ENDPOINTS.SEARCH,
+                "POST",
+                searchRequest,
+                undefined,
+                headers,
+              ),
+            2,
+            signal,
           ),
         API_CONFIG.TOOL_TIMEOUTS.SEARCH_MS,
         toolId,

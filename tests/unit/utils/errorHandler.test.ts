@@ -99,6 +99,45 @@ describe("errorHandler", () => {
     await assertion;
   });
 
+  it("stops retrying once the timeout has fired", async () => {
+    vi.useFakeTimers();
+    // Each attempt fails with a gateway timeout after 40s, so the second
+    // attempt is still in flight when the 60s tool timeout fires.
+    const fn = vi.fn<() => Promise<string>>(
+      () =>
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new ExaError("gateway timeout", 504)), 40_000);
+        }),
+    );
+
+    const result = withTimeout(
+      (signal) => retryWithBackoff(fn, 2, signal),
+      60_000,
+      "web_search_exa",
+    );
+    const assertion = expect(result).rejects.toThrow("web_search_exa timed out after 60s");
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    await assertion;
+    expect(fn).toHaveBeenCalledTimes(2);
+
+    // Let the orphaned second attempt fail and the backoff elapse. No third
+    // request should go out after the caller has already been given an error.
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not wait out the backoff when the signal is already aborted", async () => {
+    const controller = new AbortController();
+    const fn = vi.fn<() => Promise<string>>(async () => {
+      controller.abort();
+      throw new ExaError("temporary failure", 503);
+    });
+
+    await expect(retryWithBackoff(fn, 2, controller.signal)).rejects.toThrow("temporary failure");
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
   it("propagates errors from the wrapped function", async () => {
     vi.useFakeTimers();
     const error = new Error("request failed");

@@ -87,15 +87,18 @@ Returns: Clean text content and metadata from the page(s).`,
         logger.log("Sending crawl request to Exa API");
 
         const response = await withTimeout(
-          () =>
-            retryWithBackoff(() =>
-              exa.request<any>(
-                "/contents",
-                "POST",
-                crawlRequest,
-                undefined,
-                integrationHeaders("crawling-mcp", config),
-              ),
+          (signal) =>
+            retryWithBackoff(
+              () =>
+                exa.request<any>(
+                  "/contents",
+                  "POST",
+                  crawlRequest,
+                  undefined,
+                  integrationHeaders("crawling-mcp", config),
+                ),
+              2,
+              signal,
             ),
           API_CONFIG.TOOL_TIMEOUTS.FETCH_MS,
           "web_fetch_exa",

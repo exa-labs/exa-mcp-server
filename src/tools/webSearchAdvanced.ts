@@ -391,15 +391,18 @@ Returns: Search results with page text, highlights, summaries or subpage content
         logger.log("Sending advanced search request to Exa API");
 
         const response = await withTimeout(
-          () =>
-            retryWithBackoff(() =>
-              exa.request<ExaSearchResponse>(
-                API_CONFIG.ENDPOINTS.SEARCH,
-                "POST",
-                searchRequest,
-                undefined,
-                headers,
-              ),
+          (signal) =>
+            retryWithBackoff(
+              () =>
+                exa.request<ExaSearchResponse>(
+                  API_CONFIG.ENDPOINTS.SEARCH,
+                  "POST",
+                  searchRequest,
+                  undefined,
+                  headers,
+                ),
+              2,
+              signal,
             ),
           API_CONFIG.TOOL_TIMEOUTS.ADVANCED_SEARCH_MS,
           "web_search_advanced_exa",

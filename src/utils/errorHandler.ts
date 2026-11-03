@@ -30,11 +30,35 @@ export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Resolves after `ms`, or as soon as `signal` aborts.
+ */
+function delayUnlessAborted(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) return resolve();
+    const onAbort = () => {
+      clearTimeout(timeoutId);
+      resolve();
+    };
+    const timeoutId = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/**
+ * Retries `fn` on transient errors with exponential backoff. When `signal`
+ * aborts (for example because `withTimeout` gave up), no further attempts are
+ * started and the last error is rethrown.
+ */
 export async function retryOnTransient<T>(
   fn: () => Promise<T>,
   isTransient: (error: unknown) => boolean,
   maxRetries = 2,
   baseDelayMs = 1000,
+  signal?: AbortSignal,
 ): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -42,8 +66,14 @@ export async function retryOnTransient<T>(
       return await fn();
     } catch (error) {
       lastError = error;
-      if (!isTransient(error) || attempt === maxRetries) throw error;
-      await delay(baseDelayMs * 2 ** attempt);
+      if (!isTransient(error) || attempt === maxRetries || signal?.aborted) throw error;
+      const waitMs = baseDelayMs * 2 ** attempt;
+      if (signal) {
+        await delayUnlessAborted(waitMs, signal);
+        if (signal.aborted) throw error;
+      } else {
+        await delay(waitMs);
+      }
     }
   }
   throw lastError;
@@ -53,25 +83,36 @@ function isTransientExaError(error: unknown): boolean {
   return error instanceof ExaError && TRANSIENT_STATUS_CODES.has(error.statusCode);
 }
 
-export function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
-  return retryOnTransient(fn, isTransientExaError, maxRetries);
+export function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries = 2,
+  signal?: AbortSignal,
+): Promise<T> {
+  return retryOnTransient(fn, isTransientExaError, maxRetries, 1000, signal);
 }
 
+/**
+ * Rejects if `fn` has not settled within `timeoutMs`. `fn` receives a signal
+ * that aborts when the timeout fires, so it can stop work nobody is waiting
+ * for (such as retries).
+ */
 export async function withTimeout<T>(
-  fn: () => Promise<T>,
+  fn: (signal: AbortSignal) => Promise<T>,
   timeoutMs: number,
   label: string,
 ): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const controller = new AbortController();
 
   try {
     return await Promise.race([
-      Promise.resolve().then(fn),
+      Promise.resolve().then(() => fn(controller.signal)),
       new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(
-          () => reject(new Error(`${label} timed out after ${timeoutMs / 1000}s`)),
-          timeoutMs,
-        );
+        timeoutId = setTimeout(() => {
+          const error = new Error(`${label} timed out after ${timeoutMs / 1000}s`);
+          controller.abort(error);
+          reject(error);
+        }, timeoutMs);
       }),
     ]);
   } finally {
