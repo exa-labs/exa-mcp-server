@@ -106,6 +106,18 @@ describe("Stdio entrypoint", () => {
     });
   });
 
+  it.each([
+    ["true", true],
+    ["false", false],
+    [undefined, undefined],
+  ])("buildConfigFromEnv reads DYNAMIC_HIGHLIGHTS=%s as %s", async (value, expected) => {
+    const { buildConfigFromEnv } = await import("../../src/stdio.js");
+
+    const config = buildConfigFromEnv({ DYNAMIC_HIGHLIGHTS: value });
+
+    expect(config.dynamicHighlights).toBe(expected);
+  });
+
   it("buildConfigFromEnv includes optional integration metadata", async () => {
     const { buildConfigFromEnv } = await import("../../src/stdio.js");
 

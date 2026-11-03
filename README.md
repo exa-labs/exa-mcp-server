@@ -112,6 +112,14 @@ https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,agent_run
 
 Exa Agent requires authentication (OAuth or an [API key](https://dashboard.exa.ai/api-keys)).
 
+### Dynamic Highlights (beta)
+
+Add `dynamicHighlights=true` to the MCP URL to make `web_search_exa` and `web_search_advanced_exa` return [Dynamic Highlights](https://exa.ai/docs/contents/quickstart#dynamic-highlights). These are highlights chosen across all results under one shared budget, not a fixed budget per URL, so less text reaches your agent's context. When the server runs locally, set `DYNAMIC_HIGHLIGHTS=true` instead.
+
+```
+https://mcp.exa.ai/mcp?dynamicHighlights=true
+```
+
 ## Agent Skills
 
 Skills live in [`skills/`](./skills/) and load with Agent Plugin installs. The Claude plugin in [`plugins/exa/`](./plugins/exa/) ships a copy of them; `npm test` fails when the copy drifts. Each package version bump on `main` publishes `plugins/exa/` to the root of the [`claude-plugin`](https://github.com/exa-labs/exa-mcp-server/tree/claude-plugin) branch, which Claude's plugin directory reads. To publish a plugin-only change between releases, run the `Publish Claude plugin` workflow manually.

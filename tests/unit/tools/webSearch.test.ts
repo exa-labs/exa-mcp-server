@@ -103,6 +103,23 @@ describe("registerWebSearchTool", () => {
     );
   });
 
+  it("requests dynamic highlights with the Exa-Beta header when the server has them on", async () => {
+    const { registerWebSearchTool } = await import("../../../src/tools/webSearch.js");
+    const server = new FakeMcpServer();
+    requestMock.mockResolvedValue(searchResponse);
+
+    registerWebSearchTool(server as any, { exaApiKey: "test-key", dynamicHighlights: true });
+
+    await server.getTool("web_search_exa").handler({ query: "AI breakthroughs" });
+
+    const [, , request, , headers] = requestMock.mock.calls[0];
+    expect(request.contents).toEqual({ highlights: { dynamic: true } });
+    expect(headers).toEqual({
+      "x-exa-integration": "web-search-mcp",
+      "Exa-Beta": "dynamic-highlights-2026-08-28",
+    });
+  });
+
   it("returns a friendly message when Exa has no results", async () => {
     const { registerWebSearchTool } = await import("../../../src/tools/webSearch.js");
     const server = new FakeMcpServer();
