@@ -17,6 +17,7 @@ import {
   withStructuredSearchNotices,
 } from "./searchNotes.js";
 import { SEARCH_TYPES } from "./searchType.js";
+import { addExaBeta, DYNAMIC_HIGHLIGHTS_BETA_TOKEN } from "./highlights.js";
 import { checkpoint } from "agnost";
 
 /**
@@ -104,6 +105,27 @@ export function requestedText(
   return true;
 }
 
+/**
+ * Whether `request` asks for dynamic highlights with a per-URL character cap,
+ * a combination the API rejects with a 400: dynamic highlights share one
+ * budget across all results.
+ */
+export function capsDynamicHighlights(request: ExaAdvancedSearchRequest): boolean {
+  const highlights = request.contents.highlights;
+  return highlights?.dynamic === true && highlights.maxCharacters != null;
+}
+
+/** The error result for a search that caps highlights per URL on a server with dynamic highlights on. */
+const DYNAMIC_HIGHLIGHTS_CAP_REFUSAL = {
+  content: [
+    {
+      type: "text" as const,
+      text: "web_search_advanced_exa error: this server uses dynamic highlights (beta), which share one budget across all results, so highlightsMaxCharacters is not supported. Remove it.",
+    },
+  ],
+  isError: true as const,
+};
+
 /** The error result for a `lite` search that sets parameters `lite` does not serve. */
 function liteRefusal(parameters: readonly string[]) {
   const pronoun = parameters.length === 1 ? "it" : "them";
@@ -120,7 +142,7 @@ function liteRefusal(parameters: readonly string[]) {
 
 export function registerWebSearchAdvancedTool(
   server: McpServer,
-  config?: { exaApiKey?: string; userProvidedApiKey?: boolean },
+  config?: { exaApiKey?: string; userProvidedApiKey?: boolean; dynamicHighlights?: boolean },
 ): void {
   server.tool(
     "web_search_advanced_exa",
@@ -209,7 +231,9 @@ Returns: Search results with page text, highlights, summaries or subpage content
 
       enableHighlights: lenientOptionalBoolean().describe("Enable highlights extraction"),
       highlightsMaxCharacters: lenientOptionalNumber().describe(
-        "Maximum total characters across all highlights per URL. Preferred over highlightsNumSentences.",
+        config?.dynamicHighlights
+          ? "Not supported on this server: it uses dynamic highlights (beta), which share one budget across all results. Leave unset."
+          : "Maximum total characters across all highlights per URL. Preferred over highlightsNumSentences.",
       ),
       highlightsNumSentences: lenientOptionalNumber().describe(
         "Deprecated. Use highlightsMaxCharacters instead.",
@@ -278,6 +302,7 @@ Returns: Search results with page text, highlights, summaries or subpage content
             numSentences: params.highlightsNumSentences,
             highlightsPerUrl: params.highlightsPerUrl,
             query: params.highlightsQuery,
+            ...(config?.dynamicHighlights && { dynamic: true }),
           };
         }
 
@@ -351,6 +376,17 @@ Returns: Search results with page text, highlights, summaries or subpage content
           return liteRefusal(liteUnsupported);
         }
 
+        if (capsDynamicHighlights(searchRequest)) {
+          logger.log("Refusing highlightsMaxCharacters with dynamic highlights on");
+          checkpoint("web_search_advanced_complete");
+          return DYNAMIC_HIGHLIGHTS_CAP_REFUSAL;
+        }
+
+        const headers = integrationHeaders("web-search-advanced-mcp", config);
+        if (contents.highlights?.dynamic) {
+          addExaBeta(headers, DYNAMIC_HIGHLIGHTS_BETA_TOKEN);
+        }
+
         checkpoint("web_search_advanced_request_prepared");
         logger.log("Sending advanced search request to Exa API");
 
@@ -362,7 +398,7 @@ Returns: Search results with page text, highlights, summaries or subpage content
                 "POST",
                 searchRequest,
                 undefined,
-                integrationHeaders("web-search-advanced-mcp", config),
+                headers,
               ),
             ),
           API_CONFIG.TOOL_TIMEOUTS.ADVANCED_SEARCH_MS,
