@@ -68,6 +68,15 @@ describe("validation helpers", () => {
       expect(parsed.success).toBe(true);
       if (parsed.success) expect(parsed.data).toBeUndefined();
     });
+
+    it.each([
+      ["null", null],
+      ["empty string", ""],
+    ])("treats %s as unset instead of 0", (_, input) => {
+      const parsed = schema.safeParse(input);
+      expect(parsed.success).toBe(true);
+      if (parsed.success) expect(parsed.data).toBeUndefined();
+    });
   });
 
   describe("lenientOptionalPositiveNumber", () => {
@@ -83,6 +92,8 @@ describe("validation helpers", () => {
       ["zero (silently drops to undefined)", 0],
       ["negative (silently drops to undefined)", -3],
       ["non-numeric string", "five"],
+      ["null", null],
+      ["empty string", ""],
     ])("%s -> undefined", (_, input) => {
       const parsed = schema.safeParse(input);
       expect(parsed.success).toBe(true);
