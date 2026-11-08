@@ -155,6 +155,53 @@ describe("web_search_advanced_exa search type", () => {
     });
   });
 
+  it.each([null, ""])(
+    "treats maxAgeHours %j as omitted, so the search keeps the livecrawl fallback and a lite search is not refused",
+    async (maxAgeHours) => {
+      const tool = await registerAdvancedTool();
+      requestMock.mockResolvedValue(searchResponse);
+
+      const omitted = inputSchema(tool).parse({
+        query: "AI breakthroughs",
+        maxAgeHours,
+        enableHighlights: true,
+        highlightsMaxCharacters: null,
+        highlightsNumSentences: null,
+      });
+      await tool.handler(omitted);
+
+      const fallback = sentRequest();
+      expect(fallback.contents.maxAgeHours).toBeUndefined();
+      expect(fallback.contents.livecrawl).toBe("fallback");
+      expect(fallback.contents.highlights?.maxCharacters).toBeUndefined();
+      expect(fallback.contents.highlights?.numSentences).toBeUndefined();
+
+      requestMock.mockClear();
+      const lite = inputSchema(tool).parse({
+        query: "AI breakthroughs",
+        type: "lite",
+        maxAgeHours,
+      });
+      const result = await tool.handler(lite);
+
+      expect((result as { isError?: boolean }).isError).toBeUndefined();
+      expect(sentRequest().type).toBe("lite");
+      expect(sentRequest().contents.maxAgeHours).toBeUndefined();
+      expect(sentRequest().contents.livecrawl).toBeUndefined();
+    },
+  );
+
+  it("still sends an explicit zero maxAgeHours as a live crawl", async () => {
+    const tool = await registerAdvancedTool();
+    requestMock.mockResolvedValue(searchResponse);
+
+    const params = inputSchema(tool).parse({ query: "AI breakthroughs", maxAgeHours: 0 });
+    await tool.handler(params);
+
+    expect(sentRequest().contents.maxAgeHours).toBe(0);
+    expect(sentRequest().contents.livecrawl).toBeUndefined();
+  });
+
   it("searches with auto when the server has a default search type configured", async () => {
     const { registerWebSearchAdvancedTool } =
       await import("../../../src/tools/webSearchAdvanced.js");

@@ -12,18 +12,29 @@ export function lenientString() {
 }
 
 /**
+ * null and "" are unset. z.coerce.number() maps both to 0, so a client that
+ * leaves an optional number empty would otherwise send that 0 (for example
+ * maxAgeHours: 0, which forces a live crawl).
+ */
+function unsetBlankNumber(value: unknown): unknown {
+  if (value === null || value === "") return undefined;
+  return value;
+}
+
+/**
  * Lenient optional number: uses z.coerce for string-to-number conversion,
  * falls back to undefined on invalid input instead of throwing a validation error.
+ * null and "" stay unset instead of becoming 0.
  */
 export function lenientOptionalNumber() {
-  return z.coerce.number().optional().catch(undefined);
+  return z.preprocess(unsetBlankNumber, z.coerce.number().optional()).catch(undefined);
 }
 
 /**
  * Lenient optional positive number: same as lenientOptionalNumber but requires min(1).
  */
 export function lenientOptionalPositiveNumber() {
-  return z.coerce.number().min(1).optional().catch(undefined);
+  return z.preprocess(unsetBlankNumber, z.coerce.number().min(1).optional()).catch(undefined);
 }
 
 /**
