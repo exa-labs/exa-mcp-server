@@ -12,18 +12,30 @@ export function lenientString() {
 }
 
 /**
- * Lenient optional number: uses z.coerce for string-to-number conversion,
- * falls back to undefined on invalid input instead of throwing a validation error.
+ * `undefined` for a value a client sends to mean "not set": `null`, or a
+ * string that is empty or only whitespace. Any other value is returned as is.
+ * Applied before number coercion, which would otherwise read these as 0.
+ */
+function unsetAsUndefined(value: unknown): unknown {
+  if (value === null) return undefined;
+  if (typeof value === "string" && value.trim() === "") return undefined;
+  return value;
+}
+
+/**
+ * Lenient optional number: treats `null` and blank strings as unset, uses
+ * z.coerce for string-to-number conversion, and falls back to undefined on
+ * invalid input instead of throwing a validation error.
  */
 export function lenientOptionalNumber() {
-  return z.coerce.number().optional().catch(undefined);
+  return z.preprocess(unsetAsUndefined, z.coerce.number().optional()).catch(undefined);
 }
 
 /**
  * Lenient optional positive number: same as lenientOptionalNumber but requires min(1).
  */
 export function lenientOptionalPositiveNumber() {
-  return z.coerce.number().min(1).optional().catch(undefined);
+  return z.preprocess(unsetAsUndefined, z.coerce.number().min(1).optional()).catch(undefined);
 }
 
 /**

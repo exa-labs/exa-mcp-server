@@ -244,7 +244,7 @@ Returns: Search results with page text, highlights, summaries or subpage content
       highlightsQuery: z.string().optional().describe("Query for highlight relevance"),
 
       maxAgeHours: lenientOptionalNumber().describe(
-        "Maximum age of cached content in hours. 0 = always fetch fresh content, omit = use cached content with fresh fetch fallback",
+        "Maximum age of cached content in hours. 0 = return live content, fetched within the last 60 seconds, omit = use cached content with fresh fetch fallback",
       ),
       livecrawlTimeout: lenientOptionalNumber().describe(
         "Timeout in milliseconds for fetching fresh content when maxAgeHours triggers a live fetch",
