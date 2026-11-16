@@ -43,3 +43,20 @@ export function lenientOptionalBoolean() {
     }, z.boolean().optional())
     .catch(undefined);
 }
+
+/**
+ * Lenient string array: accepts an array, a JSON-encoded array string, or a single
+ * string, since some clients send array arguments as strings.
+ */
+export function lenientStringArray() {
+  return z.preprocess((val) => {
+    if (typeof val === "string") {
+      try {
+        return JSON.parse(val);
+      } catch {
+        return [val];
+      }
+    }
+    return val;
+  }, z.array(z.string()));
+}

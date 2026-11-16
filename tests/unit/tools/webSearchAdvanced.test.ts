@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { searchResponse } from "../../fixtures/exaResponses.js";
 import { FakeMcpServer } from "../../helpers/fakeMcpServer.js";
 
@@ -116,4 +117,30 @@ describe("web_search_advanced_exa dynamic highlights", () => {
       expect(headers).not.toHaveProperty("Exa-Beta");
     },
   );
+});
+
+describe("web_search_advanced_exa domain filters", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  it("accepts domain lists sent as a JSON string or a single string", async () => {
+    const tool = await registerAdvancedTool();
+    const schema = z.object(tool.inputSchema as z.ZodRawShape);
+
+    const parsed = schema.parse({
+      query: "AI breakthroughs",
+      includeDomains: '["arxiv.org","github.com"]',
+      excludeDomains: "reddit.com",
+    });
+    expect(parsed.includeDomains).toEqual(["arxiv.org", "github.com"]);
+    expect(parsed.excludeDomains).toEqual(["reddit.com"]);
+
+    requestMock.mockResolvedValue(searchResponse);
+    await tool.handler(parsed);
+    const [, , request] = requestMock.mock.calls[0];
+    expect(request.includeDomains).toEqual(["arxiv.org", "github.com"]);
+    expect(request.excludeDomains).toEqual(["reddit.com"]);
+  });
 });

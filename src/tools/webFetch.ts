@@ -1,10 +1,9 @@
-import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { createRequestLogger } from "../utils/logger.js";
 import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { sanitizeContentsResponse } from "../utils/exaResponseSanitizer.js";
-import { lenientOptionalPositiveNumber } from "./validation.js";
+import { lenientOptionalPositiveNumber, lenientStringArray } from "./validation.js";
 import { checkpoint } from "agnost";
 
 interface CrawlStatus {
@@ -45,18 +44,7 @@ export function registerWebFetchTool(
 Best for: Extracting full content from known URLs. Batch multiple URLs in one call.
 Returns: Clean text content and metadata from the page(s).`,
       inputSchema: {
-        urls: z
-          .preprocess((val) => {
-            if (typeof val === "string") {
-              try {
-                return JSON.parse(val);
-              } catch {
-                return [val];
-              }
-            }
-            return val;
-          }, z.array(z.string()))
-          .describe("URLs to read. Batch multiple URLs in one call."),
+        urls: lenientStringArray().describe("URLs to read. Batch multiple URLs in one call."),
         maxCharacters: lenientOptionalPositiveNumber().describe(
           "Maximum characters to extract per page (default: 3000)",
         ),
