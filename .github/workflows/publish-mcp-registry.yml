@@ -24,6 +24,7 @@ jobs:
           REMOTE_TYPE=$(jq -r '.remotes[0].type' server.json)
           REMOTE_URL=$(jq -r '.remotes[0].url' server.json)
           HAS_PACKAGES=$(jq 'has("packages")' server.json)
+          HAS_DISPLAY=$(jq '(.title // "") != "" and (.websiteUrl // "") != "" and ((.icons // []) | length) > 0' server.json)
 
           if [ "$NAME" != "ai.exa/exa" ] || [ "$MCP_NAME" != "ai.exa/exa" ]; then
             echo "::error::expected ai.exa/exa, got server.json=$NAME mcpName=$MCP_NAME"
@@ -35,6 +36,10 @@ jobs:
           fi
           if [ "$HAS_PACKAGES" != "false" ]; then
             echo "::error::server.json must be remote-only (no packages)"
+            exit 1
+          fi
+          if [ "$HAS_DISPLAY" != "true" ]; then
+            echo "::error::server.json must set title, websiteUrl and icons"
             exit 1
           fi
           if [ "$REMOTE_TYPE" != "streamable-http" ] || [ "$REMOTE_URL" != "https://mcp.exa.ai/mcp" ]; then
