@@ -10,6 +10,7 @@ import {
   lenientOptionalNumber,
   lenientOptionalPositiveNumber,
   lenientOptionalBoolean,
+  lenientStringArray,
 } from "./validation.js";
 import {
   logSearchWarnings,
@@ -175,11 +176,12 @@ Returns: Search results with page text, highlights, summaries or subpage content
         .optional()
         .describe("Filter results to a specific category"),
 
-      includeDomains: z
-        .array(z.string())
+      includeDomains: lenientStringArray()
         .optional()
         .describe("Only include results from these domains (e.g., ['arxiv.org', 'github.com'])"),
-      excludeDomains: z.array(z.string()).optional().describe("Exclude results from these domains"),
+      excludeDomains: lenientStringArray()
+        .optional()
+        .describe("Exclude results from these domains"),
 
       startPublishedDate: z
         .string()

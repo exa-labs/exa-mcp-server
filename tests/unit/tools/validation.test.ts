@@ -6,6 +6,7 @@ import {
   lenientOptionalNumber,
   lenientOptionalPositiveNumber,
   lenientString,
+  lenientStringArray,
 } from "../../../src/tools/validation.js";
 import { FakeMcpServer } from "../../helpers/fakeMcpServer.js";
 
@@ -33,6 +34,24 @@ describe("validation helpers", () => {
       ["undefined", undefined],
     ])("rejects %s", (_, input) => {
       expect(schema.safeParse(input).success).toBe(false);
+    });
+  });
+
+  describe("lenientStringArray", () => {
+    const schema = lenientStringArray();
+
+    it.each([
+      ["array", ["arxiv.org", "github.com"], ["arxiv.org", "github.com"]],
+      ["JSON-encoded array", '["arxiv.org","github.com"]', ["arxiv.org", "github.com"]],
+      ["single string", "arxiv.org", ["arxiv.org"]],
+    ])("accepts %s", (_, input, expected) => {
+      const parsed = schema.safeParse(input);
+      expect(parsed.success).toBe(true);
+      if (parsed.success) expect(parsed.data).toEqual(expected);
+    });
+
+    it("rejects a non-string item", () => {
+      expect(schema.safeParse([1]).success).toBe(false);
     });
   });
 
