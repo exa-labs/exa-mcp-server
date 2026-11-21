@@ -126,7 +126,7 @@ Skills live in [`skills/`](./skills/) and load with Agent Plugin installs. The C
 
 | Skill | Path | Use when |
 | --- | --- | --- |
-| `search` | [`skills/search/`](./skills/search/SKILL.md) | Deep research, lead gen, competitive analysis, multi-step web investigation |
+| `search` | [`skills/search/`](./skills/search/SKILL.md) | Current facts, external sources, a supplied URL, people, companies, news or publications |
 | `exa-agent` | [`skills/exa-agent/`](./skills/exa-agent/SKILL.md) | Exa Agent runs, enrichment, structured output, Connect providers |
 
 Invoke from your client's skill UI (or `/skill-name` where supported). MCP-only setups still get the tools; skills add orchestration on top.
