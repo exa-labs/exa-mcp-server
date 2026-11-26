@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { DeepResearchRequest, DeepResearchStartResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { lenientString } from "./validation.js";
 import { checkpoint } from "agnost";
 
@@ -59,14 +59,19 @@ Important: Call deep_researcher_check with the returned research ID to get the r
         });
         logger.log(`Starting research with model: ${researchRequest.model}`);
 
-        const response = await retryWithBackoff(() =>
-          exa.request<DeepResearchStartResponse>(
-            API_CONFIG.ENDPOINTS.RESEARCH,
-            "POST",
-            researchRequest,
-            undefined,
-            integrationHeaders("deep-research-mcp", config),
-          ),
+        const response = await withTimeout(
+          () =>
+            retryWithBackoff(() =>
+              exa.request<DeepResearchStartResponse>(
+                API_CONFIG.ENDPOINTS.RESEARCH,
+                "POST",
+                researchRequest,
+                undefined,
+                integrationHeaders("deep-research-mcp", config),
+              ),
+            ),
+          API_CONFIG.TOOL_TIMEOUTS.SEARCH_MS,
+          "deep_researcher_start",
         );
 
         checkpoint("deep_research_start_response_received");
