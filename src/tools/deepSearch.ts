@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { ExaDeepSearchRequest, ExaDeepSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import {
   sanitizeDeepSearchStructuredResponse,
   sanitizeSearchNotices,
@@ -126,14 +126,19 @@ Note: Requires an Exa API key. 'deep' takes 4-12s.`,
         checkpoint("deep_search_request_prepared");
         logger.log("Sending deep search request to Exa API");
 
-        const response = await retryWithBackoff(() =>
-          exa.request<ExaDeepSearchResponse>(
-            API_CONFIG.ENDPOINTS.SEARCH,
-            "POST",
-            searchRequest,
-            undefined,
-            integrationHeaders("deep-search-mcp", config),
-          ),
+        const response = await withTimeout(
+          () =>
+            retryWithBackoff(() =>
+              exa.request<ExaDeepSearchResponse>(
+                API_CONFIG.ENDPOINTS.SEARCH,
+                "POST",
+                searchRequest,
+                undefined,
+                integrationHeaders("deep-search-mcp", config),
+              ),
+            ),
+          API_CONFIG.TOOL_TIMEOUTS.ADVANCED_SEARCH_MS,
+          "deep_search_exa",
         );
 
         checkpoint("deep_search_response_received");

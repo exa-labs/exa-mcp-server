@@ -4,7 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { DeepResearchCheckResponse, DeepResearchErrorResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { checkpoint } from "agnost";
 
 // Helper function to create a delay
@@ -47,14 +47,19 @@ Important: Keep calling with the same research ID until status is 'completed'.`,
         logger.log(`Checking status for research: ${researchId}`);
 
         checkpoint("deep_research_check_request_prepared");
-        const response = await retryWithBackoff(() =>
-          exa.request<DeepResearchCheckResponse>(
-            `${API_CONFIG.ENDPOINTS.RESEARCH}/${researchId}`,
-            "GET",
-            undefined,
-            undefined,
-            integrationHeaders("deep-research-mcp", config),
-          ),
+        const response = await withTimeout(
+          () =>
+            retryWithBackoff(() =>
+              exa.request<DeepResearchCheckResponse>(
+                `${API_CONFIG.ENDPOINTS.RESEARCH}/${researchId}`,
+                "GET",
+                undefined,
+                undefined,
+                integrationHeaders("deep-research-mcp", config),
+              ),
+            ),
+          API_CONFIG.TOOL_TIMEOUTS.SEARCH_MS,
+          "deep_researcher_check",
         );
 
         checkpoint("deep_research_check_response_received");

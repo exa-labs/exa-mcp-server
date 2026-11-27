@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { API_CONFIG, createExaClient, integrationHeaders } from "./config.js";
 import { ExaSearchRequest, ExaSearchResponse } from "../types.js";
 import { createRequestLogger } from "../utils/logger.js";
-import { retryWithBackoff, formatToolError } from "../utils/errorHandler.js";
+import { retryWithBackoff, formatToolError, withTimeout } from "../utils/errorHandler.js";
 import { sanitizeSearchNotices, sanitizeSearchResponse } from "../utils/exaResponseSanitizer.js";
 import { logSearchWarnings, withSearchNotices } from "./searchNotes.js";
 import { lenientString, lenientOptionalNumber } from "./validation.js";
@@ -54,14 +54,19 @@ Returns: Profile information and links.`,
         checkpoint("people_search_request_prepared");
         logger.log("Sending request to Exa API for people search");
 
-        const response = await retryWithBackoff(() =>
-          exa.request<ExaSearchResponse>(
-            API_CONFIG.ENDPOINTS.SEARCH,
-            "POST",
-            searchRequest,
-            undefined,
-            integrationHeaders("people-search-mcp", config),
-          ),
+        const response = await withTimeout(
+          () =>
+            retryWithBackoff(() =>
+              exa.request<ExaSearchResponse>(
+                API_CONFIG.ENDPOINTS.SEARCH,
+                "POST",
+                searchRequest,
+                undefined,
+                integrationHeaders("people-search-mcp", config),
+              ),
+            ),
+          API_CONFIG.TOOL_TIMEOUTS.SEARCH_MS,
+          "people_search_exa",
         );
 
         checkpoint("people_search_response_received");
